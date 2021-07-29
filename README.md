@@ -2,7 +2,7 @@
 
 Procedural Mesh Modeling Toolkit for Unreal Engine Artists.
 
-![](https://user-images.githubusercontent.com/50838/127510236-d8d2b441-328c-4898-a488-d386b8441115.png)
+[![](https://user-images.githubusercontent.com/50838/127510236-d8d2b441-328c-4898-a488-d386b8441115.png)](https://youtu.be/U9EwLogF5RA)
 
 ## Installation
 
