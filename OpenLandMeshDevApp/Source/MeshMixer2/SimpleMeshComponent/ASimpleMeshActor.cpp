@@ -36,16 +36,10 @@ void ASimpleMeshActor::Tick(float DeltaTime)
 bool ASimpleMeshActor::ShouldTickIfViewportsOnly() const
 {
 	if (GetWorld() != nullptr && GetWorld()->WorldType == EWorldType::Editor)
-	{
 		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return false;
 }
 
 void ASimpleMeshActor::GenerateMesh()
 {
 }
-

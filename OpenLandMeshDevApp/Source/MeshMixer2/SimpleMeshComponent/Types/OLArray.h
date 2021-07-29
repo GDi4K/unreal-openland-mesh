@@ -24,23 +24,22 @@ class OLArray
 
 	void CheckLockForever()
 	{
-		checkf(bLockForever == false, TEXT("It's not possible to unlock OLArray<%hs> which is locked forever"), typeid(T).name())
+		checkf(bLockForever == false, TEXT("It's not possible to unlock OLArray<%hs> which is locked forever"),
+		       typeid(T).name())
 	}
+
 public:
 	OLArray()
 	{
-		
 	}
 
 	OLArray(std::initializer_list<T> InitialList)
 	{
 		Data.reserve(InitialList.size());
-		for (T Item: InitialList)
-		{
+		for (T Item : InitialList)
 			Push(Item);
-		}
 	}
-	
+
 	size_t Push(const T Item)
 	{
 		CheckFreeze();
@@ -98,10 +97,8 @@ public:
 
 	void Append(OLArray<T> Other)
 	{
-		for(size_t Index=0; Index<Other.Length(); Index++)
-		{
+		for (size_t Index = 0; Index < Other.Length(); Index++)
 			Push(Other.Get(Index));
-		}
 	}
 
 	void Freeze()

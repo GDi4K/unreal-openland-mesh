@@ -9,8 +9,8 @@ uint32 UOpenLandMeshComponent::VertexCounter = 0;
 
 void UOpenLandMeshComponent::AddCollisionConvexMesh(TArray<FVector> ConvexVerts)
 {
-	if(ConvexVerts.Num() >= 4)
-	{ 
+	if (ConvexVerts.Num() >= 4)
+	{
 		// New element
 		FKConvexElem NewConvexElem;
 		// Copy in vertex info
@@ -54,11 +54,9 @@ bool UOpenLandMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* Collis
 	int32 VertexBase = 0; // Base vertex index for current section
 
 	// See if we should copy UVs
-	bool bCopyUVs = UPhysicsSettings::Get()->bSupportUVFromHitResults; 
+	bool bCopyUVs = UPhysicsSettings::Get()->bSupportUVFromHitResults;
 	if (bCopyUVs)
-	{
 		CollisionData->UVs.AddZeroed(1); // only one UV channel
-	}
 
 	// For each section..
 	for (int32 SectionIdx = 0; SectionIdx < MeshSections.Num(); SectionIdx++)
@@ -74,9 +72,7 @@ bool UOpenLandMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* Collis
 
 				// Copy UV if desired
 				if (bCopyUVs)
-				{
 					CollisionData->UVs[0].Add(Section->Vertices.Get(VertIdx).UV0);
-				}
 			}
 
 			// Copy triangle data
@@ -109,13 +105,11 @@ bool UOpenLandMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* Collis
 
 bool UOpenLandMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) const
 {
-	for (size_t Index = 0; Index<MeshSections.Num(); Index++)
+	for (size_t Index = 0; Index < MeshSections.Num(); Index++)
 	{
 		const FSimpleMeshInfoPtr Section = MeshSections[Index];
 		if (Section->Triangles.Length() >= 0 && Section->bEnableCollision)
-		{
 			return true;
-		}
 	}
 
 	return false;
@@ -138,7 +132,8 @@ void UOpenLandMeshComponent::Invalidate()
 	MarkRenderStateDirty();
 }
 
-UMaterialInterface* UOpenLandMeshComponent::GetMaterialFromCollisionFaceIndex(int32 FaceIndex, int32& SectionIndex) const
+UMaterialInterface* UOpenLandMeshComponent::GetMaterialFromCollisionFaceIndex(
+	int32 FaceIndex, int32& SectionIndex) const
 {
 	UMaterialInterface* Result = nullptr;
 	SectionIndex = 0;
@@ -176,43 +171,40 @@ void UOpenLandMeshComponent::PostLoad()
 	Super::PostLoad();
 
 	if (SimpleMeshBodySetup && IsTemplate())
-	{
 		SimpleMeshBodySetup->SetFlags(RF_Public | RF_ArchetypeObject);
-	}
 }
 
 void UOpenLandMeshComponent::CreateMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo)
 {
 	if (SectionIndex < MeshSections.Num())
 	{
-		checkf(false, TEXT("It's not possible to create an already created mesh section with index: %d"), SectionIndex);	
+		checkf(false, TEXT("It's not possible to create an already created mesh section with index: %d"), SectionIndex);
 	}
-	
+
 	MeshSections.SetNum(SectionIndex + 1);
 	MeshSections[SectionIndex] = MeshInfo;
 
 	// Here we are Freezing the mesh info
 	// Only the values of vertices can be changed
 	MeshInfo->Freeze();
-	
+
 	UpdateLocalBounds(); // Update overall bounds
 	UpdateCollision(MeshInfo->bUseAsyncCollisionCooking);
 }
 
 void UOpenLandMeshComponent::ReplaceMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo)
 {
-
 	if (SectionIndex >= MeshSections.Num())
 	{
-		checkf(false, TEXT("There is no existing mesh section with the index: %d"), SectionIndex);	
+		checkf(false, TEXT("There is no existing mesh section with the index: %d"), SectionIndex);
 	}
-	
+
 	MeshSections[SectionIndex] = MeshInfo;
 
 	// Here we are Freezing the mesh info
 	// Only the values of vertices can be changed
 	MeshInfo->Freeze();
-	
+
 	UpdateLocalBounds(); // Update overall bounds
 	UpdateCollision(MeshInfo->bUseAsyncCollisionCooking);
 }
@@ -222,30 +214,24 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
 	// We cannot update not existing mesh section.
 	// TODO: May be we need to throw
 	if (SectionIndex >= MeshSections.Num())
-	{
 		return;
-	}
 
 	//MeshSections[SectionIndex] = MeshInfo;
 	FSimpleMeshInfoPtr MeshSection = MeshSections[SectionIndex];
-	
+
 	// If we have collision enabled on this section, update that too
 	if (MeshSection->bEnableCollision)
 	{
 		TArray<FVector> CollisionPositions;
 
 		// We have one collision mesh for all sections, so need to build array of _all_ positions
-		for (size_t Index = 0; Index<MeshSections.Num(); Index++)
+		for (size_t Index = 0; Index < MeshSections.Num(); Index++)
 		{
 			const FSimpleMeshInfoPtr CollisionSection = MeshSections[Index];
 			// If section has collision, copy it
 			if (CollisionSection->bEnableCollision)
-			{
 				for (int32 VertIdx = 0; VertIdx < CollisionSection->Vertices.Length(); VertIdx++)
-				{
 					CollisionPositions.Add(CollisionSection->Vertices.Get(VertIdx).Position);
-				}
-			}
 		}
 
 		// Pass new positions to trimesh
@@ -259,15 +245,15 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
 		FOpenLandMeshSceneProxy* ProcMeshSceneProxy = static_cast<FOpenLandMeshSceneProxy*>(SceneProxy);
 		MeshSection->Lock();
 		ENQUEUE_RENDER_COMMAND(FProcMeshSectionUpdate)
-        ([ProcMeshSceneProxy, SectionIndex, MeshSection](FRHICommandListImmediate& RHICmdList)
-        {
-	        ProcMeshSceneProxy->UpdateSection_RenderThread(SectionIndex, MeshSection);
-        	MeshSection->UnLock();
-        });
+		([ProcMeshSceneProxy, SectionIndex, MeshSection](FRHICommandListImmediate& RHICmdList)
+		{
+			ProcMeshSceneProxy->UpdateSection_RenderThread(SectionIndex, MeshSection);
+			MeshSection->UnLock();
+		});
 	}
 
-	UpdateLocalBounds();		 // Update overall bounds
-	MarkRenderTransformDirty();  // Need to send new bounds to render thread
+	UpdateLocalBounds(); // Update overall bounds
+	MarkRenderTransformDirty(); // Need to send new bounds to render thread
 }
 
 int32 UOpenLandMeshComponent::NumMeshSections()
@@ -286,7 +272,7 @@ void UOpenLandMeshComponent::UpdateMeshSectionVisibility(int32 SectionIndex)
 		if (SceneProxy)
 		{
 			// Enqueue command to modify render thread info
-			FOpenLandMeshSceneProxy* ProcMeshSceneProxy = (FOpenLandMeshSceneProxy*)SceneProxy;
+			FOpenLandMeshSceneProxy* ProcMeshSceneProxy = static_cast<FOpenLandMeshSceneProxy*>(SceneProxy);
 			ENQUEUE_RENDER_COMMAND(FProcMeshSectionVisibilityUpdate)(
 				[ProcMeshSceneProxy, SectionIndex, bVisibility](FRHICommandListImmediate& RHICmdList)
 				{
@@ -299,10 +285,8 @@ void UOpenLandMeshComponent::UpdateMeshSectionVisibility(int32 SectionIndex)
 void UOpenLandMeshComponent::UpdateLocalBounds()
 {
 	FBox LocalBox(ForceInit);
-	for (size_t Index = 0; Index<MeshSections.Num(); Index++)
-	{
+	for (size_t Index = 0; Index < MeshSections.Num(); Index++)
 		LocalBox += MeshSections[Index]->BoundingBox;
-	}
 
 	LocalBounds = LocalBox.IsValid
 		              ? FBoxSphereBounds(LocalBox)
@@ -327,7 +311,8 @@ FBoxSphereBounds UOpenLandMeshComponent::CalcBounds(const FTransform& LocalToWor
 UBodySetup* UOpenLandMeshComponent::CreateBodySetupHelper()
 {
 	// The body setup in a template needs to be public since the property is Instanced and thus is the archetype of the instance meaning there is a direct reference
-	UBodySetup* NewBodySetup = NewObject<UBodySetup>(this, NAME_None, (IsTemplate() ? RF_Public | RF_ArchetypeObject : RF_NoFlags));
+	UBodySetup* NewBodySetup = NewObject<UBodySetup>(this, NAME_None,
+	                                                 (IsTemplate() ? RF_Public | RF_ArchetypeObject : RF_NoFlags));
 	NewBodySetup->BodySetupGuid = FGuid::NewGuid();
 
 	NewBodySetup->bGenerateMirroredCollision = false;
@@ -340,9 +325,7 @@ UBodySetup* UOpenLandMeshComponent::CreateBodySetupHelper()
 void UOpenLandMeshComponent::CreateSimpleMeshBodySetup()
 {
 	if (SimpleMeshBodySetup == nullptr)
-	{
 		SimpleMeshBodySetup = CreateBodySetupHelper();
-	}
 }
 
 void UOpenLandMeshComponent::UpdateCollision(bool bUseAsyncCollisionCooking)
@@ -353,12 +336,11 @@ void UOpenLandMeshComponent::UpdateCollision(bool bUseAsyncCollisionCooking)
 	{
 		// Abort all previous ones still standing
 		for (UBodySetup* OldBody : AsyncBodySetupQueue)
-		{
 			OldBody->AbortPhysicsMeshAsyncCreation();
-		}
 
 		AsyncBodySetupQueue.Add(CreateBodySetupHelper());
-	} else
+	}
+	else
 	{
 		AsyncBodySetupQueue.Empty();
 		CreateSimpleMeshBodySetup();
@@ -372,10 +354,10 @@ void UOpenLandMeshComponent::UpdateCollision(bool bUseAsyncCollisionCooking)
 	// Set trace flag
 	UseBodySetup->CollisionTraceFlag = bUseComplexAsSimpleCollision ? CTF_UseComplexAsSimple : CTF_UseDefault;
 
-	if(bUseAsyncCollisionCooking)
-	{
-		UseBodySetup->CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished::CreateUObject(this, &UOpenLandMeshComponent::FinishPhysicsAsyncCook, UseBodySetup));
-	}
+	if (bUseAsyncCollisionCooking)
+		UseBodySetup->CreatePhysicsMeshesAsync(
+			FOnAsyncPhysicsCookFinished::CreateUObject(this, &UOpenLandMeshComponent::FinishPhysicsAsyncCook,
+			                                           UseBodySetup));
 	else
 	{
 		// New GUID as collision has changed
@@ -386,7 +368,6 @@ void UOpenLandMeshComponent::UpdateCollision(bool bUseAsyncCollisionCooking)
 		UseBodySetup->CreatePhysicsMeshes();
 		RecreatePhysicsState();
 	}
-
 }
 
 void UOpenLandMeshComponent::FinishPhysicsAsyncCook(bool bSuccess, UBodySetup* FinishedBodySetup)
@@ -395,7 +376,7 @@ void UOpenLandMeshComponent::FinishPhysicsAsyncCook(bool bSuccess, UBodySetup* F
 	NewQueue.Reserve(AsyncBodySetupQueue.Num());
 
 	int32 FoundIdx;
-	if(AsyncBodySetupQueue.Find(FinishedBodySetup, FoundIdx))
+	if (AsyncBodySetupQueue.Find(FinishedBodySetup, FoundIdx))
 	{
 		if (bSuccess)
 		{
@@ -405,15 +386,11 @@ void UOpenLandMeshComponent::FinishPhysicsAsyncCook(bool bSuccess, UBodySetup* F
 
 			//remove any async body setups that were requested before this one
 			for (int32 AsyncIdx = FoundIdx + 1; AsyncIdx < AsyncBodySetupQueue.Num(); ++AsyncIdx)
-			{
 				NewQueue.Add(AsyncBodySetupQueue[AsyncIdx]);
-			}
 
 			AsyncBodySetupQueue = NewQueue;
 		}
 		else
-		{
 			AsyncBodySetupQueue.RemoveAt(FoundIdx);
-		}
 	}
 }

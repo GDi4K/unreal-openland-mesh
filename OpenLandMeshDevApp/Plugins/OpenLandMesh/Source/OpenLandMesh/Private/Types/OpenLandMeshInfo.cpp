@@ -51,15 +51,11 @@ FSimpleMeshInfoPtr FOpenLandMeshInfo::Clone()
 	NewMeshInfo->bEnableCollision = bEnableCollision;
 	NewMeshInfo->bSectionVisible = bSectionVisible;
 
-	for(size_t Index=0; Index<Vertices.Length(); Index++)
-	{
+	for (size_t Index = 0; Index < Vertices.Length(); Index++)
 		NewMeshInfo->Vertices.Push(Vertices.Get(Index));
-	}
-		
-	for(size_t Index=0; Index<Triangles.Length(); Index++)
-	{
+
+	for (size_t Index = 0; Index < Triangles.Length(); Index++)
 		NewMeshInfo->Triangles.Push(Triangles.Get(Index));
-	}
 
 	return NewMeshInfo;
 }

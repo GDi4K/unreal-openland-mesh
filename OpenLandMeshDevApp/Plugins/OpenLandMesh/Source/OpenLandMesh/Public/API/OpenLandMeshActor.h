@@ -27,10 +27,10 @@ public:
 protected:
 	UPROPERTY()
 	UOpenLandMeshPolygonMeshProxy* PolygonMesh;
-	
+
 	FSimpleMeshInfoPtr OriginalMeshInfo = nullptr;
 	FSimpleMeshInfoPtr RenderingMeshInfo = nullptr;
-	
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
@@ -38,7 +38,7 @@ protected:
 	UOpenLandMeshPolygonMeshProxy* GetPolygonMesh();
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-    FVertexModifierResult OnModifyVertex(FVertexModifierPayload Payload);
+	FVertexModifierResult OnModifyVertex(FVertexModifierPayload Payload);
 
 public:
 	// Called every frame
@@ -47,7 +47,7 @@ public:
 	void SetMaterial(UMaterialInterface* Material);
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	void BuildMeshAsync(TFunction<void()> Callback = nullptr);
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced)
 	UOpenLandMeshComponent* MeshComponent;
 
@@ -56,10 +56,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	int SmoothNormalAngle = 0;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bRunCpuVertexModifiers = false;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	FComputeMaterial GpuVertexModifier;
 
@@ -80,13 +80,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncCollisionCooking = false;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	UMaterialInterface* Material;
-	
+
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void BuildMesh();
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
-    void ModifyMesh();    
+	void ModifyMesh();
 };

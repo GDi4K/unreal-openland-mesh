@@ -33,8 +33,11 @@ public:
 	float GetRandom(FVector Input) const;
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
-    float Get3DNoise(FVector Input, float Roughness=1, float Strength=1, FVector Center=FVector(0, 0, 0), bool bNormalizeRange=true) const;
+	float Get3DNoise(FVector Input, float Roughness = 1, float Strength = 1, FVector Center = FVector(0, 0, 0),
+	                 bool bNormalizeRange = true) const;
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
-    float Get3DFractal(FVector Input, int32 Octaves=1, float Frequency=1, float Roughness=2, float Persistence=0.5, float Strength=1, FVector Center=FVector(0, 0, 0), bool bNormalizeRange=true) const;
+	float Get3DFractal(FVector Input, int32 Octaves = 1, float Frequency = 1, float Roughness = 2,
+	                   float Persistence = 0.5, float Strength = 1, FVector Center = FVector(0, 0, 0),
+	                   bool bNormalizeRange = true) const;
 };

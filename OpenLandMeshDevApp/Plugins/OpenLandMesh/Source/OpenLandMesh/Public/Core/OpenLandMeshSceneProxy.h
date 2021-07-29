@@ -20,36 +20,38 @@ public:
 #endif
 
 	FOpenLandMeshProxySection(ERHIFeatureLevel::Type InFeatureLevel)
-    : Material(NULL)
-    , VertexFactory(InFeatureLevel, "FOpenLandMeshProxySection")
-    , bSectionVisible(true)
-	{}
+		: Material(nullptr)
+		  , VertexFactory(InFeatureLevel, "FOpenLandMeshProxySection")
+		  , bSectionVisible(true)
+	{
+	}
 };
 
 class FOpenLandMeshSceneProxy final : public FPrimitiveSceneProxy
 {
 private:
 	TArray<FOpenLandMeshProxySection*> ProxySections;
-	
+
 	UBodySetup* BodySetup;
 	FMaterialRelevance MaterialRelevance;
 
 public:
 	FOpenLandMeshSceneProxy(UOpenLandMeshComponent* Component);
 	virtual ~FOpenLandMeshSceneProxy();
-	
+
 	SIZE_T GetTypeHash() const override
 	{
 		static size_t UniquePointer;
 		return reinterpret_cast<size_t>(&UniquePointer);
 	}
+
 	void SetSectionVisibility_RenderThread(int32 SectionIndex, bool bNewVisibility);
 	void UpdateSection_RenderThread(int32 SectionIndex, FSimpleMeshInfoPtr const SectionData);
-	
-	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const;
+
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily,
+	                                    uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 	virtual bool CanBeOccluded() const override;
-	virtual uint32 GetMemoryFootprint(void) const;
+	virtual uint32 GetMemoryFootprint(void) const override;
 	uint32 GetAllocatedSize(void) const;
-	
 };

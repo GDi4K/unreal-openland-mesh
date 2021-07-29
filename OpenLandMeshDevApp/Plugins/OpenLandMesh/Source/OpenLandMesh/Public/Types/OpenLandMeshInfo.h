@@ -6,6 +6,7 @@
 
 class FOpenLandMeshInfo;
 typedef TSharedPtr<FOpenLandMeshInfo, ESPMode::ThreadSafe> FSimpleMeshInfoPtr;
+
 class OPENLANDMESH_API FOpenLandMeshInfo
 {
 	bool bLocked = false;
@@ -17,7 +18,7 @@ public:
 	bool bEnableCollision = true;
 	bool bSectionVisible = true;
 	bool bUseAsyncCollisionCooking = false;
-	
+
 	FOpenLandMeshInfo();
 
 	~FOpenLandMeshInfo();

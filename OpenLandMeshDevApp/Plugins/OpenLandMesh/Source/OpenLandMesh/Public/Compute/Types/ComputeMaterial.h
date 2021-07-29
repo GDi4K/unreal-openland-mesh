@@ -15,7 +15,7 @@ UENUM(BlueprintType)
 enum FComputeMaterialParameterType
 {
 	CMPT_SCALAR UMETA(DisplayName="Scalar"),
-    CMPT_VECTOR UMETA(DisplayName="Vector")
+	CMPT_VECTOR UMETA(DisplayName="Vector")
 };
 
 USTRUCT(BlueprintType)

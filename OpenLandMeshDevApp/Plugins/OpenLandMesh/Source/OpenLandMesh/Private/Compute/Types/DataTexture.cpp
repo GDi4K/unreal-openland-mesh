@@ -7,12 +7,12 @@ FDataTexture::FDataTexture(int Width)
 	// Assign the Texture
 	Texture = UTexture2D::CreateTransient(TextureWidth, TextureWidth);
 #if WITH_EDITORONLY_DATA
-	Texture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
+	Texture->MipGenSettings = TMGS_NoMipmaps;
 #endif
-	Texture->CompressionSettings = TextureCompressionSettings::TC_VectorDisplacementmap;
+	Texture->CompressionSettings = TC_VectorDisplacementmap;
 	Texture->SRGB = 0;
 	Texture->AddToRoot();
-	Texture->Filter = TextureFilter::TF_Nearest;
+	Texture->Filter = TF_Nearest;
 	Texture->UpdateResource();
 
 	// Set the Region
@@ -35,10 +35,8 @@ FDataTexture::~FDataTexture()
 
 	if (Texture != nullptr)
 	{
-		if(Texture->IsValidLowLevel())
-		{
+		if (Texture->IsValidLowLevel())
 			Texture->ReleaseResource();
-		}
 		Texture = nullptr;
 	}
 }
@@ -54,11 +52,9 @@ void FDataTexture::SetPixelValue(int32 Index, uint8 R, uint8 G, uint8 B, uint8 A
 
 void FDataTexture::Reset()
 {
-	for (int32 Index=0; Index<TextureWidth * TextureWidth; Index++)
-	{
+	for (int32 Index = 0; Index < TextureWidth * TextureWidth; Index++)
 		SetPixelValue(Index, 0, 0, 0, 0);
-	}
-	
+
 	UpdateTexture();
 }
 
@@ -66,5 +62,6 @@ void FDataTexture::UpdateTexture()
 {
 	const int BytesPerPixel = 4;
 	const int32 BytesPerRow = TextureWidth * BytesPerPixel;
-	Texture->UpdateTextureRegions((int32)0, (uint32)1, &WholeTextureRegion, (uint32)BytesPerRow, (uint32)BytesPerPixel, SourceData);
+	Texture->UpdateTextureRegions(static_cast<int32>(0), static_cast<uint32>(1), &WholeTextureRegion,
+	                              static_cast<uint32>(BytesPerRow), static_cast<uint32>(BytesPerPixel), SourceData);
 }

@@ -15,20 +15,20 @@ public:
 	bool bFlipTangentY;
 
 	FOpenLandMeshTangent()
-        : TangentX(1.f, 0.f, 0.f)
-          , bFlipTangentY(false)
+		: TangentX(1.f, 0.f, 0.f)
+		  , bFlipTangentY(false)
 	{
 	}
 
 	FOpenLandMeshTangent(float X, float Y, float Z)
-        : TangentX(X, Y, Z)
-          , bFlipTangentY(false)
+		: TangentX(X, Y, Z)
+		  , bFlipTangentY(false)
 	{
 	}
 
 	FOpenLandMeshTangent(FVector InTangentX, bool bInFlipTangentY)
-        : TangentX(InTangentX)
-          , bFlipTangentY(bInFlipTangentY)
+		: TangentX(InTangentX)
+		  , bFlipTangentY(bInFlipTangentY)
 	{
 	}
 };

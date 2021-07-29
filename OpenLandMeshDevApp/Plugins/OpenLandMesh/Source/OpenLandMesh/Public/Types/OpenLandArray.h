@@ -15,11 +15,11 @@ class OPENLANDMESH_API TOpenLandArray
 	void CheckLocked();
 	void CheckFreeze();
 	void CheckLockForever();
-	
+
 public:
 	TOpenLandArray();
 	TOpenLandArray(std::initializer_list<T> InitialList);
-	
+
 	size_t Push(const T Item);
 
 	void Clear();
@@ -35,7 +35,7 @@ public:
 	void SetLength(size_t NewSize);
 
 	void Append(TOpenLandArray<T> Other);
-	
+
 	void Freeze();
 
 	void LockForever();

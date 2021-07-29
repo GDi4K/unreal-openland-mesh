@@ -14,6 +14,3 @@ class AMeshMixer2GameMode : public AGameModeBase
 public:
 	AMeshMixer2GameMode();
 };
-
-
-

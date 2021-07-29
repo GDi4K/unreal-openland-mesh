@@ -4,13 +4,13 @@
 
 void FGpuComputeVertex::Init(UObject* WorldContext, TArray<FGpuComputeVertexInput>& SourceData,
                              int32 Width)
-{	
-    // Make the Source Data Textures
-    DataTexture0 = MakeShared<FDataTexture>(Width);
-    DataTexture1 = MakeShared<FDataTexture>(Width);
-    DataTexture2 = MakeShared<FDataTexture>(Width);
+{
+	// Make the Source Data Textures
+	DataTexture0 = MakeShared<FDataTexture>(Width);
+	DataTexture1 = MakeShared<FDataTexture>(Width);
+	DataTexture2 = MakeShared<FDataTexture>(Width);
 	UpdateSourceData(SourceData);
-	
+
 	// Create the Render Targets
 	DataRenderTarget0 = MakeShared<FDataRenderTarget>(WorldContext, Width);
 	DataRenderTarget1 = MakeShared<FDataRenderTarget>(WorldContext, Width);
@@ -21,20 +21,16 @@ void FGpuComputeVertex::Init(UObject* WorldContext, TArray<FGpuComputeVertexInpu
 FGpuComputeMaterialStatus FGpuComputeVertex::IsValidMaterial(UMaterialInterface* Material)
 {
 	if (Material == nullptr)
-	{
-		return  {
+		return {
 			false,
 			"Material does not exists."
 		};
-	}
 
-	if(Material->GetBlendMode() != EBlendMode::BLEND_AlphaComposite)
-	{
+	if (Material->GetBlendMode() != BLEND_AlphaComposite)
 		return {
 			false,
 			"Material should use the AlphaCompute Blend Mode"
 		};
-	}
 
 	// Check whether this uses correct nodes by inspecting some parameter info.
 
@@ -46,8 +42,9 @@ FGpuComputeMaterialStatus FGpuComputeVertex::IsValidMaterial(UMaterialInterface*
 
 void FGpuComputeVertex::UpdateSourceData(TArray<FGpuComputeVertexInput>& SourceData)
 {
-	const int32 PixelCount = FMath::Min(SourceData.Num(), DataTexture0->GetTextureWidth() * DataTexture0->GetTextureWidth());
-	for (int32 Index=0; Index<PixelCount; Index++)
+	const int32 PixelCount = FMath::Min(SourceData.Num(),
+	                                    DataTexture0->GetTextureWidth() * DataTexture0->GetTextureWidth());
+	for (int32 Index = 0; Index < PixelCount; Index++)
 	{
 		float* ValuePointer0 = &SourceData[Index].Position.X;
 		uint8* ValueBytes0 = reinterpret_cast<uint8*>(ValuePointer0);
@@ -61,46 +58,51 @@ void FGpuComputeVertex::UpdateSourceData(TArray<FGpuComputeVertexInput>& SourceD
 		uint8* ValueBytes2 = reinterpret_cast<uint8*>(ValuePointer2);
 		DataTexture2->SetPixelValue(Index, ValueBytes2[0], ValueBytes2[1], ValueBytes2[2], ValueBytes2[3]);
 	}
-	
+
 	DataTexture0->UpdateTexture();
 	DataTexture1->UpdateTexture();
 	DataTexture2->UpdateTexture();
 }
 
-void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexOutput>& ModifiedData, FComputeMaterial ComputeMaterial)
+void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexOutput>& ModifiedData,
+                                FComputeMaterial ComputeMaterial)
 {
 	checkf(ComputeMaterial.Material != nullptr, TEXT("Compute Material Needs a Proper Material"));
-	
+
 	// Create the Dynamic Materials`
-	DynamicMaterialInstance0 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(WorldContext, ComputeMaterial.Material);
+	DynamicMaterialInstance0 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
+		WorldContext, ComputeMaterial.Material);
 	DynamicMaterialInstance0->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
 	DynamicMaterialInstance0->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
 	DynamicMaterialInstance0->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance0->SetScalarParameterValue("OutputFloat", 0);
 
-	DynamicMaterialInstance1 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(WorldContext, ComputeMaterial.Material);
+	DynamicMaterialInstance1 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
+		WorldContext, ComputeMaterial.Material);
 	DynamicMaterialInstance1->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
 	DynamicMaterialInstance1->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
 	DynamicMaterialInstance1->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance1->SetScalarParameterValue("OutputFloat", 1);
 
-	DynamicMaterialInstance2 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(WorldContext, ComputeMaterial.Material);
+	DynamicMaterialInstance2 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
+		WorldContext, ComputeMaterial.Material);
 	DynamicMaterialInstance2->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
 	DynamicMaterialInstance2->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
 	DynamicMaterialInstance2->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance2->SetScalarParameterValue("OutputFloat", 2);
 
-	DynamicMaterialInstance3 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(WorldContext, ComputeMaterial.Material);
+	DynamicMaterialInstance3 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
+		WorldContext, ComputeMaterial.Material);
 	DynamicMaterialInstance3->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
 	DynamicMaterialInstance3->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
 	DynamicMaterialInstance3->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance3->SetScalarParameterValue("OutputVertexColor", 1); // This indicate vertex colors
-	
+
 	ApplyParameterValues(DynamicMaterialInstance0, ComputeMaterial.Parameters);
 	ApplyParameterValues(DynamicMaterialInstance1, ComputeMaterial.Parameters);
 	ApplyParameterValues(DynamicMaterialInstance2, ComputeMaterial.Parameters);
 	ApplyParameterValues(DynamicMaterialInstance3, ComputeMaterial.Parameters);
-	
+
 	// Draw the RenderTarget
 	DataRenderTarget0->DrawMaterial(WorldContext, DynamicMaterialInstance0);
 	DataRenderTarget1->DrawMaterial(WorldContext, DynamicMaterialInstance1);
@@ -128,7 +130,7 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 
 	// Write them into the Modified Buffer
 	const int WritePixelCount = FMath::Min(NumPixelsToRead, ModifiedData.Num());
-	for(int32 Index=0; Index<WritePixelCount; Index++)
+	for (int32 Index = 0; Index < WritePixelCount; Index++)
 	{
 		const FColor Color0 = ReadBuffer0[Index];
 		float& Result0 = ModifiedData[Index].Position.X;
@@ -143,7 +145,7 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 		float& Result1 = ModifiedData[Index].Position.Y;
 		float* ResultData1 = &Result1;
 		uint8* ResultBytes1 = reinterpret_cast<uint8*>(ResultData1);
-		
+
 		ResultBytes1[0] = Color1.R;
 		ResultBytes1[1] = Color1.G;
 		ResultBytes1[2] = Color1.B;
@@ -153,7 +155,7 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 		float& Result2 = ModifiedData[Index].Position.Z;
 		float* ResultData2 = &Result2;
 		uint8* ResultBytes2 = reinterpret_cast<uint8*>(ResultData2);
-		
+
 		ResultBytes2[0] = Color2.R;
 		ResultBytes2[1] = Color2.G;
 		ResultBytes2[2] = Color2.B;
@@ -165,18 +167,13 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 }
 
 void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
-    TArray<FComputeMaterialParameter> MaterialParameters)
+                                             TArray<FComputeMaterialParameter> MaterialParameters)
 {
-	for(auto ParamInfo: MaterialParameters)
-	{
+	for (auto ParamInfo : MaterialParameters)
 		if (ParamInfo.Type == CMPT_SCALAR)
-		{
 			Material->SetScalarParameterValue(ParamInfo.Name, ParamInfo.ScalarValue);
-		} else if (ParamInfo.Type == CMPT_VECTOR)
-		{
+		else if (ParamInfo.Type == CMPT_VECTOR)
 			Material->SetVectorParameterValue(ParamInfo.Name, ParamInfo.VectorValue);
-		}
-	}
 }
 
 FGpuComputeVertex::~FGpuComputeVertex()

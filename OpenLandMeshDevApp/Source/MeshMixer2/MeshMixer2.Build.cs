@@ -7,13 +7,13 @@ public class MeshMixer2 : ModuleRules
 	public MeshMixer2(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		
-		PrivateDependencyModuleNames.AddRange(new string[]
+
+		PrivateDependencyModuleNames.AddRange(new[]
 		{
 			"OpenLandMesh"
 		});
 
-		PublicDependencyModuleNames.AddRange(new string[]
+		PublicDependencyModuleNames.AddRange(new[]
 		{
 			"Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "ProceduralMeshComponent",
 			"InteractiveToolsFramework",

@@ -19,23 +19,21 @@ void TOpenLandArray<T>::CheckFreeze()
 template <typename T>
 void TOpenLandArray<T>::CheckLockForever()
 {
-	checkf(bLockForever == false, TEXT("It's not possible to unlock OLArray<%hs> which is locked forever"), typeid(T).name())
+	checkf(bLockForever == false, TEXT("It's not possible to unlock OLArray<%hs> which is locked forever"),
+	       typeid(T).name())
 }
 
 template <typename T>
 TOpenLandArray<T>::TOpenLandArray()
 {
-	
 }
 
 template <typename T>
 TOpenLandArray<T>::TOpenLandArray(std::initializer_list<T> InitialList)
 {
 	Data.reserve(InitialList.size());
-	for (T Item: InitialList)
-	{
+	for (T Item : InitialList)
 		Push(Item);
-	}
 }
 
 template <typename T>
@@ -98,10 +96,8 @@ void TOpenLandArray<T>::SetLength(size_t NewSize)
 template <typename T>
 void TOpenLandArray<T>::Append(TOpenLandArray<T> Other)
 {
-	for(size_t Index=0; Index<Other.Length(); Index++)
-	{
+	for (size_t Index = 0; Index < Other.Length(); Index++)
 		Push(Other.Get(Index));
-	}
 }
 
 template <typename T>

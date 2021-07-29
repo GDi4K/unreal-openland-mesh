@@ -6,13 +6,13 @@ public class OpenLandMesh : ModuleRules
 {
 	public OpenLandMesh(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		PrecompileForTargets = PrecompileTargetsType.Any;
-		
-		PublicIncludePaths.Add(ModuleDirectory +  "/Public");
-        PrivateIncludePaths.Add(ModuleDirectory +  "/Private");
 
-        PublicDependencyModuleNames.AddRange(new string[]
+		PublicIncludePaths.Add(ModuleDirectory + "/Public");
+		PrivateIncludePaths.Add(ModuleDirectory + "/Private");
+
+		PublicDependencyModuleNames.AddRange(new[]
 		{
 			"Core", "CoreUObject", "Engine",
 			"MeshDescription",

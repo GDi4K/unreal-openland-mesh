@@ -24,6 +24,6 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	FVertexModifierResult OnModifyVertex_Implementation(FVertexModifierPayload Payload);
-	UOpenLandMeshPolygonMeshProxy* GetPolygonMesh_Implementation();
+	virtual FVertexModifierResult OnModifyVertex_Implementation(FVertexModifierPayload Payload) override;
+	virtual UOpenLandMeshPolygonMeshProxy* GetPolygonMesh_Implementation() override;
 };

@@ -7,7 +7,7 @@ size_t VertexCounter = 0;
 
 struct FOpenLandMeshVertex
 {
-public:	
+public:
 	/** Vertex position */
 	FVector Position;
 
@@ -46,21 +46,21 @@ public:
 		  , UV2(0.f, 0.f)
 		  , UV3(0.f, 0.f)
 		  , ObjectId(++VertexCounter)
-		  ,TriangleId(0)
+		  , TriangleId(0)
 	{
 	}
 
 	FOpenLandMeshVertex(const FVector P)
-        : Position(P)
-          , Normal(0.f, 0.f, 1.f)
-          , Tangent(FVector(1.f, 0.f, 0.f), false)
-          , Color(255, 255, 255)
-          , UV0(0.f, 0.f)
-          , UV1(0.f, 0.f)
-          , UV2(0.f, 0.f)
-          , UV3(0.f, 0.f)
-          , ObjectId(++VertexCounter)
-	      ,TriangleId(0)
+		: Position(P)
+		  , Normal(0.f, 0.f, 1.f)
+		  , Tangent(FVector(1.f, 0.f, 0.f), false)
+		  , Color(255, 255, 255)
+		  , UV0(0.f, 0.f)
+		  , UV1(0.f, 0.f)
+		  , UV2(0.f, 0.f)
+		  , UV3(0.f, 0.f)
+		  , ObjectId(++VertexCounter)
+		  , TriangleId(0)
 	{
 	}
 
@@ -76,15 +76,14 @@ public:
 	{
 		FOpenLandMeshVertex NewVertex;
 
-		NewVertex.Position = (Position * Range) + (Other.Position * (1-Range));
-		NewVertex.Normal = (Normal * Range) + (Other.Normal * (1-Range));
-		NewVertex.Tangent.TangentX = (Tangent.TangentX * Range) + (Other.Tangent.TangentX * (1-Range));
-		NewVertex.UV0 = (UV0 * Range) + (Other.UV0 * (1-Range));
-		NewVertex.UV1 = (UV1 * Range) + (Other.UV1 * (1-Range));
-		NewVertex.UV2 = (UV2 * Range) + (Other.UV2 * (1-Range));
-		NewVertex.UV3 = (UV3 * Range) + (Other.UV3 * (1-Range));
+		NewVertex.Position = (Position * Range) + (Other.Position * (1 - Range));
+		NewVertex.Normal = (Normal * Range) + (Other.Normal * (1 - Range));
+		NewVertex.Tangent.TangentX = (Tangent.TangentX * Range) + (Other.Tangent.TangentX * (1 - Range));
+		NewVertex.UV0 = (UV0 * Range) + (Other.UV0 * (1 - Range));
+		NewVertex.UV1 = (UV1 * Range) + (Other.UV1 * (1 - Range));
+		NewVertex.UV2 = (UV2 * Range) + (Other.UV2 * (1 - Range));
+		NewVertex.UV3 = (UV3 * Range) + (Other.UV3 * (1 - Range));
 
 		return NewVertex;
 	}
-
 };

@@ -28,10 +28,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UOpenLandMeshComponent* MeshComponent;
-	
+
 	// Called every frame
 	virtual bool ShouldTickIfViewportsOnly() const override;
 
 	UFUNCTION(CallInEditor, BlueprintCallable)
-    virtual void GenerateMesh();
+	virtual void GenerateMesh();
 };

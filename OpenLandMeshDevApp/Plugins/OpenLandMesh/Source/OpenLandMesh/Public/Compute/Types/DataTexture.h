@@ -5,7 +5,8 @@ class OPENLANDMESH_API FDataTexture
 	int32 TextureWidth = 0;
 	uint8* SourceData = nullptr;
 
-	UPROPERTY();
+	UPROPERTY()
+	;
 	UTexture2D* Texture = nullptr;
 
 	FUpdateTextureRegion2D WholeTextureRegion;

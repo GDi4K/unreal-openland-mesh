@@ -19,10 +19,8 @@ FOpenLandMeshSceneProxy::FOpenLandMeshSceneProxy(UOpenLandMeshComponent* Compone
 	  , MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 {
 	if (ProxySections.Num() < Component->NumMeshSections())
-	{
 		ProxySections.SetNum(Component->NumMeshSections());
-	}
-	
+
 	// Move Game Thread MeshSections into the Render Thread
 	for (int SectionId = 0; SectionId < Component->NumMeshSections(); SectionId++)
 	{
@@ -49,7 +47,7 @@ FOpenLandMeshSceneProxy::FOpenLandMeshSceneProxy(UOpenLandMeshComponent* Compone
 			// Copy index buffer
 			const int32 NumIndices = SrcSection->Triangles.Length() * 3;
 			NewSection->IndexBuffer.Indices.SetNum(NumIndices);
-			for (size_t Index=0; Index<SrcSection->Triangles.Length(); Index++)
+			for (size_t Index = 0; Index < SrcSection->Triangles.Length(); Index++)
 			{
 				const FOpenLandMeshTriangle Triangle = SrcSection->Triangles.Get(Index);
 				NewSection->IndexBuffer.Indices[Index * 3 + 0] = Triangle.T0;
@@ -67,10 +65,8 @@ FOpenLandMeshSceneProxy::FOpenLandMeshSceneProxy(UOpenLandMeshComponent* Compone
 			BeginInitResource(&NewSection->VertexFactory);
 
 			NewSection->Material = Component->GetMaterial(SectionId);
-			if (NewSection->Material == NULL)
-			{
+			if (NewSection->Material == nullptr)
 				NewSection->Material = UMaterial::GetDefaultMaterial(MD_Surface);
-			}
 
 			// Copy visibility info
 			NewSection->bSectionVisible = SrcSection->bSectionVisible;
@@ -84,7 +80,6 @@ FOpenLandMeshSceneProxy::FOpenLandMeshSceneProxy(UOpenLandMeshComponent* Compone
 FOpenLandMeshSceneProxy::~FOpenLandMeshSceneProxy()
 {
 	for (auto ProxySection : ProxySections)
-	{
 		if (ProxySection != nullptr)
 		{
 			ProxySection->VertexBuffers.PositionVertexBuffer.ReleaseResource();
@@ -95,93 +90,97 @@ FOpenLandMeshSceneProxy::~FOpenLandMeshSceneProxy()
 
 			delete ProxySection;
 		}
-	}
 }
 
 void FOpenLandMeshSceneProxy::SetSectionVisibility_RenderThread(int32 SectionIndex, bool bNewVisibility)
 {
 	check(IsInRenderingThread());
 	if (SectionIndex < ProxySections.Num())
-	{
 		ProxySections[SectionIndex]->bSectionVisible = bNewVisibility;
-	}
 }
 
 void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FSimpleMeshInfoPtr const SectionData)
 {
 	check(IsInRenderingThread());
 
-		// Check we have data 
-		if(	SectionData != nullptr) 			
+	// Check we have data 
+	if (SectionData != nullptr)
+		// Check it references a valid section
+		if (SectionIndex < ProxySections.Num() &&
+			ProxySections[SectionIndex] != nullptr)
 		{
-			// Check it references a valid section
-			if (SectionIndex < ProxySections.Num() &&
-				ProxySections[SectionIndex] != nullptr)
+			FOpenLandMeshProxySection* Section = ProxySections[SectionIndex];
+
+			// Lock vertex buffer
+			const int32 NumVerts = SectionData->Vertices.Length();
+
+			// Iterate through vertex data, copying in new info
+			for (int32 i = 0; i < NumVerts; i++)
 			{
-				FOpenLandMeshProxySection* Section = ProxySections[SectionIndex];
+				const FOpenLandMeshVertex& ProcVert = SectionData->Vertices.Get(i);
+				FDynamicMeshVertex Vertex;
+				ConvertProcMeshToDynMeshVertex(Vertex, ProcVert);
 
-				// Lock vertex buffer
-				const int32 NumVerts = SectionData->Vertices.Length();
-			
-				// Iterate through vertex data, copying in new info
-				for(int32 i=0; i<NumVerts; i++)
-				{
-					const FOpenLandMeshVertex& ProcVert = SectionData->Vertices.Get(i);
-					FDynamicMeshVertex Vertex;
-					ConvertProcMeshToDynMeshVertex(Vertex, ProcVert);
+				Section->VertexBuffers.PositionVertexBuffer.VertexPosition(i) = Vertex.Position;
+				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(
+					i, Vertex.TangentX.ToFVector(), Vertex.GetTangentY(), Vertex.TangentZ.ToFVector());
+				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 0, Vertex.TextureCoordinate[0]);
+				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 1, Vertex.TextureCoordinate[1]);
+				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 2, Vertex.TextureCoordinate[2]);
+				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 3, Vertex.TextureCoordinate[3]);
+				Section->VertexBuffers.ColorVertexBuffer.VertexColor(i) = Vertex.Color;
+			}
 
-					Section->VertexBuffers.PositionVertexBuffer.VertexPosition(i) = Vertex.Position;
-					Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(i, Vertex.TangentX.ToFVector(), Vertex.GetTangentY(), Vertex.TangentZ.ToFVector());
-					Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 0, Vertex.TextureCoordinate[0]);
-					Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 1, Vertex.TextureCoordinate[1]);
-					Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 2, Vertex.TextureCoordinate[2]);
-					Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 3, Vertex.TextureCoordinate[3]);
-					Section->VertexBuffers.ColorVertexBuffer.VertexColor(i) = Vertex.Color;
-				}
+			{
+				auto& VertexBuffer = Section->VertexBuffers.PositionVertexBuffer;
+				void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0,
+				                                             VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(),
+				                                             RLM_WriteOnly);
+				FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(),
+				                VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
+				RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
+			}
 
-				{
-					auto& VertexBuffer = Section->VertexBuffers.PositionVertexBuffer;
-					void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0, VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(), RLM_WriteOnly);
-					FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(), VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
-					RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
-				}
+			{
+				auto& VertexBuffer = Section->VertexBuffers.ColorVertexBuffer;
+				void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0,
+				                                             VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(),
+				                                             RLM_WriteOnly);
+				FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(),
+				                VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
+				RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
+			}
 
-				{
-					auto& VertexBuffer = Section->VertexBuffers.ColorVertexBuffer;
-					void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0, VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(), RLM_WriteOnly);
-					FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(), VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
-					RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
-				}
+			{
+				auto& VertexBuffer = Section->VertexBuffers.StaticMeshVertexBuffer;
+				void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI, 0,
+				                                             VertexBuffer.GetTangentSize(), RLM_WriteOnly);
+				FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTangentData(), VertexBuffer.GetTangentSize());
+				RHIUnlockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI);
+			}
 
-				{
-					auto& VertexBuffer = Section->VertexBuffers.StaticMeshVertexBuffer;
-					void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI, 0, VertexBuffer.GetTangentSize(), RLM_WriteOnly);
-					FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTangentData(), VertexBuffer.GetTangentSize());
-					RHIUnlockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI);
-				}
-
-				{
-					auto& VertexBuffer = Section->VertexBuffers.StaticMeshVertexBuffer;
-					void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI, 0, VertexBuffer.GetTexCoordSize(), RLM_WriteOnly);
-					FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTexCoordData(), VertexBuffer.GetTexCoordSize());
-					RHIUnlockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI);
-				}
+			{
+				auto& VertexBuffer = Section->VertexBuffers.StaticMeshVertexBuffer;
+				void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI, 0,
+				                                             VertexBuffer.GetTexCoordSize(), RLM_WriteOnly);
+				FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTexCoordData(), VertexBuffer.GetTexCoordSize());
+				RHIUnlockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI);
 			}
 		}
 }
 
 void FOpenLandMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views,
-                                                   const FSceneViewFamily& ViewFamily, uint32 VisibilityMap,
-                                                   FMeshElementCollector& Collector) const
+                                                     const FSceneViewFamily& ViewFamily, uint32 VisibilityMap,
+                                                     FMeshElementCollector& Collector) const
 {
 	// Set up wireframe material (if needed)
 	const bool bWireframe = AllowDebugViewmodes() && ViewFamily.EngineShowFlags.Wireframe;
 
-	FColoredMaterialRenderProxy* WireframeMaterialInstance = NULL;
+	FColoredMaterialRenderProxy* WireframeMaterialInstance = nullptr;
 	if (bWireframe)
 	{
 		WireframeMaterialInstance = new FColoredMaterialRenderProxy(
-			GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy() : NULL,
+			GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy() : nullptr,
 			FLinearColor(0, 0.5f, 1.f)
 		);
 
@@ -190,7 +189,6 @@ void FOpenLandMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVi
 
 	// Iterate over sections
 	for (auto ProxySection : ProxySections)
-	{
 		if (ProxySection != nullptr && ProxySection->bSectionVisible)
 		{
 			FMaterialRenderProxy* MaterialProxy = bWireframe
@@ -199,7 +197,6 @@ void FOpenLandMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVi
 
 			// For each view..
 			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-			{
 				if (VisibilityMap & (1 << ViewIndex))
 				{
 					const FSceneView* View = Views[ViewIndex];
@@ -236,20 +233,14 @@ void FOpenLandMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVi
 					Mesh.bCanApplyViewModeOverrides = false;
 					Collector.AddMesh(ViewIndex, Mesh);
 				}
-			}
 		}
-	}
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-	{
 		if (VisibilityMap & (1 << ViewIndex))
-		{
 			// Render bounds
 			RenderBounds(Collector.GetPDI(ViewIndex), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
-		}
-	}
 #endif
 }
 

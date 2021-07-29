@@ -36,7 +36,7 @@ public:
 	TArray<FSimpleMeshInfoPtr> MeshSections;
 
 	// --- START INTERNAL METHODS & PROPERTIES ---
-	
+
 	/** Add simple collision convex to this component */
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
 	void AddCollisionConvexMesh(TArray<FVector> ConvexVerts);
@@ -46,12 +46,12 @@ public:
 	void ClearCollisionConvexMeshes();
 
 	/** Function to replace _all_ simple collision in one go */
-	void SetCollisionConvexMeshes(const TArray< TArray<FVector> >& ConvexMeshes);
+	void SetCollisionConvexMeshes(const TArray<TArray<FVector>>& ConvexMeshes);
 
 	//~ Begin Interface_CollisionDataProvider Interface
 	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
 	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
-	virtual bool WantsNegXTriMesh() override{ return false; }
+	virtual bool WantsNegXTriMesh() override { return false; }
 	//~ End Interface_CollisionDataProvider Interface
 
 	/** 
@@ -64,10 +64,10 @@ public:
 	/** Collision data */
 	UPROPERTY(Instanced)
 	class UBodySetup* SimpleMeshBodySetup;
-	
+
 	/** Convex shapes used for simple collision */
-    UPROPERTY()
-    TArray<FKConvexElem> CollisionConvexElems;
+	UPROPERTY()
+	TArray<FKConvexElem> CollisionConvexElems;
 
 	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
@@ -89,9 +89,9 @@ public:
 	void CreateMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo);
 	void ReplaceMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo);
 	void UpdateMeshSection(int32 SectionIndex);
-	
+
 	int32 NumMeshSections();
 	void UpdateMeshSectionVisibility(int32 SectionIndex);
-	
+
 	void Invalidate();
 };
