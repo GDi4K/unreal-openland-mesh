@@ -15,7 +15,7 @@
 	"IsExperimentalVersion": false,
 	"Installed": false,
 	"EngineVersion": "4.26.0",
-	"MarketplaceURL": "",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/4f2c911c42ef4a6d8c6f9c844898974e",
 	"Modules": [
 		{
 			"Name": "OpenLandMesh",
