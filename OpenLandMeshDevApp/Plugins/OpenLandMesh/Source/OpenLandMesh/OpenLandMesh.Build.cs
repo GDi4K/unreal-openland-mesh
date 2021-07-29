@@ -14,8 +14,7 @@ public class OpenLandMesh : ModuleRules
 
         PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay",
-			"InteractiveToolsFramework",
+			"Core", "CoreUObject", "Engine",
 			"MeshDescription",
 			"RenderCore",
 			"RHI",
