@@ -1,3 +1,5 @@
+// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"

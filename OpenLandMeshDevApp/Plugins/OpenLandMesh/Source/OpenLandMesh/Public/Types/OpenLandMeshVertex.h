@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#pragma once
 
 /** One vertex for the procedural mesh, used for storing data internally */
 #include "OpenLandMeshTangent.h"

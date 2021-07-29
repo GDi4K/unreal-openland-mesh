@@ -1,4 +1,6 @@
-﻿#include "Compute/GpuComputeVertex.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#include "Compute/GpuComputeVertex.h"
 
 #include "Kismet/KismetMaterialLibrary.h"
 

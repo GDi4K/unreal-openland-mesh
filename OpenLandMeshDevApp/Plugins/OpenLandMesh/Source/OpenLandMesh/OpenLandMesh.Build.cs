@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 using UnrealBuildTool;
 

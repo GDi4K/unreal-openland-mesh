@@ -1,5 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 #include "Core/OpenLandPolygonMesh.h"
 #include "Utils/TrackTime.h"

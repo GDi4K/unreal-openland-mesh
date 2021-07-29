@@ -1,6 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 #pragma once
+
+// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 #include "CoreMinimal.h"
 #include "Components/MeshComponent.h"

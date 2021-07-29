@@ -1,4 +1,6 @@
-﻿#include "Core/OpenLandMeshSceneProxy.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#include "Core/OpenLandMeshSceneProxy.h"
 
 static void ConvertProcMeshToDynMeshVertex(FDynamicMeshVertex& Vert, const FOpenLandMeshVertex& ProcVert)
 {

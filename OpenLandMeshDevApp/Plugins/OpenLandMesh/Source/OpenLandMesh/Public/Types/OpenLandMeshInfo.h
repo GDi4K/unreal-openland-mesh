@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#pragma once
 
 #include "OpenLandMesh/Public/Types/OpenLandMeshVertex.h"
 #include "OpenLandMesh/Public/Types/OpenLandMeshTriangle.h"

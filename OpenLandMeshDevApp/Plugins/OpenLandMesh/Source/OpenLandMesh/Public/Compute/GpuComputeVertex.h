@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#pragma once
 #include "Compute/Types/ComputeMaterial.h"
 #include "Compute/Types/DataRenderTarget.h"
 #include "Compute/Types/DataTexture.h"

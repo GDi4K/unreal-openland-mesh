@@ -1,4 +1,6 @@
-﻿#include "Compute/Types/DataRenderTarget.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#include "Compute/Types/DataRenderTarget.h"
 #include "Compute/OpenLandThreading.h"
 #include "Kismet/KismetRenderingLibrary.h"
 

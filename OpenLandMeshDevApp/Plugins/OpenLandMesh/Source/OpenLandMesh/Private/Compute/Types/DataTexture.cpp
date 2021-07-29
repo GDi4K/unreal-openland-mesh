@@ -1,4 +1,6 @@
-﻿#include "Compute/Types/DataTexture.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#include "Compute/Types/DataTexture.h"
 
 FDataTexture::FDataTexture(int Width)
 {

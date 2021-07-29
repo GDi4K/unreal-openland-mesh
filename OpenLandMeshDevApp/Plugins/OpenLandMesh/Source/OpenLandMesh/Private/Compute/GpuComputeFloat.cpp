@@ -1,4 +1,6 @@
-﻿#include "Compute/GpuComputeFloat.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#include "Compute/GpuComputeFloat.h"
 
 #include "Kismet/KismetMaterialLibrary.h"
 #include "Kismet/KismetRenderingLibrary.h"

@@ -1,4 +1,6 @@
-﻿#include "Utils/TrackTime.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#include "Utils/TrackTime.h"
 
 TrackTime::TrackTime(FString CaptionInput)
 {
