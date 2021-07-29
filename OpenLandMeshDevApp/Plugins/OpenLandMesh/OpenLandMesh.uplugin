@@ -3,7 +3,7 @@
 	"Version": 1,
 	"VersionName": "0.0.1",
 	"FriendlyName": "OpenLand Mesh",
-	"Description": "Procedural Mesh Creation Toolkit",
+	"Description": "Procedural Mesh Modeling Toolkit for Unreal Engine Artists",
 	"Category": "Rendering",
 	"CreatedBy": "Arunoda Susiripala",
 	"CreatedByURL": "https://gamedev4k.com",
