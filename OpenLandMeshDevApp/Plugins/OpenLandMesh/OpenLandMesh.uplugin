@@ -1,0 +1,30 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.0.1",
+	"FriendlyName": "OpenLand Mesh",
+	"Description": "Procedural Mesh Creation Toolkit",
+	"Category": "Rendering",
+	"CreatedBy": "Arunoda Susiripala",
+	"CreatedByURL": "https://gamedev4k.com",
+	"DocsURL": "https://github.com/GameDev4K/openland-mesh",
+	"MarketplaceURL": "",
+	"SupportURL": "https://github.com/GameDev4K/openland-mesh",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"EngineVersion": "4.26.0",
+	"MarketplaceURL": "",
+	"Modules": [
+		{
+			"Name": "OpenLandMesh",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Win32"
+			]
+		}
+	]
+}

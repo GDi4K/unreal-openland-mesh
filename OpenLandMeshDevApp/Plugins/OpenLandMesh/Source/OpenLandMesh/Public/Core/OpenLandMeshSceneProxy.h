@@ -1,0 +1,55 @@
+﻿#pragma once
+#include "OpenLandMeshComponent.h"
+
+class OPENLANDMESH_API FOpenLandMeshProxySection
+{
+public:
+	/** Material applied to this section */
+	UMaterialInterface* Material;
+	/** Vertex buffer for this section */
+	FStaticMeshVertexBuffers VertexBuffers;
+	/** Index buffer for this section */
+	FDynamicMeshIndexBuffer32 IndexBuffer;
+	/** Vertex factory for this section */
+	FLocalVertexFactory VertexFactory;
+	/** Whether this section is currently visible */
+	bool bSectionVisible;
+
+#if RHI_RAYTRACING
+	FRayTracingGeometry RayTracingGeometry;
+#endif
+
+	FOpenLandMeshProxySection(ERHIFeatureLevel::Type InFeatureLevel)
+    : Material(NULL)
+    , VertexFactory(InFeatureLevel, "FOpenLandMeshProxySection")
+    , bSectionVisible(true)
+	{}
+};
+
+class FOpenLandMeshSceneProxy final : public FPrimitiveSceneProxy
+{
+private:
+	TArray<FOpenLandMeshProxySection*> ProxySections;
+	
+	UBodySetup* BodySetup;
+	FMaterialRelevance MaterialRelevance;
+
+public:
+	FOpenLandMeshSceneProxy(UOpenLandMeshComponent* Component);
+	virtual ~FOpenLandMeshSceneProxy();
+	
+	SIZE_T GetTypeHash() const override
+	{
+		static size_t UniquePointer;
+		return reinterpret_cast<size_t>(&UniquePointer);
+	}
+	void SetSectionVisibility_RenderThread(int32 SectionIndex, bool bNewVisibility);
+	void UpdateSection_RenderThread(int32 SectionIndex, FSimpleMeshInfoPtr const SectionData);
+	
+	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const;
+	virtual bool CanBeOccluded() const override;
+	virtual uint32 GetMemoryFootprint(void) const;
+	uint32 GetAllocatedSize(void) const;
+	
+};
