@@ -6,9 +6,9 @@
 
 #include "CoreMinimal.h"
 #include "Components/MeshComponent.h"
-#include "Types/OpenLandArray.h"
 #include "Types/OpenLandMeshInfo.h"
-#include "Types/OpenLandMeshVertex.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "PhysicsEngine/ConvexElem.h"
 
 #include "OpenLandMeshComponent.generated.h"
 

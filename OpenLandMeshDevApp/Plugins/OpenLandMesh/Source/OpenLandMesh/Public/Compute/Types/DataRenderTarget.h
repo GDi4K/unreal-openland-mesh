@@ -2,13 +2,14 @@
 
 #pragma once
 
+#include "Engine/TextureRenderTarget2D.h"
+
 class OPENLANDMESH_API FDataRenderTarget
 {
 	int32 TextureWidth = 0;
 	bool bIsReadingData = false;
 
 	UPROPERTY()
-	;
 	UTextureRenderTarget2D* RenderTarget;
 
 public:

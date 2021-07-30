@@ -45,7 +45,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	void SetMaterial(UMaterialInterface* Material);
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 	void BuildMeshAsync(TFunction<void()> Callback = nullptr);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced)

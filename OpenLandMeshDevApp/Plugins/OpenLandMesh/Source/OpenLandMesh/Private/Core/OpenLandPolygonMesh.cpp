@@ -14,7 +14,7 @@ void FOpenLandPolygonMesh::ApplyNormalSmoothing(FOpenLandMeshInfo* MeshInfo, flo
 	// Build PointsToVertices
 	// This contains a list of vertices for a given position.
 	// That happens when multiple triangles shares the same position.
-	for (int32 VertexIndex = 0; VertexIndex < MeshInfo->Vertices.Length(); VertexIndex++)
+	for (size_t VertexIndex = 0; VertexIndex < MeshInfo->Vertices.Length(); VertexIndex++)
 	{
 		FOpenLandMeshVertex Vertex = MeshInfo->Vertices.Get(VertexIndex);
 		if (!PointsToVertices.Contains(Vertex.Position))
@@ -111,7 +111,7 @@ FSimpleMeshInfoPtr FOpenLandPolygonMesh::BuildMesh(UObject* WorldContext, int Su
 {
 	// Apply Source transformation
 	FOpenLandMeshInfo TransformedMeshInfo = SourceMeshInfo;
-	for (int32 Index = 0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
+	for (size_t Index = 0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
 	{
 		FOpenLandMeshVertex& Vertex = TransformedMeshInfo.Vertices.GetRef(Index);
 		Vertex.Position = SourceTransformer.TransformVector(Vertex.Position);
@@ -163,7 +163,7 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, int SubDivision
 	FOpenLandThreading::RunOnAnyBackgroundThread([this, SubDivisions, CuspAngle, HandleCallback]()
 	{
 		FOpenLandMeshInfo TransformedMeshInfo = SourceMeshInfo;
-		for (int32 Index = 0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
+		for (size_t Index = 0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
 		{
 			FOpenLandMeshVertex& Vertex = TransformedMeshInfo.Vertices.GetRef(Index);
 			Vertex.Position = SourceTransformer.TransformVector(Vertex.Position);
@@ -250,7 +250,7 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 	// Set the Original Data
 	TArray<FGpuComputeVertexInput> OriginalPositions;
 	OriginalPositions.SetNumUninitialized(Original->Vertices.Length());
-	for (int32 Index = 0; Index < Original->Vertices.Length(); Index++)
+	for (size_t Index = 0; Index < Original->Vertices.Length(); Index++)
 		OriginalPositions[Index].Position = Original->Vertices.Get(Index).Position;
 
 	GpuComputeEngine->UpdateSourceData(OriginalPositions);
@@ -263,7 +263,7 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 		GpuVertexModifier.Parameters.Push(Param);
 	GpuComputeEngine->Compute(WorldContext, ModifiedPositions, GpuVertexModifier);
 
-	for (int32 Index = 0; Index < Original->Vertices.Length(); Index++)
+	for (size_t Index = 0; Index < Original->Vertices.Length(); Index++)
 	{
 		FOpenLandMeshVertex& Vertex = Target->Vertices.GetRef(Index);
 		Vertex.Position = ModifiedPositions[Index].Position;
@@ -317,7 +317,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMes
 	{
 		bool bAsyncTaskCompleted = true;
 
-		for (size_t Index = 0; Index < AsyncCompletions.Num(); Index++)
+		for (int32 Index = 0; Index < AsyncCompletions.Num(); Index++)
 			//UE_LOG(LogTemp, Warning, TEXT("Value inside the Task Queue: %d=%s"), Index, AsyncCompletions[Index] == true? TEXT("T") : TEXT("F"))
 			bAsyncTaskCompleted = bAsyncTaskCompleted && AsyncCompletions[Index];
 
@@ -384,7 +384,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMes
 		{
 			bool bAsyncTaskCompleted = true;
 
-			for (size_t Index = 0; Index < AsyncCompletions.Num() - 1; Index++)
+			for (int32 Index = 0; Index < AsyncCompletions.Num() - 1; Index++)
 				//UE_LOG(LogTemp, Warning, TEXT("Value inside the Task Queue: %d=%s"), Index, AsyncCompletions[Index] == true? TEXT("T") : TEXT("F"))
 				bAsyncTaskCompleted = bAsyncTaskCompleted && AsyncCompletions[Index];
 			if (bAsyncTaskCompleted == false)
@@ -446,7 +446,7 @@ bool FOpenLandPolygonMesh::IsThereAnyAsyncTask() const
 		return false;
 
 	// There are some tasks. Now we need to check whether they completed or not.
-	for (size_t Index = 0; Index < AsyncCompletions.Num(); Index++)
+	for (int32 Index = 0; Index < AsyncCompletions.Num(); Index++)
 		if (AsyncCompletions[Index] == false)
 			// This is this task is running
 			return true;

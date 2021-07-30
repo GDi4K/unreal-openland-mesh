@@ -65,7 +65,7 @@ bool UOpenLandMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* Collis
 		if (Section->bEnableCollision)
 		{
 			// Copy vert data
-			for (int32 VertIdx = 0; VertIdx < Section->Vertices.Length(); VertIdx++)
+			for (size_t VertIdx = 0; VertIdx < Section->Vertices.Length(); VertIdx++)
 			{
 				CollisionData->Vertices.Add(Section->Vertices.Get(VertIdx).Position);
 
@@ -104,7 +104,7 @@ bool UOpenLandMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* Collis
 
 bool UOpenLandMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) const
 {
-	for (size_t Index = 0; Index < MeshSections.Num(); Index++)
+	for (int32 Index = 0; Index < MeshSections.Num(); Index++)
 	{
 		const FSimpleMeshInfoPtr Section = MeshSections[Index];
 		if (Section->Triangles.Length() >= 0 && Section->bEnableCollision)
@@ -224,12 +224,12 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
 		TArray<FVector> CollisionPositions;
 
 		// We have one collision mesh for all sections, so need to build array of _all_ positions
-		for (size_t Index = 0; Index < MeshSections.Num(); Index++)
+		for (int32 Index = 0; Index < MeshSections.Num(); Index++)
 		{
 			const FSimpleMeshInfoPtr CollisionSection = MeshSections[Index];
 			// If section has collision, copy it
 			if (CollisionSection->bEnableCollision)
-				for (int32 VertIdx = 0; VertIdx < CollisionSection->Vertices.Length(); VertIdx++)
+				for (size_t VertIdx = 0; VertIdx < CollisionSection->Vertices.Length(); VertIdx++)
 					CollisionPositions.Add(CollisionSection->Vertices.Get(VertIdx).Position);
 		}
 
@@ -284,7 +284,7 @@ void UOpenLandMeshComponent::UpdateMeshSectionVisibility(int32 SectionIndex)
 void UOpenLandMeshComponent::UpdateLocalBounds()
 {
 	FBox LocalBox(ForceInit);
-	for (size_t Index = 0; Index < MeshSections.Num(); Index++)
+	for (int32 Index = 0; Index < MeshSections.Num(); Index++)
 		LocalBox += MeshSections[Index]->BoundingBox;
 
 	LocalBounds = LocalBox.IsValid

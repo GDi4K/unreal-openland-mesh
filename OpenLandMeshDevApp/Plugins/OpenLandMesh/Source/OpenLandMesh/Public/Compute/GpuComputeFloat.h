@@ -1,15 +1,14 @@
 ﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 #pragma once
-#include <functional>
 
 #include "Compute/Types/DataRenderTarget.h"
 #include "Compute/Types/DataTexture.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 class OPENLANDMESH_API FGpuComputeFloat
 {
 	UPROPERTY()
-	;
 	UMaterialInstanceDynamic* DynamicMaterialInstance = nullptr;
 
 	TSharedPtr<FDataTexture> DataTexture = nullptr;

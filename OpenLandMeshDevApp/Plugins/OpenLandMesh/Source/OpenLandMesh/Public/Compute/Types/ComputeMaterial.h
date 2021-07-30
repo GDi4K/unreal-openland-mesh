@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Materials/MaterialInterface.h"
 #include "ComputeMaterial.generated.h"
 
 struct FComputeMaterialValidationStatus
@@ -46,7 +47,7 @@ struct FComputeMaterial
 
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	UMaterialInterface* Material = nullptr;
+	UMaterialInterface* Material = NULL;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<FComputeMaterialParameter> Parameters;

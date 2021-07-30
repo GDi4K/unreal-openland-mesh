@@ -194,6 +194,7 @@ void AOpenLandMeshActor::OnConstruction(const FTransform& Transform)
 		BuildMesh();
 }
 
+#if WITH_EDITOR
 void AOpenLandMeshActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -216,3 +217,4 @@ void AOpenLandMeshActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 			PolygonMesh->RegisterGpuVertexModifier({});
 	}
 }
+#endif

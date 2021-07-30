@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "RHI.h"
+
 class OPENLANDMESH_API FDataTexture
 {
 	int32 TextureWidth = 0;

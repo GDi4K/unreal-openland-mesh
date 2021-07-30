@@ -2,6 +2,14 @@
 
 #pragma once
 #include "OpenLandMeshComponent.h"
+#include "Materials/MaterialInterface.h"
+#include "StaticMeshResources.h"
+#include "DynamicMeshBuilder.h"
+#include "LocalVertexFactory.h"
+#include "PrimitiveSceneProxy.h"
+#include "RenderResource.h"
+#include "Materials/MaterialRelevance.h"
+#include "PhysicsEngine/BodySetup.h"
 
 class OPENLANDMESH_API FOpenLandMeshProxySection
 {
