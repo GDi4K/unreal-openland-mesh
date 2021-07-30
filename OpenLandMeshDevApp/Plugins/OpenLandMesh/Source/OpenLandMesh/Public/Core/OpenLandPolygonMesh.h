@@ -28,7 +28,7 @@ public:
 	float TimeInSeconds = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenLandMesh)
-	bool bOnAnimating;
+	bool bOnBuilding;
 };
 
 USTRUCT(BlueprintType)
