@@ -62,10 +62,19 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	if (RenderingMeshInfo->IsLocked())
 		return;
 
-	const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, OriginalMeshInfo, RenderingMeshInfo,
-	                                                         GetWorld()->RealTimeSeconds, SmoothNormalAngle);
-	if (bCanUpdate)
+	if (bUseAsyncAnimations)
+	{
+		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, OriginalMeshInfo, RenderingMeshInfo,
+		                                                         GetWorld()->RealTimeSeconds, SmoothNormalAngle);
+		if (bCanUpdate)
+			MeshComponent->UpdateMeshSection(0);
+	} else
+	{
+		PolygonMesh->ModifyVertices(this, OriginalMeshInfo, RenderingMeshInfo,
+	                                                             GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		MeshComponent->UpdateMeshSection(0);
+	}
+
 }
 
 void AOpenLandMeshActor::BuildMesh()

@@ -84,6 +84,9 @@ public:
 	bool bUseAsyncCollisionCooking = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	bool bUseAsyncAnimations = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	UMaterialInterface* Material;
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
