@@ -40,6 +40,9 @@ protected:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	FVertexModifierResult OnModifyVertex(FVertexModifierPayload Payload);
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+    void OnAfterAnimations();
+
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

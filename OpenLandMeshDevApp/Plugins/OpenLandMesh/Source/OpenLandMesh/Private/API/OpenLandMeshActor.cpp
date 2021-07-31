@@ -46,6 +46,10 @@ FVertexModifierResult AOpenLandMeshActor::OnModifyVertex_Implementation(FVertexM
 	return {Payload.Position};
 }
 
+void AOpenLandMeshActor::OnAfterAnimations_Implementation()
+{
+}
+
 // Called every frame
 void AOpenLandMeshActor::Tick(float DeltaTime)
 {
@@ -67,12 +71,16 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, OriginalMeshInfo, RenderingMeshInfo,
 		                                                         GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		if (bCanUpdate)
+		{
 			MeshComponent->UpdateMeshSection(0);
+			OnAfterAnimations();
+		}
 	} else
 	{
 		PolygonMesh->ModifyVertices(this, OriginalMeshInfo, RenderingMeshInfo,
 	                                                             GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		MeshComponent->UpdateMeshSection(0);
+		OnAfterAnimations();
 	}
 
 }
