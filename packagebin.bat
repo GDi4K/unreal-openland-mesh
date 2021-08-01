@@ -17,6 +17,9 @@ xcopy OpenLandMeshDevApp\Plugins\OpenLandMesh\Content ToPackage\OpenLandMesh\Con
 md ToPackage\OpenLandMesh\Source
 xcopy OpenLandMeshDevApp\Plugins\OpenLandMesh\Source ToPackage\OpenLandMesh\Source /E/H
 
+md ToPackage\OpenLandMesh\Resources
+xcopy OpenLandMeshDevApp\Plugins\OpenLandMesh\Resources ToPackage\OpenLandMesh\Resources /E/H
+
 md ToPackage\OpenLandMesh\Binaries
 md ToPackage\OpenLandMesh\Binaries\Win64
 copy OpenLandMeshDevApp\Plugins\OpenLandMesh\Binaries\Win64\UE4Editor.modules ToPackage\OpenLandMesh\Binaries\Win64\UE4Editor.modules /Y
