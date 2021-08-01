@@ -5,8 +5,6 @@
 /** One vertex for the procedural mesh, used for storing data internally */
 #include "OpenLandMeshTangent.h"
 
-size_t VertexCounter = 0;
-
 struct FOpenLandMeshVertex
 {
 public:
@@ -47,7 +45,7 @@ public:
 		  , UV1(0.f, 0.f)
 		  , UV2(0.f, 0.f)
 		  , UV3(0.f, 0.f)
-		  , ObjectId(++VertexCounter)
+		  , ObjectId(1)
 		  , TriangleId(0)
 	{
 	}
@@ -61,7 +59,7 @@ public:
 		  , UV1(0.f, 0.f)
 		  , UV2(0.f, 0.f)
 		  , UV3(0.f, 0.f)
-		  , ObjectId(++VertexCounter)
+		  , ObjectId(1)
 		  , TriangleId(0)
 	{
 	}
@@ -70,7 +68,7 @@ public:
 	{
 		Position = P;
 		UV0 = UV;
-		ObjectId = ++VertexCounter;
+		ObjectId = 1;
 	}
 
 

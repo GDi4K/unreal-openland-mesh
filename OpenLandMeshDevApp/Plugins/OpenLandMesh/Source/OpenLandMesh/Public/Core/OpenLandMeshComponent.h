@@ -21,7 +21,6 @@ private:
 	// properties
 	FBoxSphereBounds LocalBounds;
 	void UpdateLocalBounds();
-	static uint32 VertexCounter;
 	UPROPERTY()
 	TArray<UBodySetup*> AsyncBodySetupQueue;
 

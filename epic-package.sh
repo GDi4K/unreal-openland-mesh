@@ -1,0 +1,1 @@
+"/Volumes/data/UE_4.26/Engine/Build/BatchFiles/RunUAT.sh" BuildPlugin -Plugin=/Users/arunoda/data/GameDev4k/openland-mesh/OpenLandMeshDevApp/Plugins/OpenLandMesh/OpenLandMesh.uplugin -Package=ToPackage -Rocket
