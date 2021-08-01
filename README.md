@@ -6,9 +6,9 @@ Procedural Mesh Modeling Toolkit for Unreal Engine Artists.
 
 ## Installation
 
-Soon: Get it via the marketplace 🛍️
+[Get it via the marketplace](https://bit.ly/get-openland-mesh) 🛍️
 
-For non-commerical projects, you can also get it from here:
+For non-commercial projects, you can also get it from here:
 
 * Download a [binary release](https://github.com/GameDev4K/openland-mesh/releases) for your platform
 * Close your Unreal Engine project
