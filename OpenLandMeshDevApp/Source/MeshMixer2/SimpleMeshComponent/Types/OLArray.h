@@ -14,18 +14,17 @@ class OLArray
 
 	void CheckLocked()
 	{
-		checkf(bLocked == false, TEXT("It's not possible to modify values of a locked OLAarray<%hs>"), typeid(T).name())
+		checkf(bLocked == false, TEXT("It's not possible to modify values of a locked OLAarray<>"))
 	}
 
 	void CheckFreeze()
 	{
-		checkf(bFreeze == false, TEXT("It's not possible to extend a freezed OLArray<%hs>"), typeid(T).name())
+		checkf(bFreeze == false, TEXT("It's not possible to extend a freezed OLArray<>"))
 	}
 
 	void CheckLockForever()
 	{
-		checkf(bLockForever == false, TEXT("It's not possible to unlock OLArray<%hs> which is locked forever"),
-		       typeid(T).name())
+		checkf(bLockForever == false, TEXT("It's not possible to unlock OLArray<> which is locked forever"))
 	}
 
 public:

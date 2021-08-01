@@ -4,8 +4,6 @@
 #include "Core/OpenLandMeshSceneProxy.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
-uint32 UOpenLandMeshComponent::VertexCounter = 0;
-
 void UOpenLandMeshComponent::AddCollisionConvexMesh(TArray<FVector> ConvexVerts)
 {
 	if (ConvexVerts.Num() >= 4)
