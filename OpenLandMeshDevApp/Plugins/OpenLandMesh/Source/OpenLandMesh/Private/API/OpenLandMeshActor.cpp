@@ -158,14 +158,12 @@ void AOpenLandMeshActor::SetGPUScalarParameter(FName Name, float Value)
 	{
 		if (Param.Name == Name)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Set Value: %s - %f"), *(Name.ToString()), Value)
 			Param.ScalarValue = Value;
 			PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 			return;
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Create Value: %s - %f"), *(Name.ToString()), Value)
 	GpuVertexModifier.Parameters.Push({
         Name,
         CMPT_SCALAR,
