@@ -152,6 +152,29 @@ void AOpenLandMeshActor::ModifyMesh()
 	MeshComponent->UpdateMeshSection(0);
 }
 
+void AOpenLandMeshActor::SetGPUScalarParameter(FName Name, float Value)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Set Value: %s - %f"), *(Name.ToString()), Value)
+			Param.ScalarValue = Value;
+			PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+			return;
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Create Value: %s - %f"), *(Name.ToString()), Value)
+	GpuVertexModifier.Parameters.Push({
+        Name,
+        CMPT_SCALAR,
+        Value
+    });
+
+	PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+}
+
 void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 {
 	PolygonMesh = GetPolygonMesh();

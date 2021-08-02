@@ -97,4 +97,7 @@ public:
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMesh();
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	void SetGPUScalarParameter(FName Name, float Value);
 };

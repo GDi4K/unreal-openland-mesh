@@ -172,10 +172,14 @@ void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
                                              TArray<FComputeMaterialParameter> MaterialParameters)
 {
 	for (auto ParamInfo : MaterialParameters)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Set GPU Param: %s - Value: %f"), *(ParamInfo.Name.ToString()), ParamInfo.ScalarValue)
+		
 		if (ParamInfo.Type == CMPT_SCALAR)
 			Material->SetScalarParameterValue(ParamInfo.Name, ParamInfo.ScalarValue);
 		else if (ParamInfo.Type == CMPT_VECTOR)
 			Material->SetVectorParameterValue(ParamInfo.Name, ParamInfo.VectorValue);
+	}
 }
 
 FGpuComputeVertex::~FGpuComputeVertex()
