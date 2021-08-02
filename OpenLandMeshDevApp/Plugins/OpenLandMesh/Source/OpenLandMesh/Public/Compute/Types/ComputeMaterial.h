@@ -24,16 +24,16 @@ struct FComputeMaterialParameter
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh")
 	FName Name = "";
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh")
 	TEnumAsByte<FComputeMaterialParameterType> Type = CMPT_SCALAR;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh")
 	float ScalarValue = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh")
 	FVector VectorValue = {};
 };
 
@@ -46,9 +46,9 @@ struct FComputeMaterial
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="OpenLandMesh")
 	UMaterialInterface* Material = NULL;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="OpenLandMesh")
 	TArray<FComputeMaterialParameter> Parameters;
 };

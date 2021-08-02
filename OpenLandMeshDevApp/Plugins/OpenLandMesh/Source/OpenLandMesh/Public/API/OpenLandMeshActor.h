@@ -34,13 +34,13 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="OpenLandMesh")
 	UOpenLandMeshPolygonMeshProxy* GetPolygonMesh();
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="OpenLandMesh")
 	FVertexModifierResult OnModifyVertex(FVertexModifierPayload Payload);
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="OpenLandMesh")
     void OnAfterAnimations();
 
 public:
@@ -53,7 +53,7 @@ public:
 #endif
 	void BuildMeshAsync(TFunction<void()> Callback = nullptr);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering")
 	UOpenLandMeshComponent* MeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
