@@ -10,11 +10,12 @@ Procedural Mesh Modeling Toolkit for Unreal Engine Artists.
 
 For non-commercial projects, you can also get it from here:
 
-* Download a [binary release](https://github.com/GameDev4K/openland-mesh/releases) for your platform
+* Download the plugin source from a [release](https://github.com/GameDev4K/openland-mesh/releases)
 * Close your Unreal Engine project
 * Create a directory called "Plugins" in the project root (Use the operating system file browser)
 * Extract the downloaded zip & copy the "OpenLandMesh" directory to the above "Plugins" directory
 * Start your project
+* You will ask to build the plugin for the first time & proceed with it.
 * Open the Plugins page & make sure "OpenLandMesh" is enabled.
 
 ## Documentation
