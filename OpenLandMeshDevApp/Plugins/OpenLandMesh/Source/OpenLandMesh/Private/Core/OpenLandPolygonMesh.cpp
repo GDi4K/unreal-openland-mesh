@@ -236,7 +236,7 @@ void FOpenLandPolygonMesh::EnsureGpuComputeEngine(UObject* WorldContext, FOpenLa
 
 	const int32 VertexCount = MeshInfo->Vertices.Length();
 	const int32 TextureWidth = FMath::CeilToInt(FMath::Sqrt(VertexCount));
-	UE_LOG(LogTemp, Warning, TEXT("TextureWidth is: %d for Vertices: %d"), TextureWidth, VertexCount)
+	//UE_LOG(LogTemp, Warning, TEXT("TextureWidth is: %d for Vertices: %d"), TextureWidth, VertexCount)
 
 	GpuComputeEngine = MakeShared<FGpuComputeVertex>();
 	TArray<FGpuComputeVertexInput> SourceData;

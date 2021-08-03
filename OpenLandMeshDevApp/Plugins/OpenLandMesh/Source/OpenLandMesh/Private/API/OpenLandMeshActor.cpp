@@ -74,6 +74,9 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		{
 			MeshComponent->UpdateMeshSection(0);
 			OnAfterAnimations();
+			// When someone updated GPU parameters inside the above hook
+			// We need to update them like this
+			PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 		}
 	} else
 	{
@@ -81,8 +84,10 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	                                                             GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		MeshComponent->UpdateMeshSection(0);
 		OnAfterAnimations();
+		// When someone updated GPU parameters inside the above hook
+		// We need to update them like this
+		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 	}
-
 }
 
 void AOpenLandMeshActor::BuildMesh()
@@ -150,6 +155,69 @@ void AOpenLandMeshActor::ModifyMesh()
 	PolygonMesh->ModifyVertices(this, OriginalMeshInfo, RenderingMeshInfo, GetWorld()->RealTimeSeconds,
 	                            SmoothNormalAngle);
 	MeshComponent->UpdateMeshSection(0);
+}
+
+void AOpenLandMeshActor::SetGPUScalarParameter(FName Name, float Value)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			Param.ScalarValue = Value;
+			return;
+		}
+	}
+
+	GpuVertexModifier.Parameters.Push({
+        Name,
+        CMPT_SCALAR,
+        Value
+    });
+}
+
+float AOpenLandMeshActor::GetGPUScalarParameter(FName Name)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			return Param.ScalarValue;
+		}
+	}
+
+	return 0;
+}
+
+void AOpenLandMeshActor::SetGPUVectorParameter(FName Name, FVector Value)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			Param.VectorValue = Value;
+			return;
+		}
+	}
+
+	GpuVertexModifier.Parameters.Push({
+        Name,
+        CMPT_VECTOR,
+		0,
+        Value
+    });
+}
+
+FVector AOpenLandMeshActor::GetGPUVectorParameter(FName Name)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			return Param.VectorValue;
+		}
+	}
+
+	return FVector::ZeroVector;
 }
 
 void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)

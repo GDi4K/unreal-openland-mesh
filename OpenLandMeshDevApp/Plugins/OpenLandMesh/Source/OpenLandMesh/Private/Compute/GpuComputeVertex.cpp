@@ -172,13 +172,15 @@ void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
                                              TArray<FComputeMaterialParameter> MaterialParameters)
 {
 	for (auto ParamInfo : MaterialParameters)
+	{
 		if (ParamInfo.Type == CMPT_SCALAR)
 			Material->SetScalarParameterValue(ParamInfo.Name, ParamInfo.ScalarValue);
 		else if (ParamInfo.Type == CMPT_VECTOR)
 			Material->SetVectorParameterValue(ParamInfo.Name, ParamInfo.VectorValue);
+	}
 }
 
 FGpuComputeVertex::~FGpuComputeVertex()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Deleting... FGpuComputeVector"))
+	
 }
