@@ -182,5 +182,5 @@ void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
 
 FGpuComputeVertex::~FGpuComputeVertex()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Deleting... FGpuComputeVector"))
+	
 }

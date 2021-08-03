@@ -74,6 +74,9 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		{
 			MeshComponent->UpdateMeshSection(0);
 			OnAfterAnimations();
+			// When someone updated GPU parameters inside the above hook
+			// We need to update them like this
+			PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 		}
 	} else
 	{
@@ -81,8 +84,10 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	                                                             GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		MeshComponent->UpdateMeshSection(0);
 		OnAfterAnimations();
+		// When someone updated GPU parameters inside the above hook
+		// We need to update them like this
+		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 	}
-
 }
 
 void AOpenLandMeshActor::BuildMesh()
@@ -159,7 +164,6 @@ void AOpenLandMeshActor::SetGPUScalarParameter(FName Name, float Value)
 		if (Param.Name == Name)
 		{
 			Param.ScalarValue = Value;
-			PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 			return;
 		}
 	}
@@ -169,8 +173,51 @@ void AOpenLandMeshActor::SetGPUScalarParameter(FName Name, float Value)
         CMPT_SCALAR,
         Value
     });
+}
 
-	PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+float AOpenLandMeshActor::GetGPUScalarParameter(FName Name)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			return Param.ScalarValue;
+		}
+	}
+
+	return 0;
+}
+
+void AOpenLandMeshActor::SetGPUVectorParameter(FName Name, FVector Value)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			Param.VectorValue = Value;
+			return;
+		}
+	}
+
+	GpuVertexModifier.Parameters.Push({
+        Name,
+        CMPT_VECTOR,
+		0,
+        Value
+    });
+}
+
+FVector AOpenLandMeshActor::GetGPUVectorParameter(FName Name)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			return Param.VectorValue;
+		}
+	}
+
+	return FVector::ZeroVector;
 }
 
 void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)

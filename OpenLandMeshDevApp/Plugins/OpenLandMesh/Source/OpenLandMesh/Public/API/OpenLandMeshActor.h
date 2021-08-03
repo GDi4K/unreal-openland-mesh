@@ -100,4 +100,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	void SetGPUScalarParameter(FName Name, float Value);
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+    float GetGPUScalarParameter(FName Name);
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+    void SetGPUVectorParameter(FName Name, FVector Value);
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+    FVector GetGPUVectorParameter(FName Name);
 };
