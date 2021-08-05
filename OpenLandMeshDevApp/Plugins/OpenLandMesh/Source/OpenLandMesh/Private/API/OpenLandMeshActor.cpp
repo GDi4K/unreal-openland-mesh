@@ -164,7 +164,7 @@ void AOpenLandMeshActor::BuildMesh()
 	// In this case, we need to trigger the ModifyMesh initially.
 	if (!bRunVertexModifiersOnBuild)
 	{
-		ModifyMesh();
+		ModifyMeshAsync();
 	}
 }
 
