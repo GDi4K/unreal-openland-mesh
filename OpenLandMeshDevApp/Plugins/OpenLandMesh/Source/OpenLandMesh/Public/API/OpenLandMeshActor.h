@@ -18,6 +18,7 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	GENERATED_BODY()
 
 	bool bMeshGenerated = false;
+	bool bCompleteModifyMeshAsync = false;
 
 public:
 	// Sets default values for this actor's properties
@@ -52,6 +53,7 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	void BuildMeshAsync(TFunction<void()> Callback = nullptr);
+	void ModifyMeshAsync();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering")
 	UOpenLandMeshComponent* MeshComponent;
@@ -88,6 +90,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncAnimations = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+    bool bRunVertexModifiersOnBuild = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	UMaterialInterface* Material;

@@ -41,6 +41,13 @@ public:
 	FVector Position = {0, 0, 0};
 };
 
+struct FOpenLandPolygonMeshBuildOptions
+{
+	int SubDivisions = 0;
+	float CuspAngle = 0;
+	bool bRunVertexModifiers = true;
+};
+
 class OPENLANDMESH_API FOpenLandPolygonMesh
 {
 	// For the delete delete schedular
@@ -59,8 +66,8 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	static FOpenLandMeshInfo SubDivide(FOpenLandMeshInfo SourceMeshInfo, int Depth);
 	static void AddFace(FOpenLandMeshInfo* MeshInfo, TOpenLandArray<FOpenLandMeshVertex> Vertices);
 	static void BuildFaceTangents(FOpenLandMeshVertex& T0, FOpenLandMeshVertex& T1, FOpenLandMeshVertex& T2);
-	void ApplyVertexModifiers(FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart, int RangeEnd,
-	                          float RealTimeSeconds, bool bOnBuilding) const;
+	static void ApplyVertexModifiers(function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart, int RangeEnd,
+	                          float RealTimeSeconds, bool bOnBuilding);
 	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandMeshInfo* MeshInfo);
 	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target,
 	                            TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
@@ -68,8 +75,8 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 
 public:
 	~FOpenLandPolygonMesh();
-	FSimpleMeshInfoPtr BuildMesh(UObject* WorldContext, int SubDivisions = 0, float CuspAngle = 0);
-	void BuildMeshAsync(UObject* WorldContext, int SubDivisions, float CuspAngle,
+	FSimpleMeshInfoPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options);
+	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
 	                    std::function<void(FSimpleMeshInfoPtr)> Callback);
 	void ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
 	                    float RealTimeSeconds, float CuspAngle = 0, bool bOnBuilding = false);

@@ -13,16 +13,15 @@ UOpenLandMeshPolygonMeshProxy::~UOpenLandMeshPolygonMeshProxy()
 	FOpenLandPolygonMesh::DeletePolygonMesh(PolygonMesh);
 }
 
-FSimpleMeshInfoPtr UOpenLandMeshPolygonMeshProxy::BuildMesh(UObject* WorldContext, int SubDivisions,
-                                                            float CuspAngle) const
+FSimpleMeshInfoPtr UOpenLandMeshPolygonMeshProxy::BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const
 {
-	return PolygonMesh->BuildMesh(WorldContext, SubDivisions, CuspAngle);
+	return PolygonMesh->BuildMesh(WorldContext, Options);
 }
 
-void UOpenLandMeshPolygonMeshProxy::BuildMeshAsync(UObject* WorldContext, int SubDivisions, float CuspAngle,
+void UOpenLandMeshPolygonMeshProxy::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
                                                    std::function<void(FSimpleMeshInfoPtr)> Callback) const
 {
-	return PolygonMesh->BuildMeshAsync(WorldContext, SubDivisions, CuspAngle, Callback);
+	return PolygonMesh->BuildMeshAsync(WorldContext, Options, Callback);
 }
 
 void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original,

@@ -107,7 +107,7 @@ FOpenLandMeshInfo FOpenLandPolygonMesh::SubDivide(FOpenLandMeshInfo SourceMeshIn
 	return MeshInfo;
 }
 
-FSimpleMeshInfoPtr FOpenLandPolygonMesh::BuildMesh(UObject* WorldContext, int SubDivisions, float CuspAngle)
+FSimpleMeshInfoPtr FOpenLandPolygonMesh::BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options)
 {
 	// Apply Source transformation
 	FOpenLandMeshInfo TransformedMeshInfo = SourceMeshInfo;
@@ -117,50 +117,80 @@ FSimpleMeshInfoPtr FOpenLandPolygonMesh::BuildMesh(UObject* WorldContext, int Su
 		Vertex.Position = SourceTransformer.TransformVector(Vertex.Position);
 	}
 
-	FOpenLandMeshInfo _Original = SubDivide(TransformedMeshInfo, SubDivisions);
+	FOpenLandMeshInfo _Original = SubDivide(TransformedMeshInfo, Options.SubDivisions);
 	FOpenLandMeshInfo* Original = &_Original;
 	// Here we subdivide & clone this meshInfo
 	// That because, we need to send this memory out of this block
 	// And after that, we no longer manage that memory
 	FSimpleMeshInfoPtr Target = _Original.Clone();
 
-	// Setup & Gpu Vertex Modifiers if needed
-	EnsureGpuComputeEngine(WorldContext, Original);
-	if (GpuVertexModifier.Material != nullptr)
+	if (Options.bRunVertexModifiers)
 	{
-		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
-		ApplyGpuVertexModifers(WorldContext, Original, Target.Get(), MakeParameters(0, true));
-		TrackGpuVertexModifiers.Finish();
+		// Setup & Gpu Vertex Modifiers if needed
+		EnsureGpuComputeEngine(WorldContext, Original);
+		if (GpuVertexModifier.Material != nullptr)
+		{
+			auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
+			ApplyGpuVertexModifers(WorldContext, Original, Target.Get(), MakeParameters(0, true));
+			TrackGpuVertexModifiers.Finish();
+		}
 	}
+
 
 	// Build Faces
 
 	auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-	ApplyVertexModifiers(Target.Get(), Target.Get(), 0, Original->Triangles.Length(), 0, true);
+	if (Options.bRunVertexModifiers)
+	{
+		ApplyVertexModifiers(VertexModifier, Target.Get(), Target.Get(), 0, Original->Triangles.Length(), 0, true);
+	} else
+	{
+		ApplyVertexModifiers(nullptr, Target.Get(), Target.Get(), 0, Original->Triangles.Length(), 0, true);
+	}
 	TrackCpuVertexModifiers.Finish();
 
-	if (CuspAngle > 0.0)
+	if (Options.CuspAngle > 0.0)
 	{
 		auto TrackNormalSmoothing = TrackTime("NormalSmoothing");
-		ApplyNormalSmoothing(Target.Get(), CuspAngle);
+		ApplyNormalSmoothing(Target.Get(), Options.CuspAngle);
 		TrackNormalSmoothing.Finish();
 	}
 
 	return Target;
 }
 
-void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, int SubDivisions, float CuspAngle,
+void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
                                           std::function<void(FSimpleMeshInfoPtr)> Callback)
 {
-	std::function<void(FSimpleMeshInfoPtr)> HandleCallback = [this, WorldContext, Callback, CuspAngle
+	std::function<void(FSimpleMeshInfoPtr)> HandleCallback = [this, WorldContext, Callback, Options
 		](FSimpleMeshInfoPtr Target)
 	{
-		ModifyVertices(WorldContext, Target, Target, 0, CuspAngle, true);
+		if (Options.bRunVertexModifiers)
+		{
+			ModifyVertices(WorldContext, Target, Target, 0, Options.CuspAngle, true);
+		} else
+		{
+			// Now we need to build the bounding box & tangents
+			// Above ModifyVertices is already doing this for us.
+			// That's why we need to do it manually.
+			Target->BoundingBox.Init();
+			for (size_t Index=0; Index<Target->Vertices.Length(); Index++)
+			{
+				Target->BoundingBox += Target->Vertices.Get(Index).Position;
+			}
+	
+			if (Options.CuspAngle > 0.0)
+			{
+				ApplyNormalSmoothing(Target.Get(), Options.CuspAngle);
+			}
+
+			
+		}
 		Callback(Target);
 	};
 
 	// Apply Source transformation
-	FOpenLandThreading::RunOnAnyBackgroundThread([this, SubDivisions, CuspAngle, HandleCallback]()
+	FOpenLandThreading::RunOnAnyBackgroundThread([this, Options, HandleCallback]()
 	{
 		FOpenLandMeshInfo TransformedMeshInfo = SourceMeshInfo;
 		for (size_t Index = 0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
@@ -169,7 +199,7 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, int SubDivision
 			Vertex.Position = SourceTransformer.TransformVector(Vertex.Position);
 		}
 
-		FOpenLandMeshInfo _Original = SubDivide(TransformedMeshInfo, SubDivisions);
+		FOpenLandMeshInfo _Original = SubDivide(TransformedMeshInfo, Options.SubDivisions);
 		FOpenLandMeshInfo* Original = &_Original;
 		// Here we subdivide & clone this meshInfo
 		// That because, we need to send this memory out of this block
@@ -183,8 +213,8 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, int SubDivision
 	});
 }
 
-void FOpenLandPolygonMesh::ApplyVertexModifiers(FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart,
-                                                int RangeEnd, float RealTimeSeconds, bool bOnBuilding) const
+void FOpenLandPolygonMesh::ApplyVertexModifiers(function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart,
+                                                int RangeEnd, float RealTimeSeconds, bool bOnBuilding)
 {
 	for (int TriIndex = RangeStart; TriIndex < RangeEnd; TriIndex++)
 	{
@@ -266,6 +296,13 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 	for (size_t Index = 0; Index < Original->Vertices.Length(); Index++)
 	{
 		FOpenLandMeshVertex& Vertex = Target->Vertices.GetRef(Index);
+		
+		FVector OriginalPosition = Original->Vertices.GetRef(Index).Position;
+		FVector ModifiedPosition = ModifiedPositions[Index].Position;
+		
+		//UE_LOG(LogTemp, Warning, TEXT("Original: %f, %f, %f | Modified: %f, %f, %f"), OriginalPosition.X, OriginalPosition.Y, OriginalPosition.Z,  ModifiedPosition.X, ModifiedPosition.Y, ModifiedPosition.Z)
+		//UE_LOG(LogTemp, Warning, TEXT(""),)
+		
 		Vertex.Position = ModifiedPositions[Index].Position;
 		Vertex.Color = ModifiedPositions[Index].VertexColor;
 	}
@@ -296,7 +333,7 @@ void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FSimpleMeshInfo
 	Target->BoundingBox.Init();
 
 	auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-	ApplyVertexModifiers(Intermediate.Get(), Target.Get(), 0, Original->Triangles.Length(), RealTimeSeconds,
+	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), 0, Original->Triangles.Length(), RealTimeSeconds,
 	                     bOnBuilding);
 	TrackCpuVertexModifiers.Finish();
 
@@ -364,7 +401,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMes
 				const int NumTris = Intermediate->Triangles.Length();
 				const int StartIndex = TasksPerWorker * WorkerId;
 				const int EndIndex = (WorkerId == NumWorkers - 1) ? NumTris : StartIndex + TasksPerWorker;
-				ApplyVertexModifiers(Intermediate.Get(), Target.Get(), StartIndex, EndIndex, RealTimeSeconds, false);
+				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), StartIndex, EndIndex, RealTimeSeconds, false);
 
 				// Mark the work as completed.
 				// We need to do this on the game thread since AsyncCompletions is not thread safe.

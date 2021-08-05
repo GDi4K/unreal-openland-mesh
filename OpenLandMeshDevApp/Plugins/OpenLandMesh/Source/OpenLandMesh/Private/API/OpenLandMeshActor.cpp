@@ -57,13 +57,25 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	if (GetWorld()->WorldType == EWorldType::Editor)
 		return;
 
-	if (!bAnimate)
-		return;
 
 	if (OriginalMeshInfo == nullptr)
 		return;
 
 	if (RenderingMeshInfo->IsLocked())
+		return;
+
+	if (bCompleteModifyMeshAsync)
+	{
+		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, OriginalMeshInfo, RenderingMeshInfo,
+                                                                 GetWorld()->RealTimeSeconds, SmoothNormalAngle);
+		if (bCanUpdate)
+		{
+			MeshComponent->UpdateMeshSection(0);
+			bCompleteModifyMeshAsync = false;
+		}
+	}
+
+	if (!bAnimate)
 		return;
 
 	if (bUseAsyncAnimations)
@@ -123,9 +135,14 @@ void AOpenLandMeshActor::BuildMesh()
 	else
 		PolygonMesh->RegisterGpuVertexModifier({});
 
-	FSimpleMeshInfoPtr NewMeshInfo = PolygonMesh->BuildMesh(this, SubDivisions, SmoothNormalAngle);
-	//NewMeshInfo->bEnableCollision = false;
+	const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
+		SubDivisions,
+        SmoothNormalAngle,
+		bRunVertexModifiersOnBuild
+    };
+	FSimpleMeshInfoPtr NewMeshInfo = PolygonMesh->BuildMesh(this, BuildMeshOptions);
 	const FSimpleMeshInfoPtr NewRenderingMeshInfo = NewMeshInfo->Clone();
+	
 	NewRenderingMeshInfo->bEnableCollision = bEnableCollision;
 	NewRenderingMeshInfo->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
 
@@ -143,6 +160,12 @@ void AOpenLandMeshActor::BuildMesh()
 	OriginalMeshInfo = NewMeshInfo;
 	RenderingMeshInfo = NewRenderingMeshInfo;
 	bMeshGenerated = true;
+
+	// In this case, we need to trigger the ModifyMesh initially.
+	if (!bRunVertexModifiersOnBuild)
+	{
+		ModifyMesh();
+	}
 }
 
 void AOpenLandMeshActor::ModifyMesh()
@@ -154,6 +177,19 @@ void AOpenLandMeshActor::ModifyMesh()
 
 	PolygonMesh->ModifyVertices(this, OriginalMeshInfo, RenderingMeshInfo, GetWorld()->RealTimeSeconds,
 	                            SmoothNormalAngle);
+	MeshComponent->UpdateMeshSection(0);
+}
+
+void AOpenLandMeshActor::ModifyMeshAsync()
+{
+	if (bRunGpuVertexModifiers)
+		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+	else
+		PolygonMesh->RegisterGpuVertexModifier({});
+
+	bCompleteModifyMeshAsync = true;
+	PolygonMesh->ModifyVertices(this, OriginalMeshInfo, RenderingMeshInfo, GetWorld()->RealTimeSeconds,
+                                SmoothNormalAngle);
 	MeshComponent->UpdateMeshSection(0);
 }
 
@@ -239,7 +275,13 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 	else
 		PolygonMesh->RegisterGpuVertexModifier({});
 
-	PolygonMesh->BuildMeshAsync(this, SubDivisions, SmoothNormalAngle, [this, Callback](FSimpleMeshInfoPtr NewMeshInfo)
+	const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
+		SubDivisions,
+		SmoothNormalAngle,
+		bRunVertexModifiersOnBuild
+	};
+	
+	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, Callback](FSimpleMeshInfoPtr NewMeshInfo)
 	{
 		const FSimpleMeshInfoPtr NewRenderingMeshInfo = NewMeshInfo->Clone();
 		NewRenderingMeshInfo->bEnableCollision = bEnableCollision;
@@ -258,6 +300,11 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 
 		OriginalMeshInfo = NewMeshInfo;
 		RenderingMeshInfo = NewRenderingMeshInfo;
+
+		if (!bRunVertexModifiersOnBuild)
+		{
+			ModifyMeshAsync();
+		}
 
 		if (Callback != nullptr)
 			Callback();
