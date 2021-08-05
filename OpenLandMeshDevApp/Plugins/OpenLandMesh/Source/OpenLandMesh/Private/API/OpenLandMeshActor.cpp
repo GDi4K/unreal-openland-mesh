@@ -256,6 +256,39 @@ FVector AOpenLandMeshActor::GetGPUVectorParameter(FName Name)
 	return FVector::ZeroVector;
 }
 
+void AOpenLandMeshActor::SetGPUTextureParameter(FName Name, UTexture2D* Value)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			Param.TextureValue = Value;
+			return;
+		}
+	}
+
+	GpuVertexModifier.Parameters.Push({
+        Name,
+        CMPT_VECTOR,
+        0,
+        FVector::ZeroVector,
+		Value
+    });
+}
+
+UTexture2D* AOpenLandMeshActor::GetGPUTextureParameter(FName Name)
+{
+	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
+	{
+		if (Param.Name == Name)
+		{
+			return Param.TextureValue;
+		}
+	}
+
+	return nullptr;
+}
+
 void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 {
 	PolygonMesh = GetPolygonMesh();

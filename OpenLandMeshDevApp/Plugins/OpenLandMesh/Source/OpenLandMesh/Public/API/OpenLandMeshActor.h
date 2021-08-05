@@ -114,4 +114,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
     FVector GetGPUVectorParameter(FName Name);
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+    void SetGPUTextureParameter(FName Name, UTexture2D* Value);
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+    UTexture2D* GetGPUTextureParameter(FName Name);
 };

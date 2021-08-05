@@ -16,7 +16,8 @@ UENUM(BlueprintType)
 enum FComputeMaterialParameterType
 {
 	CMPT_SCALAR UMETA(DisplayName="Scalar"),
-	CMPT_VECTOR UMETA(DisplayName="Vector")
+	CMPT_VECTOR UMETA(DisplayName="Vector"),
+	CMPT_TEXTURE UMETA(DisplayName="Texture")
 };
 
 USTRUCT(BlueprintType)
@@ -35,6 +36,9 @@ struct FComputeMaterialParameter
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh")
 	FVector VectorValue = {};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh")
+	UTexture2D* TextureValue = nullptr;
 };
 
 /**

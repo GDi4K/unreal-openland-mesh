@@ -182,12 +182,23 @@ void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
 	Material->SetTextureParameterValue("InputFloatUV1", DataTextureUV1->GetTexture());
 	
 	for (auto ParamInfo : MaterialParameters)
-	{
-		if (ParamInfo.Type == CMPT_SCALAR)
-			Material->SetScalarParameterValue(ParamInfo.Name, ParamInfo.ScalarValue);
-		else if (ParamInfo.Type == CMPT_VECTOR)
-			Material->SetVectorParameterValue(ParamInfo.Name, ParamInfo.VectorValue);
-	}
+    {
+    	switch (ParamInfo.Type)
+    	{
+    		case CMPT_SCALAR:
+    			Material->SetScalarParameterValue(ParamInfo.Name, ParamInfo.ScalarValue);
+    			break;
+    		case CMPT_VECTOR:
+    			Material->SetVectorParameterValue(ParamInfo.Name, ParamInfo.VectorValue);
+    			break;
+    		case CMPT_TEXTURE:
+    			Material->SetTextureParameterValue(ParamInfo.Name, ParamInfo.TextureValue);
+    			break;
+    		default:
+    			checkf(false, TEXT("Unknown Compute Material parameter type"));
+    		
+    	}
+    }
 }
 
 FGpuComputeVertex::~FGpuComputeVertex()
