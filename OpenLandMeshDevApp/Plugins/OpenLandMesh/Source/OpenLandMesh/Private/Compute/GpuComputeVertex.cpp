@@ -11,6 +11,10 @@ void FGpuComputeVertex::Init(UObject* WorldContext, TArray<FGpuComputeVertexInpu
 	DataTexture0 = MakeShared<FDataTexture>(Width);
 	DataTexture1 = MakeShared<FDataTexture>(Width);
 	DataTexture2 = MakeShared<FDataTexture>(Width);
+
+	DataTextureUV0 = MakeShared<FDataTexture>(Width);
+	DataTextureUV1 = MakeShared<FDataTexture>(Width);
+	
 	UpdateSourceData(SourceData);
 
 	// Create the Render Targets
@@ -59,11 +63,22 @@ void FGpuComputeVertex::UpdateSourceData(TArray<FGpuComputeVertexInput>& SourceD
 		float* ValuePointer2 = &SourceData[Index].Position.Z;
 		uint8* ValueBytes2 = reinterpret_cast<uint8*>(ValuePointer2);
 		DataTexture2->SetPixelValue(Index, ValueBytes2[0], ValueBytes2[1], ValueBytes2[2], ValueBytes2[3]);
+
+		float* ValuePointerUV0 = &SourceData[Index].UV0.X;
+		uint8* ValueBytesUV0 = reinterpret_cast<uint8*>(ValuePointerUV0);
+		DataTextureUV0->SetPixelValue(Index, ValueBytesUV0[0], ValueBytesUV0[1], ValueBytesUV0[2], ValueBytesUV0[3]);
+
+		float* ValuePointerUV1 = &SourceData[Index].UV0.Y;
+		uint8* ValueBytesUV1 = reinterpret_cast<uint8*>(ValuePointerUV1);
+		DataTextureUV1->SetPixelValue(Index, ValueBytesUV1[0], ValueBytesUV1[1], ValueBytesUV1[2], ValueBytesUV1[3]);
 	}
 
 	DataTexture0->UpdateTexture();
 	DataTexture1->UpdateTexture();
 	DataTexture2->UpdateTexture();
+
+	DataTextureUV0->UpdateTexture();
+	DataTextureUV1->UpdateTexture();
 }
 
 void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexOutput>& ModifiedData,
@@ -74,30 +89,18 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 	// Create the Dynamic Materials`
 	DynamicMaterialInstance0 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
 		WorldContext, ComputeMaterial.Material);
-	DynamicMaterialInstance0->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
-	DynamicMaterialInstance0->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
-	DynamicMaterialInstance0->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance0->SetScalarParameterValue("OutputFloat", 0);
 
 	DynamicMaterialInstance1 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
 		WorldContext, ComputeMaterial.Material);
-	DynamicMaterialInstance1->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
-	DynamicMaterialInstance1->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
-	DynamicMaterialInstance1->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance1->SetScalarParameterValue("OutputFloat", 1);
 
 	DynamicMaterialInstance2 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
 		WorldContext, ComputeMaterial.Material);
-	DynamicMaterialInstance2->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
-	DynamicMaterialInstance2->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
-	DynamicMaterialInstance2->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance2->SetScalarParameterValue("OutputFloat", 2);
 
 	DynamicMaterialInstance3 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
 		WorldContext, ComputeMaterial.Material);
-	DynamicMaterialInstance3->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
-	DynamicMaterialInstance3->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
-	DynamicMaterialInstance3->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance3->SetScalarParameterValue("OutputVertexColor", 1); // This indicate vertex colors
 
 	ApplyParameterValues(DynamicMaterialInstance0, ComputeMaterial.Parameters);
@@ -171,6 +174,13 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
                                              TArray<FComputeMaterialParameter> MaterialParameters)
 {
+	Material->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
+	Material->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
+	Material->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
+
+	Material->SetTextureParameterValue("InputFloatUV0", DataTextureUV0->GetTexture());
+	Material->SetTextureParameterValue("InputFloatUV1", DataTextureUV1->GetTexture());
+	
 	for (auto ParamInfo : MaterialParameters)
 	{
 		if (ParamInfo.Type == CMPT_SCALAR)

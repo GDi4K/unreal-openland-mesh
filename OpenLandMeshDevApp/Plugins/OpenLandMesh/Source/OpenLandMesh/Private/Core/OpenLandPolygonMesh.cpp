@@ -281,7 +281,11 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 	TArray<FGpuComputeVertexInput> OriginalPositions;
 	OriginalPositions.SetNumUninitialized(Original->Vertices.Length());
 	for (size_t Index = 0; Index < Original->Vertices.Length(); Index++)
-		OriginalPositions[Index].Position = Original->Vertices.Get(Index).Position;
+	{
+		const FOpenLandMeshVertex OriginalVertex = Original->Vertices.Get(Index);
+		OriginalPositions[Index].Position = OriginalVertex.Position;
+		OriginalPositions[Index].UV0 = OriginalVertex.UV0;
+	}
 
 	GpuComputeEngine->UpdateSourceData(OriginalPositions);
 

@@ -14,6 +14,7 @@ struct FGpuComputeMaterialStatus
 struct FGpuComputeVertexInput
 {
 	FVector Position;
+	FVector2D UV0;
 };
 
 struct FGpuComputeVertexOutput
@@ -41,12 +42,15 @@ class OPENLANDMESH_API FGpuComputeVertex
 	TSharedPtr<FDataTexture> DataTexture1 = nullptr; // Input float X of Vector
 	TSharedPtr<FDataTexture> DataTexture2 = nullptr; // Input float X of Vector
 
+	TSharedPtr<FDataTexture> DataTextureUV0 = nullptr; // Input float X of Vector
+	TSharedPtr<FDataTexture> DataTextureUV1 = nullptr; // Input float X of Vector
+
 	TSharedPtr<FDataRenderTarget> DataRenderTarget0 = nullptr; // for X float of Vector
 	TSharedPtr<FDataRenderTarget> DataRenderTarget1 = nullptr; // for Y float of Vector
 	TSharedPtr<FDataRenderTarget> DataRenderTarget2 = nullptr; // for Z float of Vector
 	TSharedPtr<FDataRenderTarget> DataRenderTarget3 = nullptr; // for Vertex Color
 
-	static void ApplyParameterValues(UMaterialInstanceDynamic* Material,
+	void ApplyParameterValues(UMaterialInstanceDynamic* Material,
 	                                 TArray<FComputeMaterialParameter> MaterialParameters);
 
 public:
