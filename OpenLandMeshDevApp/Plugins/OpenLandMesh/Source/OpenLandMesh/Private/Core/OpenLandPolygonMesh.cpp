@@ -144,14 +144,14 @@ FOpenLandPolygonMeshBuildResult FOpenLandPolygonMesh::BuildMesh(UObject* WorldCo
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
 		ApplyGpuVertexModifers(WorldContext, Original.Get(), Target.Get(),
-                               MakeParameters(0, false));
+                               MakeParameters(0));
 		Intermediate = Target;
 		TrackGpuVertexModifiers.Finish();
 	}
 
 	// Build Faces
 	auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), 0, Original->Triangles.Length(), 0, true);
+	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), 0, Original->Triangles.Length(), 0);
 	TrackCpuVertexModifiers.Finish();
 
 	if (Options.CuspAngle > 0.0)
@@ -213,7 +213,7 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygo
 }
 
 void FOpenLandPolygonMesh::ApplyVertexModifiers(function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart,
-                                                int RangeEnd, float RealTimeSeconds, bool bOnBuilding)
+                                                int RangeEnd, float RealTimeSeconds)
 {
 	for (int TriIndex = RangeStart; TriIndex < RangeEnd; TriIndex++)
 	{
@@ -232,14 +232,9 @@ void FOpenLandPolygonMesh::ApplyVertexModifiers(function<FVertexModifierResult(F
 		// So, we don't change anything inside the original
 		if (VertexModifier != nullptr)
 		{
-			// When we are building the mesh, we need to calculate normals just to send them to the vertex modifier
-			// But, we don't need to do that when animating.
-			if (!bOnBuilding)
-				BuildFaceTangents(O0, O1, O2);
-
-			T0.Position = VertexModifier({O0.Position, O0.Normal, O0.UV0, RealTimeSeconds, bOnBuilding}).Position;
-			T1.Position = VertexModifier({O1.Position, O1.Normal, O1.UV0, RealTimeSeconds, bOnBuilding}).Position;
-			T2.Position = VertexModifier({O2.Position, O2.Normal, O2.UV0, RealTimeSeconds, bOnBuilding}).Position;
+			T0.Position = VertexModifier({O0.Position, O0.Normal, O0.UV0, RealTimeSeconds}).Position;
+			T1.Position = VertexModifier({O1.Position, O1.Normal, O1.UV0, RealTimeSeconds}).Position;
+			T2.Position = VertexModifier({O2.Position, O2.Normal, O2.UV0, RealTimeSeconds}).Position;
 		}
 
 		BuildFaceTangents(T0, T1, T2);
@@ -314,7 +309,7 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 
 void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
                                           float RealTimeSeconds,
-                                          float CuspAngle, bool bOnBuilding)
+                                          float CuspAngle)
 {
 	// TODO: check for sizes of both original & target
 	// Setup & Gpu Vertex Modifiers if needed
@@ -327,7 +322,7 @@ void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FSimpleMeshInfo
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
 		ApplyGpuVertexModifers(WorldContext, Original.Get(), Target.Get(),
-		                       MakeParameters(RealTimeSeconds, bOnBuilding));
+		                       MakeParameters(RealTimeSeconds));
 		Intermediate = Target;
 		TrackGpuVertexModifiers.Finish();
 	}
@@ -336,8 +331,7 @@ void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FSimpleMeshInfo
 	Target->BoundingBox.Init();
 
 	auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), 0, Original->Triangles.Length(), RealTimeSeconds,
-	                     bOnBuilding);
+	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), 0, Original->Triangles.Length(), RealTimeSeconds);
 	TrackCpuVertexModifiers.Finish();
 
 	if (CuspAngle > 0.0)
@@ -380,7 +374,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMes
 	if (GpuVertexModifier.Material != nullptr)
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
-		ApplyGpuVertexModifers(WorldContext, Original.Get(), Target.Get(), MakeParameters(RealTimeSeconds, false));
+		ApplyGpuVertexModifers(WorldContext, Original.Get(), Target.Get(), MakeParameters(RealTimeSeconds));
 		Intermediate = Target;
 		TrackGpuVertexModifiers.Finish();
 	}
@@ -404,7 +398,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMes
 				const int NumTris = Intermediate->Triangles.Length();
 				const int StartIndex = TasksPerWorker * WorkerId;
 				const int EndIndex = (WorkerId == NumWorkers - 1) ? NumTris : StartIndex + TasksPerWorker;
-				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), StartIndex, EndIndex, RealTimeSeconds, false);
+				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), StartIndex, EndIndex, RealTimeSeconds);
 
 				// Mark the work as completed.
 				// We need to do this on the game thread since AsyncCompletions is not thread safe.
@@ -595,7 +589,7 @@ void FOpenLandPolygonMesh::BuildFaceTangents(FOpenLandMeshVertex& T0, FOpenLandM
 	T2.Tangent = MeshTangent;
 }
 
-TArray<FComputeMaterialParameter> FOpenLandPolygonMesh::MakeParameters(float Time, bool bOnBuilding)
+TArray<FComputeMaterialParameter> FOpenLandPolygonMesh::MakeParameters(float Time)
 {
 	TArray<FComputeMaterialParameter> Params;
 
@@ -603,13 +597,6 @@ TArray<FComputeMaterialParameter> FOpenLandPolygonMesh::MakeParameters(float Tim
 		"Time",
 		CMPT_SCALAR,
 		Time,
-		{}
-	});
-
-	Params.Push({
-		"OnBuilding",
-		CMPT_SCALAR,
-		bOnBuilding ? 1.0f : 0.0f,
 		{}
 	});
 

@@ -26,9 +26,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenLandMesh)
 	float TimeInSeconds = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenLandMesh)
-	bool bOnBuilding;
 };
 
 USTRUCT(BlueprintType)
@@ -72,11 +69,11 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	static void AddFace(FOpenLandMeshInfo* MeshInfo, TOpenLandArray<FOpenLandMeshVertex> Vertices);
 	static void BuildFaceTangents(FOpenLandMeshVertex& T0, FOpenLandMeshVertex& T1, FOpenLandMeshVertex& T2);
 	static void ApplyVertexModifiers(function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart, int RangeEnd,
-	                          float RealTimeSeconds, bool bOnBuilding);
+	                          float RealTimeSeconds);
 	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandMeshInfo* MeshInfo);
 	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target,
 	                            TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
-	static TArray<FComputeMaterialParameter> MakeParameters(float Time, bool bOnBuilding);
+	static TArray<FComputeMaterialParameter> MakeParameters(float Time);
 
 public:
 	~FOpenLandPolygonMesh();
@@ -84,7 +81,7 @@ public:
 	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
 	                    std::function<void(FOpenLandPolygonMeshBuildResult)> Callback);
 	void ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
-	                    float RealTimeSeconds, float CuspAngle = 0, bool bOnBuilding = false);
+	                    float RealTimeSeconds, float CuspAngle = 0);
 	void RegisterVertexModifier(std::function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial ComputeMaterial);
 
