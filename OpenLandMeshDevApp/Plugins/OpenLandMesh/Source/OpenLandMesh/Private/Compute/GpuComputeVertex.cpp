@@ -7,21 +7,22 @@
 void FGpuComputeVertex::Init(UObject* WorldContext, TArray<FGpuComputeVertexInput>& SourceData,
                              int32 Width)
 {
+	TextureWidth = Width;
+	
 	// Make the Source Data Textures
-	DataTexture0 = MakeShared<FDataTexture>(Width);
-	DataTexture1 = MakeShared<FDataTexture>(Width);
-	DataTexture2 = MakeShared<FDataTexture>(Width);
-
-	DataTextureUV0 = MakeShared<FDataTexture>(Width);
-	DataTextureUV1 = MakeShared<FDataTexture>(Width);
+	DataTextures.Push({"Position_X", MakeShared<FDataTexture>(TextureWidth)});
+	DataTextures.Push({"Position_Y", MakeShared<FDataTexture>(TextureWidth)});
+	DataTextures.Push({"Position_Z", MakeShared<FDataTexture>(TextureWidth)});
+	DataTextures.Push({"UV0_X", MakeShared<FDataTexture>(TextureWidth)});
+	DataTextures.Push({"UV0_Y", MakeShared<FDataTexture>(TextureWidth)});
 	
 	UpdateSourceData(SourceData);
 
 	// Create the Render Targets
-	DataRenderTarget0 = MakeShared<FDataRenderTarget>(WorldContext, Width);
-	DataRenderTarget1 = MakeShared<FDataRenderTarget>(WorldContext, Width);
-	DataRenderTarget2 = MakeShared<FDataRenderTarget>(WorldContext, Width);
-	DataRenderTarget3 = MakeShared<FDataRenderTarget>(WorldContext, Width);
+	DataRenderTarget0 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
+	DataRenderTarget1 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
+	DataRenderTarget2 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
+	DataRenderTarget3 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
 }
 
 FGpuComputeMaterialStatus FGpuComputeVertex::IsValidMaterial(UMaterialInterface* Material)
@@ -49,36 +50,21 @@ FGpuComputeMaterialStatus FGpuComputeVertex::IsValidMaterial(UMaterialInterface*
 void FGpuComputeVertex::UpdateSourceData(TArray<FGpuComputeVertexInput>& SourceData)
 {
 	const int32 PixelCount = FMath::Min(SourceData.Num(),
-	                                    DataTexture0->GetTextureWidth() * DataTexture0->GetTextureWidth());
+	                                    TextureWidth * TextureWidth);
 	for (int32 Index = 0; Index < PixelCount; Index++)
 	{
-		float* ValuePointer0 = &SourceData[Index].Position.X;
-		uint8* ValueBytes0 = reinterpret_cast<uint8*>(ValuePointer0);
-		DataTexture0->SetPixelValue(Index, ValueBytes0[0], ValueBytes0[1], ValueBytes0[2], ValueBytes0[3]);
-
-		float* ValuePointer1 = &SourceData[Index].Position.Y;
-		uint8* ValueBytes1 = reinterpret_cast<uint8*>(ValuePointer1);
-		DataTexture1->SetPixelValue(Index, ValueBytes1[0], ValueBytes1[1], ValueBytes1[2], ValueBytes1[3]);
-
-		float* ValuePointer2 = &SourceData[Index].Position.Z;
-		uint8* ValueBytes2 = reinterpret_cast<uint8*>(ValuePointer2);
-		DataTexture2->SetPixelValue(Index, ValueBytes2[0], ValueBytes2[1], ValueBytes2[2], ValueBytes2[3]);
-
-		float* ValuePointerUV0 = &SourceData[Index].UV0.X;
-		uint8* ValueBytesUV0 = reinterpret_cast<uint8*>(ValuePointerUV0);
-		DataTextureUV0->SetPixelValue(Index, ValueBytesUV0[0], ValueBytesUV0[1], ValueBytesUV0[2], ValueBytesUV0[3]);
-
-		float* ValuePointerUV1 = &SourceData[Index].UV0.Y;
-		uint8* ValueBytesUV1 = reinterpret_cast<uint8*>(ValuePointerUV1);
-		DataTextureUV1->SetPixelValue(Index, ValueBytesUV1[0], ValueBytesUV1[1], ValueBytesUV1[2], ValueBytesUV1[3]);
+		SetDataTextureFloat("Position_X", Index, SourceData[Index].Position.X);
+		SetDataTextureFloat("Position_Y", Index, SourceData[Index].Position.Y);
+		SetDataTextureFloat("Position_Z", Index, SourceData[Index].Position.Z);
+		
+		SetDataTextureFloat("UV0_X", Index, SourceData[Index].UV0.X);
+		SetDataTextureFloat("UV0_Y", Index, SourceData[Index].UV0.Y);
 	}
 
-	DataTexture0->UpdateTexture();
-	DataTexture1->UpdateTexture();
-	DataTexture2->UpdateTexture();
-
-	DataTextureUV0->UpdateTexture();
-	DataTextureUV1->UpdateTexture();
+	for (FGpuComputeVertexDataTextureItem DataTextureItem: DataTextures)
+	{
+		DataTextureItem.DataTexture->UpdateTexture();
+	}
 }
 
 void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexOutput>& ModifiedData,
@@ -115,7 +101,7 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 	DataRenderTarget3->DrawMaterial(WorldContext, DynamicMaterialInstance3);
 
 	// Read from the Render Target
-	const int32 NumPixelsToRead = DataTexture0->GetTextureWidth() * DataTexture0->GetTextureWidth();
+	const int32 NumPixelsToRead = TextureWidth * TextureWidth;
 	TArray<FColor> ReadBuffer0;
 	TArray<FColor> ReadBuffer1;
 	TArray<FColor> ReadBuffer2;
@@ -174,12 +160,10 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
                                              TArray<FComputeMaterialParameter> MaterialParameters)
 {
-	Material->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
-	Material->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
-	Material->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
-
-	Material->SetTextureParameterValue("InputFloatUV0", DataTextureUV0->GetTexture());
-	Material->SetTextureParameterValue("InputFloatUV1", DataTextureUV1->GetTexture());
+	for (FGpuComputeVertexDataTextureItem DataTextureItem: DataTextures)
+	{
+		Material->SetTextureParameterValue(FName(DataTextureItem.Name), DataTextureItem.DataTexture->GetTexture());
+	}
 	
 	for (auto ParamInfo : MaterialParameters)
     {
@@ -199,6 +183,20 @@ void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
     		
     	}
     }
+}
+
+void FGpuComputeVertex::SetDataTextureFloat(FString Name, int32 Index, float Value)
+{
+	for (const FGpuComputeVertexDataTextureItem DataTextureItem: DataTextures)
+	{
+		if (DataTextureItem.Name == Name)
+		{
+			float* ValuePointer0 = &Value;
+			uint8* ValueBytes0 = reinterpret_cast<uint8*>(ValuePointer0);
+			DataTextureItem.DataTexture->SetPixelValue(Index, ValueBytes0[0], ValueBytes0[1], ValueBytes0[2], ValueBytes0[3]);
+			return;
+		}
+	}
 }
 
 FGpuComputeVertex::~FGpuComputeVertex()
