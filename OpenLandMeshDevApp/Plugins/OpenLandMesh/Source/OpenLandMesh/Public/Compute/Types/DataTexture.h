@@ -26,6 +26,7 @@ public:
 
 	// Methods
 	void SetPixelValue(int32 Index, uint8 R, uint8 G, uint8 B, uint8 A);
+	void SetFloatValue(int32 Index, float Value);
 	void Reset();
 	void UpdateTexture();
 };

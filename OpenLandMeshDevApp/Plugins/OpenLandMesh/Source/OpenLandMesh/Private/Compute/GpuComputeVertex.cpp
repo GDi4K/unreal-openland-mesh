@@ -191,9 +191,7 @@ void FGpuComputeVertex::SetDataTextureFloat(FString Name, int32 Index, float Val
 	{
 		if (DataTextureItem.Name == Name)
 		{
-			float* ValuePointer0 = &Value;
-			uint8* ValueBytes0 = reinterpret_cast<uint8*>(ValuePointer0);
-			DataTextureItem.DataTexture->SetPixelValue(Index, ValueBytes0[0], ValueBytes0[1], ValueBytes0[2], ValueBytes0[3]);
+			DataTextureItem.DataTexture->SetFloatValue(Index, Value);
 			return;
 		}
 	}

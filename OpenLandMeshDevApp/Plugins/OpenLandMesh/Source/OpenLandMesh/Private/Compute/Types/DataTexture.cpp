@@ -52,6 +52,13 @@ void FDataTexture::SetPixelValue(int32 Index, uint8 R, uint8 G, uint8 B, uint8 A
 	*(pointer + 3) = A; //a
 }
 
+void FDataTexture::SetFloatValue(int32 Index, float Value)
+{
+	float* ValuePointer = &Value;
+	uint8* ValueBytes = reinterpret_cast<uint8*>(ValuePointer);
+	SetPixelValue(Index, ValueBytes[0], ValueBytes[1], ValueBytes[2], ValueBytes[3]);
+}
+
 void FDataTexture::Reset()
 {
 	for (int32 Index = 0; Index < TextureWidth * TextureWidth; Index++)

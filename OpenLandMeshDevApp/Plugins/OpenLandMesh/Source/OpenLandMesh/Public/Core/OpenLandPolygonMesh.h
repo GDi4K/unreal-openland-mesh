@@ -48,6 +48,8 @@ struct FOpenLandPolygonMeshBuildResult
 {
 	FSimpleMeshInfoPtr Original = nullptr;
 	FSimpleMeshInfoPtr Target = nullptr;
+	int32 TextureWidth = 0;
+	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
 };
 
 class OPENLANDMESH_API FOpenLandPolygonMesh
@@ -70,6 +72,7 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	static void BuildFaceTangents(FOpenLandMeshVertex& T0, FOpenLandMeshVertex& T1, FOpenLandMeshVertex& T2);
 	static void ApplyVertexModifiers(function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart, int RangeEnd,
 	                          float RealTimeSeconds);
+	static void BuildDataTextures(FOpenLandPolygonMeshBuildResult* Result);
 	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandMeshInfo* MeshInfo);
 	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target,
 	                            TArray<FComputeMaterialParameter> AdditionalMaterialParameters);

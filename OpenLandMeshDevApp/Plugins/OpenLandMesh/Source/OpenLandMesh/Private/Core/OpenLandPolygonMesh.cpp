@@ -131,40 +131,40 @@ FOpenLandPolygonMeshBuildResult FOpenLandPolygonMesh::BuildMesh(UObject* WorldCo
 	}
 
 	FOpenLandMeshInfo Source = SubDivide(TransformedMeshInfo, Options.SubDivisions);
+
+	FOpenLandPolygonMeshBuildResult Result;
 	
-	FSimpleMeshInfoPtr Original = Source.Clone();
-	FSimpleMeshInfoPtr Target = Source.Clone();
+	Result.Original = Source.Clone();
+	Result.Target = Source.Clone();
+	BuildDataTextures(&Result);
 
 	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
-	EnsureGpuComputeEngine(WorldContext, Original.Get());
+	EnsureGpuComputeEngine(WorldContext, Result.Original.Get());
 	TrackEnsureGpuComputeEngine.Finish();
 
-	FSimpleMeshInfoPtr Intermediate = Original;
+	FSimpleMeshInfoPtr Intermediate = Result.Original;
 	if (GpuVertexModifier.Material != nullptr)
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
-		ApplyGpuVertexModifers(WorldContext, Original.Get(), Target.Get(),
+		ApplyGpuVertexModifers(WorldContext, Result.Original.Get(), Result.Target.Get(),
                                MakeParameters(0));
-		Intermediate = Target;
+		Intermediate = Result.Target;
 		TrackGpuVertexModifiers.Finish();
 	}
 
 	// Build Faces
 	auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), 0, Original->Triangles.Length(), 0);
+	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Result.Target.Get(), 0, Result.Original->Triangles.Length(), 0);
 	TrackCpuVertexModifiers.Finish();
 
 	if (Options.CuspAngle > 0.0)
 	{
 		auto TrackNormalSmoothing = TrackTime("NormalSmoothing");
-		ApplyNormalSmoothing(Target.Get(), Options.CuspAngle);
+		ApplyNormalSmoothing(Result.Target.Get(), Options.CuspAngle);
 		TrackNormalSmoothing.Finish();
 	}
-
-	return {
-		Original,
-		Target
-	};
+	
+	return Result;
 }
 
 void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
@@ -202,12 +202,15 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygo
         }
 
 		FOpenLandMeshInfo Source = SubDivide(TransformedMeshInfo, Options.SubDivisions);
-		FSimpleMeshInfoPtr Original = Source.Clone();
-		FSimpleMeshInfoPtr Target = Source.Clone();
+		FOpenLandPolygonMeshBuildResult Result;
+		
+		Result.Original = Source.Clone();
+		Result.Target = Source.Clone();
+		BuildDataTextures(&Result);
 
-		FOpenLandThreading::RunOnGameThread([HandleCallback, Original, Target]()
+		FOpenLandThreading::RunOnGameThread([HandleCallback, Result]()
 		{
-			HandleCallback({Original, Target});
+			HandleCallback(Result);
 		});
 	});
 }
@@ -245,6 +248,37 @@ void FOpenLandPolygonMesh::ApplyVertexModifiers(function<FVertexModifierResult(F
 		Target->BoundingBox += T1.Position;
 		Target->BoundingBox += T2.Position;
 	}
+}
+
+void FOpenLandPolygonMesh::BuildDataTextures(FOpenLandPolygonMeshBuildResult* Result)
+{
+	const int32 VertexCount = Result->Original->Vertices.Length();
+	Result->TextureWidth = FMath::CeilToInt(FMath::Sqrt(VertexCount));
+	
+	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
+	TSharedPtr<FDataTexture> DataTexturePositionX = MakeShared<FDataTexture>(Result->TextureWidth);
+	TSharedPtr<FDataTexture> DataTexturePositionY = MakeShared<FDataTexture>(Result->TextureWidth);
+	TSharedPtr<FDataTexture> DataTexturePositionZ = MakeShared<FDataTexture>(Result->TextureWidth);
+	TSharedPtr<FDataTexture> DataTextureUV0X= MakeShared<FDataTexture>(Result->TextureWidth);
+	TSharedPtr<FDataTexture> DataTextureUV0Y= MakeShared<FDataTexture>(Result->TextureWidth);
+
+	for(size_t Index=0; Index<VertexCount; Index++)
+	{
+		FOpenLandMeshVertex Vertex = Result->Original->Vertices.Get(Index);
+		
+		DataTexturePositionX->SetFloatValue(Index, Vertex.Position.X);
+		DataTexturePositionY->SetFloatValue(Index, Vertex.Position.Y);
+		DataTexturePositionZ->SetFloatValue(Index, Vertex.Position.Z);
+
+		DataTextureUV0X->SetFloatValue(Index, Vertex.UV0.X);
+		DataTextureUV0Y->SetFloatValue(Index, Vertex.UV0.Y);
+	}
+
+	Result->DataTextures.Push({"Position_X", DataTexturePositionX});
+	Result->DataTextures.Push({"Position_Y", DataTexturePositionY});
+	Result->DataTextures.Push({"Position_Z", DataTexturePositionZ});
+	Result->DataTextures.Push({"UV0_X", DataTextureUV0X});
+	Result->DataTextures.Push({"UV0_Y", DataTextureUV0Y});
 }
 
 void FOpenLandPolygonMesh::EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandMeshInfo* MeshInfo)
