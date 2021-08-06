@@ -58,15 +58,15 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		return;
 
 
-	if (OriginalMeshInfo == nullptr)
+	if (MeshBuildResult.Original == nullptr)
 		return;
 
-	if (RenderingMeshInfo->IsLocked())
+	if (MeshBuildResult.Target->IsLocked())
 		return;
 
 	if (bCompleteModifyMeshAsync)
 	{
-		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, OriginalMeshInfo, RenderingMeshInfo,
+		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult.Original, MeshBuildResult.Target,
                                                                  GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		if (bCanUpdate)
 		{
@@ -80,7 +80,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 
 	if (bUseAsyncAnimations)
 	{
-		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, OriginalMeshInfo, RenderingMeshInfo,
+		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult.Original, MeshBuildResult.Target,
 		                                                         GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		if (bCanUpdate)
 		{
@@ -92,7 +92,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		}
 	} else
 	{
-		PolygonMesh->ModifyVertices(this, OriginalMeshInfo, RenderingMeshInfo,
+		PolygonMesh->ModifyVertices(this, MeshBuildResult.Original, MeshBuildResult.Target,
 	                                                             GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		MeshComponent->UpdateMeshSection(0);
 		OnAfterAnimations();
@@ -140,24 +140,23 @@ void AOpenLandMeshActor::BuildMesh()
         SmoothNormalAngle
     };
 
-	const FOpenLandPolygonMeshBuildResult BuildMeshResult = PolygonMesh->BuildMesh(this, BuildMeshOptions);
+	const FOpenLandPolygonMeshBuildResult NewMeshBuildResult = PolygonMesh->BuildMesh(this, BuildMeshOptions);
 	
-	BuildMeshResult.Target->bEnableCollision = bEnableCollision;
-	BuildMeshResult.Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
+	NewMeshBuildResult.Target->bEnableCollision = bEnableCollision;
+	NewMeshBuildResult.Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
 
-	if (OriginalMeshInfo == nullptr)
+	if (MeshBuildResult.Original == nullptr)
 	{
-		MeshComponent->CreateMeshSection(0, BuildMeshResult.Target);
+		MeshComponent->CreateMeshSection(0, NewMeshBuildResult.Target);
 		MeshComponent->Invalidate();
 	}
 	else
 	{
-		MeshComponent->ReplaceMeshSection(0, BuildMeshResult.Target);
+		MeshComponent->ReplaceMeshSection(0, NewMeshBuildResult.Target);
 		MeshComponent->Invalidate();
 	}
 
-	OriginalMeshInfo = BuildMeshResult.Original;
-	RenderingMeshInfo = BuildMeshResult.Target;
+	MeshBuildResult = NewMeshBuildResult;
 	bMeshGenerated = true;
 }
 
@@ -168,7 +167,7 @@ void AOpenLandMeshActor::ModifyMesh()
 	else
 		PolygonMesh->RegisterGpuVertexModifier({});
 
-	PolygonMesh->ModifyVertices(this, OriginalMeshInfo, RenderingMeshInfo, GetWorld()->RealTimeSeconds,
+	PolygonMesh->ModifyVertices(this, MeshBuildResult.Original, MeshBuildResult.Target, GetWorld()->RealTimeSeconds,
 	                            SmoothNormalAngle);
 	MeshComponent->UpdateMeshSection(0);
 }
@@ -181,7 +180,7 @@ void AOpenLandMeshActor::ModifyMeshAsync()
 		PolygonMesh->RegisterGpuVertexModifier({});
 
 	bCompleteModifyMeshAsync = true;
-	PolygonMesh->ModifyVertices(this, OriginalMeshInfo, RenderingMeshInfo, GetWorld()->RealTimeSeconds,
+	PolygonMesh->ModifyVertices(this, MeshBuildResult.Original, MeshBuildResult.Target, GetWorld()->RealTimeSeconds,
                                 SmoothNormalAngle);
 	MeshComponent->UpdateMeshSection(0);
 }
@@ -311,7 +310,7 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 		Result.Target->bEnableCollision = bEnableCollision;
 		Result.Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
 
-		if (OriginalMeshInfo == nullptr)
+		if (MeshBuildResult.Original == nullptr)
 		{
 			MeshComponent->CreateMeshSection(0, Result.Target);
 			MeshComponent->Invalidate();
@@ -322,9 +321,7 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 			MeshComponent->Invalidate();
 		}
 
-		OriginalMeshInfo = Result.Original;
-		RenderingMeshInfo = Result.Target;
-
+		MeshBuildResult = Result;
 		ModifyMeshAsync();
 		
 		if (Callback != nullptr)

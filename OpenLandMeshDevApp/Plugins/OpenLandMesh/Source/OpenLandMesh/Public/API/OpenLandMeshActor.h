@@ -20,6 +20,8 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	bool bMeshGenerated = false;
 	bool bCompleteModifyMeshAsync = false;
 
+	FOpenLandPolygonMeshBuildResult MeshBuildResult;
+
 public:
 	// Sets default values for this actor's properties
 	AOpenLandMeshActor();
@@ -29,8 +31,6 @@ protected:
 	UPROPERTY()
 	UOpenLandMeshPolygonMeshProxy* PolygonMesh;
 
-	FSimpleMeshInfoPtr OriginalMeshInfo = nullptr;
-	FSimpleMeshInfoPtr RenderingMeshInfo = nullptr;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
