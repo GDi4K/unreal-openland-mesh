@@ -47,6 +47,12 @@ struct FOpenLandPolygonMeshBuildOptions
 	float CuspAngle = 0;
 };
 
+struct FOpenLandPolygonMeshBuildResult
+{
+	FSimpleMeshInfoPtr Original = nullptr;
+	FSimpleMeshInfoPtr Target = nullptr;
+};
+
 class OPENLANDMESH_API FOpenLandPolygonMesh
 {
 	// For the delete delete schedular
@@ -74,9 +80,9 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 
 public:
 	~FOpenLandPolygonMesh();
-	FSimpleMeshInfoPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options);
+	FOpenLandPolygonMeshBuildResult BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options);
 	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
-	                    std::function<void(FSimpleMeshInfoPtr)> Callback);
+	                    std::function<void(FOpenLandPolygonMeshBuildResult)> Callback);
 	void ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
 	                    float RealTimeSeconds, float CuspAngle = 0, bool bOnBuilding = false);
 	void RegisterVertexModifier(std::function<FVertexModifierResult(FVertexModifierPayload)> Callback);

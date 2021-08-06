@@ -139,29 +139,26 @@ void AOpenLandMeshActor::BuildMesh()
 		SubDivisions,
         SmoothNormalAngle
     };
-	FSimpleMeshInfoPtr NewMeshInfo = PolygonMesh->BuildMesh(this, BuildMeshOptions);
-	const FSimpleMeshInfoPtr NewRenderingMeshInfo = NewMeshInfo->Clone();
+
+	const FOpenLandPolygonMeshBuildResult BuildMeshResult = PolygonMesh->BuildMesh(this, BuildMeshOptions);
 	
-	NewRenderingMeshInfo->bEnableCollision = bEnableCollision;
-	NewRenderingMeshInfo->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
+	BuildMeshResult.Target->bEnableCollision = bEnableCollision;
+	BuildMeshResult.Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
 
 	if (OriginalMeshInfo == nullptr)
 	{
-		MeshComponent->CreateMeshSection(0, NewRenderingMeshInfo);
+		MeshComponent->CreateMeshSection(0, BuildMeshResult.Target);
 		MeshComponent->Invalidate();
 	}
 	else
 	{
-		MeshComponent->ReplaceMeshSection(0, NewRenderingMeshInfo);
+		MeshComponent->ReplaceMeshSection(0, BuildMeshResult.Target);
 		MeshComponent->Invalidate();
 	}
 
-	OriginalMeshInfo = NewMeshInfo;
-	RenderingMeshInfo = NewRenderingMeshInfo;
+	OriginalMeshInfo = BuildMeshResult.Original;
+	RenderingMeshInfo = BuildMeshResult.Target;
 	bMeshGenerated = true;
-
-	// In this case, we need to trigger the ModifyMesh initially.
-	ModifyMeshAsync();
 }
 
 void AOpenLandMeshActor::ModifyMesh()
@@ -309,25 +306,24 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 		SmoothNormalAngle
 	};
 	
-	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, Callback](FSimpleMeshInfoPtr NewMeshInfo)
+	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, Callback](FOpenLandPolygonMeshBuildResult Result)
 	{
-		const FSimpleMeshInfoPtr NewRenderingMeshInfo = NewMeshInfo->Clone();
-		NewRenderingMeshInfo->bEnableCollision = bEnableCollision;
-		NewRenderingMeshInfo->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
+		Result.Target->bEnableCollision = bEnableCollision;
+		Result.Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
 
 		if (OriginalMeshInfo == nullptr)
 		{
-			MeshComponent->CreateMeshSection(0, NewRenderingMeshInfo);
+			MeshComponent->CreateMeshSection(0, Result.Target);
 			MeshComponent->Invalidate();
 		}
 		else
 		{
-			MeshComponent->ReplaceMeshSection(0, NewRenderingMeshInfo);
+			MeshComponent->ReplaceMeshSection(0, Result.Target);
 			MeshComponent->Invalidate();
 		}
 
-		OriginalMeshInfo = NewMeshInfo;
-		RenderingMeshInfo = NewRenderingMeshInfo;
+		OriginalMeshInfo = Result.Original;
+		RenderingMeshInfo = Result.Target;
 
 		ModifyMeshAsync();
 		

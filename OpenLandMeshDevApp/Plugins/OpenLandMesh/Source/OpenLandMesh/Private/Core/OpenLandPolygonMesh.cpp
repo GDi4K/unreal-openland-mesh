@@ -107,7 +107,7 @@ FOpenLandMeshInfo FOpenLandPolygonMesh::SubDivide(FOpenLandMeshInfo SourceMeshIn
 	return MeshInfo;
 }
 
-FSimpleMeshInfoPtr FOpenLandPolygonMesh::BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options)
+FOpenLandPolygonMeshBuildResult FOpenLandPolygonMesh::BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options)
 {
 	// Apply Source transformation
 	FOpenLandMeshInfo TransformedMeshInfo = SourceMeshInfo;
@@ -117,17 +117,41 @@ FSimpleMeshInfoPtr FOpenLandPolygonMesh::BuildMesh(UObject* WorldContext, FOpenL
 		Vertex.Position = SourceTransformer.TransformVector(Vertex.Position);
 	}
 
-	FOpenLandMeshInfo _Original = SubDivide(TransformedMeshInfo, Options.SubDivisions);
-	FOpenLandMeshInfo* Original = &_Original;
-	// Here we subdivide & clone this meshInfo
-	// That because, we need to send this memory out of this block
-	// And after that, we no longer manage that memory
-	FSimpleMeshInfoPtr Target = _Original.Clone();
+	// Build faces & tangents for the TransformedMeshInfo
+	// So, we don't need to do that for Original after subdivided
+	TransformedMeshInfo.BoundingBox.Init();
+	for(size_t Index=0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
+	{
+		TransformedMeshInfo.BoundingBox += TransformedMeshInfo.Vertices.Get(Index).Position;
+	}
+
+	if (Options.CuspAngle > 0)
+	{
+		ApplyNormalSmoothing(&TransformedMeshInfo, Options.CuspAngle);
+	}
+
+	FOpenLandMeshInfo Source = SubDivide(TransformedMeshInfo, Options.SubDivisions);
+	
+	FSimpleMeshInfoPtr Original = Source.Clone();
+	FSimpleMeshInfoPtr Target = Source.Clone();
+
+	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
+	EnsureGpuComputeEngine(WorldContext, Original.Get());
+	TrackEnsureGpuComputeEngine.Finish();
+
+	FSimpleMeshInfoPtr Intermediate = Original;
+	if (GpuVertexModifier.Material != nullptr)
+	{
+		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
+		ApplyGpuVertexModifers(WorldContext, Original.Get(), Target.Get(),
+                               MakeParameters(0, false));
+		Intermediate = Target;
+		TrackGpuVertexModifiers.Finish();
+	}
 
 	// Build Faces
-
 	auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-	ApplyVertexModifiers(nullptr, Target.Get(), Target.Get(), 0, Original->Triangles.Length(), 0, true);
+	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), 0, Original->Triangles.Length(), 0, true);
 	TrackCpuVertexModifiers.Finish();
 
 	if (Options.CuspAngle > 0.0)
@@ -137,30 +161,21 @@ FSimpleMeshInfoPtr FOpenLandPolygonMesh::BuildMesh(UObject* WorldContext, FOpenL
 		TrackNormalSmoothing.Finish();
 	}
 
-	return Target;
+	return {
+		Original,
+		Target
+	};
 }
 
 void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
-                                          std::function<void(FSimpleMeshInfoPtr)> Callback)
+                                          std::function<void(FOpenLandPolygonMeshBuildResult)> Callback)
 {
-	std::function<void(FSimpleMeshInfoPtr)> HandleCallback = [this, WorldContext, Callback, Options
-		](FSimpleMeshInfoPtr Target)
+	std::function<void(FOpenLandPolygonMeshBuildResult)> HandleCallback = [this, WorldContext, Callback, Options
+		](FOpenLandPolygonMeshBuildResult Result)
 	{
-		// Now we need to build the bounding box & tangents
-		// Above ModifyVertices is already doing this for us.
-		// That's why we need to do it manually.
-		Target->BoundingBox.Init();
-		for (size_t Index=0; Index<Target->Vertices.Length(); Index++)
-		{
-			Target->BoundingBox += Target->Vertices.Get(Index).Position;
-		}
-	
-		if (Options.CuspAngle > 0.0)
-		{
-			ApplyNormalSmoothing(Target.Get(), Options.CuspAngle);
-		}
-
-		Callback(Target);
+		// Here we don't do any modifications
+		// That needs to taken care in somewhere else
+		Callback(Result);
 	};
 
 	// Apply Source transformation
@@ -173,16 +188,26 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygo
 			Vertex.Position = SourceTransformer.TransformVector(Vertex.Position);
 		}
 
-		FOpenLandMeshInfo _Original = SubDivide(TransformedMeshInfo, Options.SubDivisions);
-		FOpenLandMeshInfo* Original = &_Original;
-		// Here we subdivide & clone this meshInfo
-		// That because, we need to send this memory out of this block
-		// And after that, we no longer manage that memory
-		FSimpleMeshInfoPtr Target = _Original.Clone();
+		// Build faces & tangents for the TransformedMeshInfo
+        // So, we don't need to do that for Original after subdivided
+        TransformedMeshInfo.BoundingBox.Init();
+        for(size_t Index=0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
+        {
+            TransformedMeshInfo.BoundingBox += TransformedMeshInfo.Vertices.Get(Index).Position;
+        }
 
-		FOpenLandThreading::RunOnGameThread([HandleCallback, Target]()
+        if (Options.CuspAngle > 0)
+        {
+            ApplyNormalSmoothing(&TransformedMeshInfo, Options.CuspAngle);
+        }
+
+		FOpenLandMeshInfo Source = SubDivide(TransformedMeshInfo, Options.SubDivisions);
+		FSimpleMeshInfoPtr Original = Source.Clone();
+		FSimpleMeshInfoPtr Target = Source.Clone();
+
+		FOpenLandThreading::RunOnGameThread([HandleCallback, Original, Target]()
 		{
-			HandleCallback(Target);
+			HandleCallback({Original, Target});
 		});
 	});
 }

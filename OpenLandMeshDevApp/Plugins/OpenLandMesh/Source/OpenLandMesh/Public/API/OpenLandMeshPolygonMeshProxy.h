@@ -25,9 +25,9 @@ public:
 	UOpenLandMeshPolygonMeshProxy();
 	~UOpenLandMeshPolygonMeshProxy();
 
-	FSimpleMeshInfoPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const;
+	FOpenLandPolygonMeshBuildResult BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const;
 	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
-	                    std::function<void(FSimpleMeshInfoPtr)> Callback) const;
+	                    std::function<void(FOpenLandPolygonMeshBuildResult)> Callback) const;
 	void ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
 	                    float RealTimeSeconds,
 	                    float CuspAngle = 0) const;
