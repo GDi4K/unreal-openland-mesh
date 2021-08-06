@@ -341,43 +341,43 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 }
 
 
-void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
+void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
                                           float RealTimeSeconds,
                                           float CuspAngle)
 {
 	// TODO: check for sizes of both original & target
 	// Setup & Gpu Vertex Modifiers if needed
 	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
-	EnsureGpuComputeEngine(WorldContext, Original.Get());
+	EnsureGpuComputeEngine(WorldContext, MeshBuildResult.Original.Get());
 	TrackEnsureGpuComputeEngine.Finish();
 
-	FSimpleMeshInfoPtr Intermediate = Original;
+	FSimpleMeshInfoPtr Intermediate = MeshBuildResult.Original;
 	if (GpuVertexModifier.Material != nullptr)
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
-		ApplyGpuVertexModifers(WorldContext, Original.Get(), Target.Get(),
+		ApplyGpuVertexModifers(WorldContext, MeshBuildResult.Original.Get(), MeshBuildResult.Target.Get(),
 		                       MakeParameters(RealTimeSeconds));
-		Intermediate = Target;
+		Intermediate = MeshBuildResult.Target;
 		TrackGpuVertexModifiers.Finish();
 	}
 
 	// Build Faces
-	Target->BoundingBox.Init();
+	MeshBuildResult.Target->BoundingBox.Init();
 
 	auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), 0, Original->Triangles.Length(), RealTimeSeconds);
+	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), MeshBuildResult.Target.Get(), 0, MeshBuildResult.Original->Triangles.Length(), RealTimeSeconds);
 	TrackCpuVertexModifiers.Finish();
 
 	if (CuspAngle > 0.0)
 	{
 		auto TrackNormalSmoothing = TrackTime("NormalSmoothing");
-		ApplyNormalSmoothing(Target.Get(), CuspAngle);
+		ApplyNormalSmoothing(MeshBuildResult.Target.Get(), CuspAngle);
 		TrackNormalSmoothing.Finish();
 	}
 }
 
-bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMeshInfoPtr Original,
-                                               FSimpleMeshInfoPtr Target, float RealTimeSeconds, float CuspAngle)
+bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+                                               float RealTimeSeconds, float CuspAngle)
 {
 	// There's a currently running job.
 	// So, we need to check the state of that
@@ -401,22 +401,22 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMes
 	}
 
 	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
-	EnsureGpuComputeEngine(WorldContext, Original.Get());
+	EnsureGpuComputeEngine(WorldContext, MeshBuildResult.Original.Get());
 	TrackEnsureGpuComputeEngine.Finish();
 
-	FSimpleMeshInfoPtr Intermediate = Original;
+	FSimpleMeshInfoPtr Intermediate = MeshBuildResult.Original;
 	if (GpuVertexModifier.Material != nullptr)
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
-		ApplyGpuVertexModifers(WorldContext, Original.Get(), Target.Get(), MakeParameters(RealTimeSeconds));
-		Intermediate = Target;
+		ApplyGpuVertexModifers(WorldContext, MeshBuildResult.Original.Get(), MeshBuildResult.Target.Get(), MakeParameters(RealTimeSeconds));
+		Intermediate = MeshBuildResult.Target;
 		TrackGpuVertexModifiers.Finish();
 	}
 
 	// Build Faces
-	Target->BoundingBox.Init();
+	MeshBuildResult.Target->BoundingBox.Init();
 
-	const int NumTris = Original->Triangles.Length();
+	const int NumTris = MeshBuildResult.Original->Triangles.Length();
 	// TODO: Find out number of workers in the core & detect the workers accordingly
 	// TODO: May be we need to get worker information from the user may be.
 	const int NumWorkers = 10; // find this automatically based on number of cores in the system
@@ -427,12 +427,12 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMes
 	{
 		AsyncCompletions.Push(false);
 		FOpenLandThreading::RunOnAnyBackgroundThread(
-			[this, Intermediate, Target, RealTimeSeconds, NumWorkers, TasksPerWorker, WorkerId]
+			[this, Intermediate, MeshBuildResult, RealTimeSeconds, NumWorkers, TasksPerWorker, WorkerId]
 			{
 				const int NumTris = Intermediate->Triangles.Length();
 				const int StartIndex = TasksPerWorker * WorkerId;
 				const int EndIndex = (WorkerId == NumWorkers - 1) ? NumTris : StartIndex + TasksPerWorker;
-				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), Target.Get(), StartIndex, EndIndex, RealTimeSeconds);
+				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), MeshBuildResult.Target.Get(), StartIndex, EndIndex, RealTimeSeconds);
 
 				// Mark the work as completed.
 				// We need to do this on the game thread since AsyncCompletions is not thread safe.
@@ -446,7 +446,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMes
 
 	// Add a task to do the normal smoothing
 	AsyncCompletions.Push(false);
-	FOpenLandThreading::RunOnAnyBackgroundThread([this, Target, CuspAngle]
+	FOpenLandThreading::RunOnAnyBackgroundThread([this, MeshBuildResult, CuspAngle]
 	{
 		while (true)
 		{
@@ -461,7 +461,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FSimpleMes
 				continue;
 			}
 
-			ApplyNormalSmoothing(Target.Get(), CuspAngle);
+			ApplyNormalSmoothing(MeshBuildResult.Target.Get(), CuspAngle);
 			break;
 		}
 

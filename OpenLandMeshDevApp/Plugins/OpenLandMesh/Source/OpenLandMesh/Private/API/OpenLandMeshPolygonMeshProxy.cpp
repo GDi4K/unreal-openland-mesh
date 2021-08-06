@@ -24,18 +24,17 @@ void UOpenLandMeshPolygonMeshProxy::BuildMeshAsync(UObject* WorldContext, FOpenL
 	return PolygonMesh->BuildMeshAsync(WorldContext, Options, Callback);
 }
 
-void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original,
-                                                   FSimpleMeshInfoPtr Target, float RealTimeSeconds,
-                                                   float CuspAngle) const
+void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+                                                   float RealTimeSeconds, float CuspAngle) const
+                                                   
 {
-	return PolygonMesh->ModifyVertices(WorldContext, Original, Target, RealTimeSeconds, CuspAngle);
+	return PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, RealTimeSeconds, CuspAngle);
 }
 
-bool UOpenLandMeshPolygonMeshProxy::ModifyVerticesAsync(UObject* WorldContext, FSimpleMeshInfoPtr Original,
-                                                        FSimpleMeshInfoPtr Target,
+bool UOpenLandMeshPolygonMeshProxy::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
                                                         float RealTimeSeconds, float CuspAngle)
 {
-	return PolygonMesh->ModifyVerticesAsync(WorldContext, Original, Target, RealTimeSeconds, CuspAngle);
+	return PolygonMesh->ModifyVerticesAsync(WorldContext, MeshBuildResult, RealTimeSeconds, CuspAngle);
 }
 
 UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::AddTriFace(

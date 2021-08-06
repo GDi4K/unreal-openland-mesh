@@ -66,8 +66,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 
 	if (bCompleteModifyMeshAsync)
 	{
-		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult.Original, MeshBuildResult.Target,
-                                                                 GetWorld()->RealTimeSeconds, SmoothNormalAngle);
+		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		if (bCanUpdate)
 		{
 			MeshComponent->UpdateMeshSection(0);
@@ -80,8 +79,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 
 	if (bUseAsyncAnimations)
 	{
-		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult.Original, MeshBuildResult.Target,
-		                                                         GetWorld()->RealTimeSeconds, SmoothNormalAngle);
+		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult, SmoothNormalAngle);
 		if (bCanUpdate)
 		{
 			MeshComponent->UpdateMeshSection(0);
@@ -92,8 +90,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		}
 	} else
 	{
-		PolygonMesh->ModifyVertices(this, MeshBuildResult.Original, MeshBuildResult.Target,
-	                                                             GetWorld()->RealTimeSeconds, SmoothNormalAngle);
+		PolygonMesh->ModifyVertices(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		MeshComponent->UpdateMeshSection(0);
 		OnAfterAnimations();
 		// When someone updated GPU parameters inside the above hook
@@ -167,8 +164,7 @@ void AOpenLandMeshActor::ModifyMesh()
 	else
 		PolygonMesh->RegisterGpuVertexModifier({});
 
-	PolygonMesh->ModifyVertices(this, MeshBuildResult.Original, MeshBuildResult.Target, GetWorld()->RealTimeSeconds,
-	                            SmoothNormalAngle);
+	PolygonMesh->ModifyVertices(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 	MeshComponent->UpdateMeshSection(0);
 }
 
@@ -180,8 +176,7 @@ void AOpenLandMeshActor::ModifyMeshAsync()
 		PolygonMesh->RegisterGpuVertexModifier({});
 
 	bCompleteModifyMeshAsync = true;
-	PolygonMesh->ModifyVertices(this, MeshBuildResult.Original, MeshBuildResult.Target, GetWorld()->RealTimeSeconds,
-                                SmoothNormalAngle);
+	PolygonMesh->ModifyVertices(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 	MeshComponent->UpdateMeshSection(0);
 }
 

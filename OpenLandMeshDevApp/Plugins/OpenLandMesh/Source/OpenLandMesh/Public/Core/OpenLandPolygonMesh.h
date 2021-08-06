@@ -80,19 +80,21 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 
 public:
 	~FOpenLandPolygonMesh();
+	void RegisterVertexModifier(std::function<FVertexModifierResult(FVertexModifierPayload)> Callback);
+	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial ComputeMaterial);
+	
 	FOpenLandPolygonMeshBuildResult BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options);
 	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
 	                    std::function<void(FOpenLandPolygonMeshBuildResult)> Callback);
-	void ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
+	
+	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
 	                    float RealTimeSeconds, float CuspAngle = 0);
-	void RegisterVertexModifier(std::function<FVertexModifierResult(FVertexModifierPayload)> Callback);
-	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial ComputeMaterial);
-
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
-	bool ModifyVerticesAsync(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
+	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
 	                         float RealTimeSeconds, float CuspAngle = 0);
+	
 	void AddTriFace(const FVector A, const FVector B, const FVector C);
 	void AddQuadFace(const FVector A, const FVector B, const FVector C, const FVector D);
 	void Transform(FTransform Transformer);
