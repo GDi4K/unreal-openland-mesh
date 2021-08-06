@@ -124,29 +124,10 @@ FSimpleMeshInfoPtr FOpenLandPolygonMesh::BuildMesh(UObject* WorldContext, FOpenL
 	// And after that, we no longer manage that memory
 	FSimpleMeshInfoPtr Target = _Original.Clone();
 
-	if (Options.bRunVertexModifiers)
-	{
-		// Setup & Gpu Vertex Modifiers if needed
-		EnsureGpuComputeEngine(WorldContext, Original);
-		if (GpuVertexModifier.Material != nullptr)
-		{
-			auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
-			ApplyGpuVertexModifers(WorldContext, Original, Target.Get(), MakeParameters(0, true));
-			TrackGpuVertexModifiers.Finish();
-		}
-	}
-
-
 	// Build Faces
 
 	auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-	if (Options.bRunVertexModifiers)
-	{
-		ApplyVertexModifiers(VertexModifier, Target.Get(), Target.Get(), 0, Original->Triangles.Length(), 0, true);
-	} else
-	{
-		ApplyVertexModifiers(nullptr, Target.Get(), Target.Get(), 0, Original->Triangles.Length(), 0, true);
-	}
+	ApplyVertexModifiers(nullptr, Target.Get(), Target.Get(), 0, Original->Triangles.Length(), 0, true);
 	TrackCpuVertexModifiers.Finish();
 
 	if (Options.CuspAngle > 0.0)
@@ -165,27 +146,20 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygo
 	std::function<void(FSimpleMeshInfoPtr)> HandleCallback = [this, WorldContext, Callback, Options
 		](FSimpleMeshInfoPtr Target)
 	{
-		if (Options.bRunVertexModifiers)
+		// Now we need to build the bounding box & tangents
+		// Above ModifyVertices is already doing this for us.
+		// That's why we need to do it manually.
+		Target->BoundingBox.Init();
+		for (size_t Index=0; Index<Target->Vertices.Length(); Index++)
 		{
-			ModifyVertices(WorldContext, Target, Target, 0, Options.CuspAngle, true);
-		} else
-		{
-			// Now we need to build the bounding box & tangents
-			// Above ModifyVertices is already doing this for us.
-			// That's why we need to do it manually.
-			Target->BoundingBox.Init();
-			for (size_t Index=0; Index<Target->Vertices.Length(); Index++)
-			{
-				Target->BoundingBox += Target->Vertices.Get(Index).Position;
-			}
-	
-			if (Options.CuspAngle > 0.0)
-			{
-				ApplyNormalSmoothing(Target.Get(), Options.CuspAngle);
-			}
-
-			
+			Target->BoundingBox += Target->Vertices.Get(Index).Position;
 		}
+	
+		if (Options.CuspAngle > 0.0)
+		{
+			ApplyNormalSmoothing(Target.Get(), Options.CuspAngle);
+		}
+
 		Callback(Target);
 	};
 

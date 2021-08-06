@@ -137,8 +137,7 @@ void AOpenLandMeshActor::BuildMesh()
 
 	const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
 		SubDivisions,
-        SmoothNormalAngle,
-		bRunVertexModifiersOnBuild
+        SmoothNormalAngle
     };
 	FSimpleMeshInfoPtr NewMeshInfo = PolygonMesh->BuildMesh(this, BuildMeshOptions);
 	const FSimpleMeshInfoPtr NewRenderingMeshInfo = NewMeshInfo->Clone();
@@ -162,10 +161,7 @@ void AOpenLandMeshActor::BuildMesh()
 	bMeshGenerated = true;
 
 	// In this case, we need to trigger the ModifyMesh initially.
-	if (!bRunVertexModifiersOnBuild)
-	{
-		ModifyMeshAsync();
-	}
+	ModifyMeshAsync();
 }
 
 void AOpenLandMeshActor::ModifyMesh()
@@ -310,8 +306,7 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 
 	const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
 		SubDivisions,
-		SmoothNormalAngle,
-		bRunVertexModifiersOnBuild
+		SmoothNormalAngle
 	};
 	
 	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, Callback](FSimpleMeshInfoPtr NewMeshInfo)
@@ -334,11 +329,8 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 		OriginalMeshInfo = NewMeshInfo;
 		RenderingMeshInfo = NewRenderingMeshInfo;
 
-		if (!bRunVertexModifiersOnBuild)
-		{
-			ModifyMeshAsync();
-		}
-
+		ModifyMeshAsync();
+		
 		if (Callback != nullptr)
 			Callback();
 	});

@@ -45,7 +45,6 @@ struct FOpenLandPolygonMeshBuildOptions
 {
 	int SubDivisions = 0;
 	float CuspAngle = 0;
-	bool bRunVertexModifiers = true;
 };
 
 class OPENLANDMESH_API FOpenLandPolygonMesh

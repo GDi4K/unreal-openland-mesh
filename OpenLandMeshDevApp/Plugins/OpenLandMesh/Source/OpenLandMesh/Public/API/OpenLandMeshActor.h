@@ -92,9 +92,6 @@ public:
 	bool bUseAsyncAnimations = true;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-    bool bRunVertexModifiersOnBuild = false;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	UMaterialInterface* Material;
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
