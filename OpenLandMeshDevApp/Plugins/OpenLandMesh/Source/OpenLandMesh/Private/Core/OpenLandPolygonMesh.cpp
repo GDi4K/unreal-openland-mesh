@@ -139,7 +139,7 @@ FOpenLandPolygonMeshBuildResult FOpenLandPolygonMesh::BuildMesh(UObject* WorldCo
 	BuildDataTextures(&Result);
 
 	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
-	EnsureGpuComputeEngine(WorldContext, Result.Original.Get());
+	EnsureGpuComputeEngine(WorldContext, Result);
 	TrackEnsureGpuComputeEngine.Finish();
 
 	FSimpleMeshInfoPtr Intermediate = Result.Original;
@@ -253,9 +253,13 @@ void FOpenLandPolygonMesh::ApplyVertexModifiers(function<FVertexModifierResult(F
 void FOpenLandPolygonMesh::BuildDataTextures(FOpenLandPolygonMeshBuildResult* Result)
 {
 	const int32 VertexCount = Result->Original->Vertices.Length();
+	if (VertexCount == 0)
+	{
+		return;
+	}
+	
 	Result->TextureWidth = FMath::CeilToInt(FMath::Sqrt(VertexCount));
 	
-	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
 	TSharedPtr<FDataTexture> DataTexturePositionX = MakeShared<FDataTexture>(Result->TextureWidth);
 	TSharedPtr<FDataTexture> DataTexturePositionY = MakeShared<FDataTexture>(Result->TextureWidth);
 	TSharedPtr<FDataTexture> DataTexturePositionZ = MakeShared<FDataTexture>(Result->TextureWidth);
@@ -279,9 +283,14 @@ void FOpenLandPolygonMesh::BuildDataTextures(FOpenLandPolygonMeshBuildResult* Re
 	Result->DataTextures.Push({"Position_Z", DataTexturePositionZ});
 	Result->DataTextures.Push({"UV0_X", DataTextureUV0X});
 	Result->DataTextures.Push({"UV0_Y", DataTextureUV0Y});
+
+	for (FGpuComputeVertexDataTextureItem DataTextureItem: Result->DataTextures)
+	{
+		DataTextureItem.DataTexture->UpdateTexture();
+	}
 }
 
-void FOpenLandPolygonMesh::EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandMeshInfo* MeshInfo)
+void FOpenLandPolygonMesh::EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult)
 {
 	// TODO: Try to disconnect ComputeEngine from the VertexCount. It should automatically expand or shrink
 	// based on the demand.
@@ -292,31 +301,14 @@ void FOpenLandPolygonMesh::EnsureGpuComputeEngine(UObject* WorldContext, FOpenLa
 		return;
 	}
 
-	const int32 VertexCount = MeshInfo->Vertices.Length();
-	const int32 TextureWidth = FMath::CeilToInt(FMath::Sqrt(VertexCount));
-	//UE_LOG(LogTemp, Warning, TEXT("TextureWidth is: %d for Vertices: %d"), TextureWidth, VertexCount)
-
 	GpuComputeEngine = MakeShared<FGpuComputeVertex>();
-	TArray<FGpuComputeVertexInput> SourceData;
-	GpuComputeEngine->Init(WorldContext, SourceData, TextureWidth);
+	GpuComputeEngine->Init(WorldContext, MeshBuildResult.DataTextures, MeshBuildResult.TextureWidth);
 }
 
 void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandMeshInfo* Original,
                                                   FOpenLandMeshInfo* Target,
                                                   TArray<FComputeMaterialParameter> AdditionalMaterialParameters)
 {
-	// Set the Original Data
-	TArray<FGpuComputeVertexInput> OriginalPositions;
-	OriginalPositions.SetNumUninitialized(Original->Vertices.Length());
-	for (size_t Index = 0; Index < Original->Vertices.Length(); Index++)
-	{
-		const FOpenLandMeshVertex OriginalVertex = Original->Vertices.Get(Index);
-		OriginalPositions[Index].Position = OriginalVertex.Position;
-		OriginalPositions[Index].UV0 = OriginalVertex.UV0;
-	}
-
-	GpuComputeEngine->UpdateSourceData(OriginalPositions);
-
 	// Apply Modifiers
 	TArray<FGpuComputeVertexOutput> ModifiedPositions;
 	ModifiedPositions.SetNumUninitialized(Original->Vertices.Length());
@@ -329,8 +321,8 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 	{
 		FOpenLandMeshVertex& Vertex = Target->Vertices.GetRef(Index);
 		
-		FVector OriginalPosition = Original->Vertices.GetRef(Index).Position;
-		FVector ModifiedPosition = ModifiedPositions[Index].Position;
+		// FVector OriginalPosition = Original->Vertices.GetRef(Index).Position;
+		// FVector ModifiedPosition = ModifiedPositions[Index].Position;
 		
 		//UE_LOG(LogTemp, Warning, TEXT("Original: %f, %f, %f | Modified: %f, %f, %f"), OriginalPosition.X, OriginalPosition.Y, OriginalPosition.Z,  ModifiedPosition.X, ModifiedPosition.Y, ModifiedPosition.Z)
 		//UE_LOG(LogTemp, Warning, TEXT(""),)
@@ -348,7 +340,7 @@ void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygo
 	// TODO: check for sizes of both original & target
 	// Setup & Gpu Vertex Modifiers if needed
 	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
-	EnsureGpuComputeEngine(WorldContext, MeshBuildResult.Original.Get());
+	EnsureGpuComputeEngine(WorldContext, MeshBuildResult);
 	TrackEnsureGpuComputeEngine.Finish();
 
 	FSimpleMeshInfoPtr Intermediate = MeshBuildResult.Original;
@@ -401,7 +393,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 	}
 
 	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
-	EnsureGpuComputeEngine(WorldContext, MeshBuildResult.Original.Get());
+	EnsureGpuComputeEngine(WorldContext, MeshBuildResult);
 	TrackEnsureGpuComputeEngine.Finish();
 
 	FSimpleMeshInfoPtr Intermediate = MeshBuildResult.Original;

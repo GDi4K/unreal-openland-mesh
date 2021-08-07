@@ -4,19 +4,11 @@
 
 #include "Kismet/KismetMaterialLibrary.h"
 
-void FGpuComputeVertex::Init(UObject* WorldContext, TArray<FGpuComputeVertexInput>& SourceData,
+void FGpuComputeVertex::Init(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> InputDataTextures,
                              int32 Width)
 {
 	TextureWidth = Width;
-	
-	// Make the Source Data Textures
-	DataTextures.Push({"Position_X", MakeShared<FDataTexture>(TextureWidth)});
-	DataTextures.Push({"Position_Y", MakeShared<FDataTexture>(TextureWidth)});
-	DataTextures.Push({"Position_Z", MakeShared<FDataTexture>(TextureWidth)});
-	DataTextures.Push({"UV0_X", MakeShared<FDataTexture>(TextureWidth)});
-	DataTextures.Push({"UV0_Y", MakeShared<FDataTexture>(TextureWidth)});
-	
-	UpdateSourceData(SourceData);
+	DataTextures = InputDataTextures;
 
 	// Create the Render Targets
 	DataRenderTarget0 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
@@ -45,26 +37,6 @@ FGpuComputeMaterialStatus FGpuComputeVertex::IsValidMaterial(UMaterialInterface*
 		true,
 		"Material is valid!"
 	};
-}
-
-void FGpuComputeVertex::UpdateSourceData(TArray<FGpuComputeVertexInput>& SourceData)
-{
-	const int32 PixelCount = FMath::Min(SourceData.Num(),
-	                                    TextureWidth * TextureWidth);
-	for (int32 Index = 0; Index < PixelCount; Index++)
-	{
-		SetDataTextureFloat("Position_X", Index, SourceData[Index].Position.X);
-		SetDataTextureFloat("Position_Y", Index, SourceData[Index].Position.Y);
-		SetDataTextureFloat("Position_Z", Index, SourceData[Index].Position.Z);
-		
-		SetDataTextureFloat("UV0_X", Index, SourceData[Index].UV0.X);
-		SetDataTextureFloat("UV0_Y", Index, SourceData[Index].UV0.Y);
-	}
-
-	for (FGpuComputeVertexDataTextureItem DataTextureItem: DataTextures)
-	{
-		DataTextureItem.DataTexture->UpdateTexture();
-	}
 }
 
 void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexOutput>& ModifiedData,
@@ -183,18 +155,6 @@ void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
     		
     	}
     }
-}
-
-void FGpuComputeVertex::SetDataTextureFloat(FString Name, int32 Index, float Value)
-{
-	for (const FGpuComputeVertexDataTextureItem DataTextureItem: DataTextures)
-	{
-		if (DataTextureItem.Name == Name)
-		{
-			DataTextureItem.DataTexture->SetFloatValue(Index, Value);
-			return;
-		}
-	}
 }
 
 FGpuComputeVertex::~FGpuComputeVertex()

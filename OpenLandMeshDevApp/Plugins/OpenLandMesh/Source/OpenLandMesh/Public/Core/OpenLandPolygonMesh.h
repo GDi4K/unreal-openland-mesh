@@ -73,7 +73,7 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	static void ApplyVertexModifiers(function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart, int RangeEnd,
 	                          float RealTimeSeconds);
 	static void BuildDataTextures(FOpenLandPolygonMeshBuildResult* Result);
-	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandMeshInfo* MeshInfo);
+	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult);
 	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target,
 	                            TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
 	static TArray<FComputeMaterialParameter> MakeParameters(float Time);

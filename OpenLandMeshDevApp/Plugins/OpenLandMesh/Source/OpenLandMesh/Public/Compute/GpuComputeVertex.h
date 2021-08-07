@@ -55,13 +55,11 @@ class OPENLANDMESH_API FGpuComputeVertex
 
 	void ApplyParameterValues(UMaterialInstanceDynamic* Material,
 	                                 TArray<FComputeMaterialParameter> MaterialParameters);
-	void SetDataTextureFloat(FString Name, int32 Index, float Value);
 
 public:
 	~FGpuComputeVertex();
-	void Init(UObject* WorldContext, TArray<FGpuComputeVertexInput>& SourceData, int32 Width);
+	void Init(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> InputDataTextures, int32 Width);
 	static FGpuComputeMaterialStatus IsValidMaterial(UMaterialInterface* Material);
-	void UpdateSourceData(TArray<FGpuComputeVertexInput>& SourceData);
 	void Compute(UObject* WorldContext, TArray<FGpuComputeVertexOutput>& ModifiedData,
 	             FComputeMaterial ComputeMaterial);
 };

@@ -79,7 +79,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 
 	if (bUseAsyncAnimations)
 	{
-		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult, SmoothNormalAngle);
+		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
 		if (bCanUpdate)
 		{
 			MeshComponent->UpdateMeshSection(0);
