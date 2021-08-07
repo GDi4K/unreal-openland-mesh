@@ -120,14 +120,19 @@ FOpenLandPolygonMeshBuildResult FOpenLandPolygonMesh::BuildMesh(UObject* WorldCo
 	// Build faces & tangents for the TransformedMeshInfo
 	// So, we don't need to do that for Original after subdivided
 	TransformedMeshInfo.BoundingBox.Init();
-	for(size_t Index=0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
+	for(size_t Index=0; Index < TransformedMeshInfo.Triangles.Length(); Index++)
 	{
-		TransformedMeshInfo.BoundingBox += TransformedMeshInfo.Vertices.Get(Index).Position;
-	}
+		const FOpenLandMeshTriangle OTriangle = TransformedMeshInfo.Triangles.Get(Index);
+		FOpenLandMeshVertex& T0 = TransformedMeshInfo.Vertices.GetRef(OTriangle.T0);
+		FOpenLandMeshVertex& T1 = TransformedMeshInfo.Vertices.GetRef(OTriangle.T1);
+		FOpenLandMeshVertex& T2 = TransformedMeshInfo.Vertices.GetRef(OTriangle.T2);
 
-	if (Options.CuspAngle > 0)
-	{
-		ApplyNormalSmoothing(&TransformedMeshInfo, Options.CuspAngle);
+		BuildFaceTangents(T0, T1, T2);
+
+		// Build Bounding Box
+		TransformedMeshInfo.BoundingBox += T0.Position;
+		TransformedMeshInfo.BoundingBox += T1.Position;
+		TransformedMeshInfo.BoundingBox += T2.Position;
 	}
 
 	FOpenLandMeshInfo Source = SubDivide(TransformedMeshInfo, Options.SubDivisions);
@@ -265,6 +270,9 @@ void FOpenLandPolygonMesh::BuildDataTextures(FOpenLandPolygonMeshBuildResult* Re
 	TSharedPtr<FDataTexture> DataTexturePositionZ = MakeShared<FDataTexture>(Result->TextureWidth);
 	TSharedPtr<FDataTexture> DataTextureUV0X= MakeShared<FDataTexture>(Result->TextureWidth);
 	TSharedPtr<FDataTexture> DataTextureUV0Y= MakeShared<FDataTexture>(Result->TextureWidth);
+	TSharedPtr<FDataTexture> DataTextureFaceNormalX = MakeShared<FDataTexture>(Result->TextureWidth);
+	TSharedPtr<FDataTexture> DataTextureFaceNormalY = MakeShared<FDataTexture>(Result->TextureWidth);
+	TSharedPtr<FDataTexture> DataTextureFaceNormalZ = MakeShared<FDataTexture>(Result->TextureWidth);
 
 	for(size_t Index=0; Index<VertexCount; Index++)
 	{
@@ -276,6 +284,10 @@ void FOpenLandPolygonMesh::BuildDataTextures(FOpenLandPolygonMeshBuildResult* Re
 
 		DataTextureUV0X->SetFloatValue(Index, Vertex.UV0.X);
 		DataTextureUV0Y->SetFloatValue(Index, Vertex.UV0.Y);
+
+		DataTextureFaceNormalX->SetFloatValue(Index, Vertex.Normal.X);
+		DataTextureFaceNormalY->SetFloatValue(Index, Vertex.Normal.Y);
+		DataTextureFaceNormalZ->SetFloatValue(Index, Vertex.Normal.Z);
 	}
 
 	Result->DataTextures.Push({"Position_X", DataTexturePositionX});
@@ -283,6 +295,9 @@ void FOpenLandPolygonMesh::BuildDataTextures(FOpenLandPolygonMeshBuildResult* Re
 	Result->DataTextures.Push({"Position_Z", DataTexturePositionZ});
 	Result->DataTextures.Push({"UV0_X", DataTextureUV0X});
 	Result->DataTextures.Push({"UV0_Y", DataTextureUV0Y});
+	Result->DataTextures.Push({"FaceNormal_X", DataTextureFaceNormalX});
+	Result->DataTextures.Push({"FaceNormal_Y", DataTextureFaceNormalY});
+	Result->DataTextures.Push({"FaceNormal_Z", DataTextureFaceNormalZ});
 
 	for (FGpuComputeVertexDataTextureItem DataTextureItem: Result->DataTextures)
 	{
