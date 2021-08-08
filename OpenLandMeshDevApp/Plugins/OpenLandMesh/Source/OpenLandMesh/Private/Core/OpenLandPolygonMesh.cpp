@@ -354,8 +354,7 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 
 
 void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
-                                          float RealTimeSeconds,
-                                          float CuspAngle)
+                                          FOpenLandPolygonMeshModifyOptions Options)
 {
 	// TODO: check for sizes of both original & target
 	// Setup & Gpu Vertex Modifiers if needed
@@ -368,7 +367,7 @@ void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygo
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
 		ApplyGpuVertexModifers(WorldContext, MeshBuildResult.Original.Get(), MeshBuildResult.Target.Get(),
-		                       MakeParameters(RealTimeSeconds));
+		                       MakeParameters(Options.RealTimeSeconds));
 		Intermediate = MeshBuildResult.Target;
 		TrackGpuVertexModifiers.Finish();
 	}
@@ -377,19 +376,19 @@ void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygo
 	MeshBuildResult.Target->BoundingBox.Init();
 
 	auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), MeshBuildResult.Target.Get(), 0, MeshBuildResult.Original->Triangles.Length(), RealTimeSeconds);
+	ApplyVertexModifiers(VertexModifier, Intermediate.Get(), MeshBuildResult.Target.Get(), 0, MeshBuildResult.Original->Triangles.Length(), Options.RealTimeSeconds);
 	TrackCpuVertexModifiers.Finish();
 
-	if (CuspAngle > 0.0)
+	if (Options.CuspAngle > 0.0)
 	{
 		auto TrackNormalSmoothing = TrackTime("NormalSmoothing");
-		ApplyNormalSmoothing(MeshBuildResult.Target.Get(), CuspAngle);
+		ApplyNormalSmoothing(MeshBuildResult.Target.Get(), Options.CuspAngle);
 		TrackNormalSmoothing.Finish();
 	}
 }
 
 bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
-                                               float RealTimeSeconds, float CuspAngle)
+                                               FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback)
 {
 	// There's a currently running job.
 	// So, we need to check the state of that
@@ -420,7 +419,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 	if (GpuVertexModifier.Material != nullptr)
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
-		ApplyGpuVertexModifers(WorldContext, MeshBuildResult.Original.Get(), MeshBuildResult.Target.Get(), MakeParameters(RealTimeSeconds));
+		ApplyGpuVertexModifers(WorldContext, MeshBuildResult.Original.Get(), MeshBuildResult.Target.Get(), MakeParameters(Options.RealTimeSeconds));
 		Intermediate = MeshBuildResult.Target;
 		TrackGpuVertexModifiers.Finish();
 	}
@@ -439,12 +438,12 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 	{
 		AsyncCompletions.Push(false);
 		FOpenLandThreading::RunOnAnyBackgroundThread(
-			[this, Intermediate, MeshBuildResult, RealTimeSeconds, NumWorkers, TasksPerWorker, WorkerId]
+			[this, Intermediate, MeshBuildResult, Options, NumWorkers, TasksPerWorker, WorkerId]
 			{
 				const int NumTris = Intermediate->Triangles.Length();
 				const int StartIndex = TasksPerWorker * WorkerId;
 				const int EndIndex = (WorkerId == NumWorkers - 1) ? NumTris : StartIndex + TasksPerWorker;
-				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), MeshBuildResult.Target.Get(), StartIndex, EndIndex, RealTimeSeconds);
+				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), MeshBuildResult.Target.Get(), StartIndex, EndIndex, Options.RealTimeSeconds);
 
 				// Mark the work as completed.
 				// We need to do this on the game thread since AsyncCompletions is not thread safe.
@@ -458,7 +457,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 
 	// Add a task to do the normal smoothing
 	AsyncCompletions.Push(false);
-	FOpenLandThreading::RunOnAnyBackgroundThread([this, MeshBuildResult, CuspAngle]
+	FOpenLandThreading::RunOnAnyBackgroundThread([this, MeshBuildResult, Options, Callback]
 	{
 		while (true)
 		{
@@ -473,14 +472,19 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 				continue;
 			}
 
-			ApplyNormalSmoothing(MeshBuildResult.Target.Get(), CuspAngle);
+			ApplyNormalSmoothing(MeshBuildResult.Target.Get(), Options.CuspAngle);
 			break;
 		}
 
-		FOpenLandThreading::RunOnGameThread([this]
+		FOpenLandThreading::RunOnGameThread([this, Callback]
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), AsyncCompletions.Num() -1)
 			AsyncCompletions[AsyncCompletions.Num() - 1] = true;
+			if (Callback != nullptr)
+			{
+				AsyncCompletions = {};
+				Callback();
+			}
 		});
 		//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), WorkerId)    
 	});

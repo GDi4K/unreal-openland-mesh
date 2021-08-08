@@ -18,7 +18,8 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	GENERATED_BODY()
 
 	bool bMeshGenerated = false;
-	bool bCompleteModifyMeshAsync = false;
+	bool bModifyMeshIsInProgress = false;
+	bool bNeedToModifyMesh = true;
 
 	FOpenLandPolygonMeshBuildResult MeshBuildResult;
 
@@ -53,7 +54,6 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	void BuildMeshAsync(TFunction<void()> Callback = nullptr);
-	void ModifyMeshAsync();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering")
 	UOpenLandMeshComponent* MeshComponent;
@@ -62,7 +62,7 @@ public:
 	int SubDivisions = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	int SmoothNormalAngle = 0;
+	float SmoothNormalAngle = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bRunCpuVertexModifiers = false;
@@ -99,6 +99,9 @@ public:
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMesh();
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	void ModifyMeshAsync();
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	void SetGPUScalarParameter(FName Name, float Value);

@@ -64,22 +64,12 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	if (MeshBuildResult.Target->IsLocked())
 		return;
 
-	if (bCompleteModifyMeshAsync)
-	{
-		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
-		if (bCanUpdate)
-		{
-			MeshComponent->UpdateMeshSection(0);
-			bCompleteModifyMeshAsync = false;
-		}
-	}
-
 	if (!bAnimate)
 		return;
 
 	if (bUseAsyncAnimations)
 	{
-		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
+		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
 		if (bCanUpdate)
 		{
 			MeshComponent->UpdateMeshSection(0);
@@ -90,7 +80,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		}
 	} else
 	{
-		PolygonMesh->ModifyVertices(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
+		PolygonMesh->ModifyVertices(this, MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
 		MeshComponent->UpdateMeshSection(0);
 		OnAfterAnimations();
 		// When someone updated GPU parameters inside the above hook
@@ -159,25 +149,51 @@ void AOpenLandMeshActor::BuildMesh()
 
 void AOpenLandMeshActor::ModifyMesh()
 {
+	bModifyMeshIsInProgress = false;
+	
 	if (bRunGpuVertexModifiers)
 		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 	else
 		PolygonMesh->RegisterGpuVertexModifier({});
 
-	PolygonMesh->ModifyVertices(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
+	PolygonMesh->ModifyVertices(this, MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
 	MeshComponent->UpdateMeshSection(0);
 }
 
 void AOpenLandMeshActor::ModifyMeshAsync()
 {
-	if (bRunGpuVertexModifiers)
-		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
-	else
-		PolygonMesh->RegisterGpuVertexModifier({});
+	if (bModifyMeshIsInProgress)
+	{
+		bNeedToModifyMesh = true;
+		return;
+	}
 
-	bCompleteModifyMeshAsync = true;
-	PolygonMesh->ModifyVertices(this, MeshBuildResult, GetWorld()->RealTimeSeconds, SmoothNormalAngle);
-	MeshComponent->UpdateMeshSection(0);
+	bModifyMeshIsInProgress = true;
+	bNeedToModifyMesh = false;
+	
+	if (bRunGpuVertexModifiers)
+	{
+		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+	}
+	else
+	{
+		PolygonMesh->RegisterGpuVertexModifier({});
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Start Modifying"));
+	auto AfterModifiedMesh = [this]()
+	{
+
+		UE_LOG(LogTemp, Warning, TEXT("Done!"));
+		MeshComponent->UpdateMeshSection(0);
+		bModifyMeshIsInProgress = false;
+
+		if (bNeedToModifyMesh)
+		{
+			ModifyMeshAsync();
+		}
+	};
+	PolygonMesh->ModifyVerticesAsync(this, MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle}, AfterModifiedMesh);
 }
 
 void AOpenLandMeshActor::SetGPUScalarParameter(FName Name, float Value)

@@ -44,6 +44,12 @@ struct FOpenLandPolygonMeshBuildOptions
 	float CuspAngle = 0;
 };
 
+struct FOpenLandPolygonMeshModifyOptions
+{
+	float RealTimeSeconds = 0;
+	float CuspAngle = 0;
+};
+
 struct FOpenLandPolygonMeshBuildResult
 {
 	FSimpleMeshInfoPtr Original = nullptr;
@@ -88,12 +94,13 @@ public:
 	                    std::function<void(FOpenLandPolygonMeshBuildResult)> Callback);
 	
 	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
-	                    float RealTimeSeconds, float CuspAngle = 0);
+	                    FOpenLandPolygonMeshModifyOptions Options);
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
+	// TODO: Get rid of this callback & implement the logic via the Tick.
 	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
-	                         float RealTimeSeconds, float CuspAngle = 0);
+	                         FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback=nullptr);
 	
 	void AddTriFace(const FVector A, const FVector B, const FVector C);
 	void AddQuadFace(const FVector A, const FVector B, const FVector C, const FVector D);
