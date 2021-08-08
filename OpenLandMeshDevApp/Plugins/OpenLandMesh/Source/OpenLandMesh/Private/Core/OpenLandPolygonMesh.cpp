@@ -279,7 +279,7 @@ void FOpenLandPolygonMesh::BuildDataTextures(FOpenLandPolygonMeshBuildResult* Re
 	TSharedPtr<FDataTexture> DataTextureFaceNormalY = MakeShared<FDataTexture>(Result->TextureWidth);
 	TSharedPtr<FDataTexture> DataTextureFaceNormalZ = MakeShared<FDataTexture>(Result->TextureWidth);
 
-	for(size_t Index=0; Index<VertexCount; Index++)
+	for(int32 Index=0; Index<VertexCount; Index++)
 	{
 		FOpenLandMeshVertex Vertex = Result->Original->Vertices.Get(Index);
 		

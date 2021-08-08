@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Materials/MaterialInterface.h"
+#include "Engine/Texture2D.h"
 #include "ComputeMaterial.generated.h"
 
 struct FComputeMaterialValidationStatus

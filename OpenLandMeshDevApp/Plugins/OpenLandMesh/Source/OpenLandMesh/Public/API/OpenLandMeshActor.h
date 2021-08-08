@@ -9,7 +9,6 @@
 #include "Core/OpenLandMeshComponent.h"
 #include "Compute/Types/ComputeMaterial.h"
 
-
 #include "OpenLandMeshActor.generated.h"
 
 UCLASS()
