@@ -4,20 +4,17 @@
 
 #include "Kismet/KismetMaterialLibrary.h"
 
-void FGpuComputeVertex::Init(UObject* WorldContext, TArray<FGpuComputeVertexInput>& SourceData,
+void FGpuComputeVertex::Init(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> InputDataTextures,
                              int32 Width)
 {
-	// Make the Source Data Textures
-	DataTexture0 = MakeShared<FDataTexture>(Width);
-	DataTexture1 = MakeShared<FDataTexture>(Width);
-	DataTexture2 = MakeShared<FDataTexture>(Width);
-	UpdateSourceData(SourceData);
+	TextureWidth = Width;
+	DataTextures = InputDataTextures;
 
 	// Create the Render Targets
-	DataRenderTarget0 = MakeShared<FDataRenderTarget>(WorldContext, Width);
-	DataRenderTarget1 = MakeShared<FDataRenderTarget>(WorldContext, Width);
-	DataRenderTarget2 = MakeShared<FDataRenderTarget>(WorldContext, Width);
-	DataRenderTarget3 = MakeShared<FDataRenderTarget>(WorldContext, Width);
+	DataRenderTarget0 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
+	DataRenderTarget1 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
+	DataRenderTarget2 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
+	DataRenderTarget3 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
 }
 
 FGpuComputeMaterialStatus FGpuComputeVertex::IsValidMaterial(UMaterialInterface* Material)
@@ -42,30 +39,6 @@ FGpuComputeMaterialStatus FGpuComputeVertex::IsValidMaterial(UMaterialInterface*
 	};
 }
 
-void FGpuComputeVertex::UpdateSourceData(TArray<FGpuComputeVertexInput>& SourceData)
-{
-	const int32 PixelCount = FMath::Min(SourceData.Num(),
-	                                    DataTexture0->GetTextureWidth() * DataTexture0->GetTextureWidth());
-	for (int32 Index = 0; Index < PixelCount; Index++)
-	{
-		float* ValuePointer0 = &SourceData[Index].Position.X;
-		uint8* ValueBytes0 = reinterpret_cast<uint8*>(ValuePointer0);
-		DataTexture0->SetPixelValue(Index, ValueBytes0[0], ValueBytes0[1], ValueBytes0[2], ValueBytes0[3]);
-
-		float* ValuePointer1 = &SourceData[Index].Position.Y;
-		uint8* ValueBytes1 = reinterpret_cast<uint8*>(ValuePointer1);
-		DataTexture1->SetPixelValue(Index, ValueBytes1[0], ValueBytes1[1], ValueBytes1[2], ValueBytes1[3]);
-
-		float* ValuePointer2 = &SourceData[Index].Position.Z;
-		uint8* ValueBytes2 = reinterpret_cast<uint8*>(ValuePointer2);
-		DataTexture2->SetPixelValue(Index, ValueBytes2[0], ValueBytes2[1], ValueBytes2[2], ValueBytes2[3]);
-	}
-
-	DataTexture0->UpdateTexture();
-	DataTexture1->UpdateTexture();
-	DataTexture2->UpdateTexture();
-}
-
 void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexOutput>& ModifiedData,
                                 FComputeMaterial ComputeMaterial)
 {
@@ -74,30 +47,18 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 	// Create the Dynamic Materials`
 	DynamicMaterialInstance0 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
 		WorldContext, ComputeMaterial.Material);
-	DynamicMaterialInstance0->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
-	DynamicMaterialInstance0->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
-	DynamicMaterialInstance0->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance0->SetScalarParameterValue("OutputFloat", 0);
 
 	DynamicMaterialInstance1 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
 		WorldContext, ComputeMaterial.Material);
-	DynamicMaterialInstance1->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
-	DynamicMaterialInstance1->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
-	DynamicMaterialInstance1->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance1->SetScalarParameterValue("OutputFloat", 1);
 
 	DynamicMaterialInstance2 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
 		WorldContext, ComputeMaterial.Material);
-	DynamicMaterialInstance2->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
-	DynamicMaterialInstance2->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
-	DynamicMaterialInstance2->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance2->SetScalarParameterValue("OutputFloat", 2);
 
 	DynamicMaterialInstance3 = UKismetMaterialLibrary::CreateDynamicMaterialInstance(
 		WorldContext, ComputeMaterial.Material);
-	DynamicMaterialInstance3->SetTextureParameterValue("InputFloat0", DataTexture0->GetTexture());
-	DynamicMaterialInstance3->SetTextureParameterValue("InputFloat1", DataTexture1->GetTexture());
-	DynamicMaterialInstance3->SetTextureParameterValue("InputFloat2", DataTexture2->GetTexture());
 	DynamicMaterialInstance3->SetScalarParameterValue("OutputVertexColor", 1); // This indicate vertex colors
 
 	ApplyParameterValues(DynamicMaterialInstance0, ComputeMaterial.Parameters);
@@ -112,7 +73,7 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 	DataRenderTarget3->DrawMaterial(WorldContext, DynamicMaterialInstance3);
 
 	// Read from the Render Target
-	const int32 NumPixelsToRead = DataTexture0->GetTextureWidth() * DataTexture0->GetTextureWidth();
+	const int32 NumPixelsToRead = TextureWidth * TextureWidth;
 	TArray<FColor> ReadBuffer0;
 	TArray<FColor> ReadBuffer1;
 	TArray<FColor> ReadBuffer2;
@@ -171,13 +132,29 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
                                              TArray<FComputeMaterialParameter> MaterialParameters)
 {
-	for (auto ParamInfo : MaterialParameters)
+	for (FGpuComputeVertexDataTextureItem DataTextureItem: DataTextures)
 	{
-		if (ParamInfo.Type == CMPT_SCALAR)
-			Material->SetScalarParameterValue(ParamInfo.Name, ParamInfo.ScalarValue);
-		else if (ParamInfo.Type == CMPT_VECTOR)
-			Material->SetVectorParameterValue(ParamInfo.Name, ParamInfo.VectorValue);
+		Material->SetTextureParameterValue(FName(DataTextureItem.Name), DataTextureItem.DataTexture->GetTexture());
 	}
+	
+	for (auto ParamInfo : MaterialParameters)
+    {
+    	switch (ParamInfo.Type)
+    	{
+    		case CMPT_SCALAR:
+    			Material->SetScalarParameterValue(ParamInfo.Name, ParamInfo.ScalarValue);
+    			break;
+    		case CMPT_VECTOR:
+    			Material->SetVectorParameterValue(ParamInfo.Name, ParamInfo.VectorValue);
+    			break;
+    		case CMPT_TEXTURE:
+    			Material->SetTextureParameterValue(ParamInfo.Name, ParamInfo.TextureValue);
+    			break;
+    		default:
+    			checkf(false, TEXT("Unknown Compute Material parameter type"));
+    		
+    	}
+    }
 }
 
 FGpuComputeVertex::~FGpuComputeVertex()

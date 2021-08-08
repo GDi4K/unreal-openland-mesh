@@ -9,7 +9,6 @@
 #include "Core/OpenLandMeshComponent.h"
 #include "Compute/Types/ComputeMaterial.h"
 
-
 #include "OpenLandMeshActor.generated.h"
 
 UCLASS()
@@ -18,6 +17,10 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	GENERATED_BODY()
 
 	bool bMeshGenerated = false;
+	bool bModifyMeshIsInProgress = false;
+	bool bNeedToModifyMesh = true;
+
+	FOpenLandPolygonMeshBuildResult MeshBuildResult;
 
 public:
 	// Sets default values for this actor's properties
@@ -28,8 +31,6 @@ protected:
 	UPROPERTY()
 	UOpenLandMeshPolygonMeshProxy* PolygonMesh;
 
-	FSimpleMeshInfoPtr OriginalMeshInfo = nullptr;
-	FSimpleMeshInfoPtr RenderingMeshInfo = nullptr;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -60,7 +61,7 @@ public:
 	int SubDivisions = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	int SmoothNormalAngle = 0;
+	float SmoothNormalAngle = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bRunCpuVertexModifiers = false;
@@ -99,6 +100,9 @@ public:
 	void ModifyMesh();
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	void ModifyMeshAsync();
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	void SetGPUScalarParameter(FName Name, float Value);
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
@@ -109,4 +113,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
     FVector GetGPUVectorParameter(FName Name);
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+    void SetGPUTextureParameter(FName Name, UTexture2D* Value);
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+    UTexture2D* GetGPUTextureParameter(FName Name);
 };

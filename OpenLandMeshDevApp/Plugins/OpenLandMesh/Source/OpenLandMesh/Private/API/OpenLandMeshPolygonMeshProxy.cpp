@@ -13,30 +13,28 @@ UOpenLandMeshPolygonMeshProxy::~UOpenLandMeshPolygonMeshProxy()
 	FOpenLandPolygonMesh::DeletePolygonMesh(PolygonMesh);
 }
 
-FSimpleMeshInfoPtr UOpenLandMeshPolygonMeshProxy::BuildMesh(UObject* WorldContext, int SubDivisions,
-                                                            float CuspAngle) const
+FOpenLandPolygonMeshBuildResult UOpenLandMeshPolygonMeshProxy::BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const
 {
-	return PolygonMesh->BuildMesh(WorldContext, SubDivisions, CuspAngle);
+	return PolygonMesh->BuildMesh(WorldContext, Options);
 }
 
-void UOpenLandMeshPolygonMeshProxy::BuildMeshAsync(UObject* WorldContext, int SubDivisions, float CuspAngle,
-                                                   std::function<void(FSimpleMeshInfoPtr)> Callback) const
+void UOpenLandMeshPolygonMeshProxy::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
+                                                   std::function<void(FOpenLandPolygonMeshBuildResult)> Callback) const
 {
-	return PolygonMesh->BuildMeshAsync(WorldContext, SubDivisions, CuspAngle, Callback);
+	return PolygonMesh->BuildMeshAsync(WorldContext, Options, Callback);
 }
 
-void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original,
-                                                   FSimpleMeshInfoPtr Target, float RealTimeSeconds,
-                                                   float CuspAngle) const
+void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+                                                   FOpenLandPolygonMeshModifyOptions Options) const
+                                                   
 {
-	return PolygonMesh->ModifyVertices(WorldContext, Original, Target, RealTimeSeconds, CuspAngle);
+	return PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
 }
 
-bool UOpenLandMeshPolygonMeshProxy::ModifyVerticesAsync(UObject* WorldContext, FSimpleMeshInfoPtr Original,
-                                                        FSimpleMeshInfoPtr Target,
-                                                        float RealTimeSeconds, float CuspAngle)
+bool UOpenLandMeshPolygonMeshProxy::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+                                                        FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback) const
 {
-	return PolygonMesh->ModifyVerticesAsync(WorldContext, Original, Target, RealTimeSeconds, CuspAngle);
+	return PolygonMesh->ModifyVerticesAsync(WorldContext, MeshBuildResult, Options, Callback);
 }
 
 UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::AddTriFace(

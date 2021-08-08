@@ -26,9 +26,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenLandMesh)
 	float TimeInSeconds = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenLandMesh)
-	bool bOnBuilding;
 };
 
 USTRUCT(BlueprintType)
@@ -39,6 +36,26 @@ struct FVertexModifierResult
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = OpenLandMesh)
 	FVector Position = {0, 0, 0};
+};
+
+struct FOpenLandPolygonMeshBuildOptions
+{
+	int SubDivisions = 0;
+	float CuspAngle = 0;
+};
+
+struct FOpenLandPolygonMeshModifyOptions
+{
+	float RealTimeSeconds = 0;
+	float CuspAngle = 0;
+};
+
+struct FOpenLandPolygonMeshBuildResult
+{
+	FSimpleMeshInfoPtr Original = nullptr;
+	FSimpleMeshInfoPtr Target = nullptr;
+	int32 TextureWidth = 0;
+	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
 };
 
 class OPENLANDMESH_API FOpenLandPolygonMesh
@@ -59,28 +76,32 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	static FOpenLandMeshInfo SubDivide(FOpenLandMeshInfo SourceMeshInfo, int Depth);
 	static void AddFace(FOpenLandMeshInfo* MeshInfo, TOpenLandArray<FOpenLandMeshVertex> Vertices);
 	static void BuildFaceTangents(FOpenLandMeshVertex& T0, FOpenLandMeshVertex& T1, FOpenLandMeshVertex& T2);
-	void ApplyVertexModifiers(FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart, int RangeEnd,
-	                          float RealTimeSeconds, bool bOnBuilding) const;
-	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandMeshInfo* MeshInfo);
+	static void ApplyVertexModifiers(function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart, int RangeEnd,
+	                          float RealTimeSeconds);
+	static void BuildDataTextures(FOpenLandPolygonMeshBuildResult* Result);
+	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult);
 	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target,
 	                            TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
-	static TArray<FComputeMaterialParameter> MakeParameters(float Time, bool bOnBuilding);
+	static TArray<FComputeMaterialParameter> MakeParameters(float Time);
 
 public:
 	~FOpenLandPolygonMesh();
-	FSimpleMeshInfoPtr BuildMesh(UObject* WorldContext, int SubDivisions = 0, float CuspAngle = 0);
-	void BuildMeshAsync(UObject* WorldContext, int SubDivisions, float CuspAngle,
-	                    std::function<void(FSimpleMeshInfoPtr)> Callback);
-	void ModifyVertices(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
-	                    float RealTimeSeconds, float CuspAngle = 0, bool bOnBuilding = false);
 	void RegisterVertexModifier(std::function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial ComputeMaterial);
-
+	
+	FOpenLandPolygonMeshBuildResult BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options);
+	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
+	                    std::function<void(FOpenLandPolygonMeshBuildResult)> Callback);
+	
+	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+	                    FOpenLandPolygonMeshModifyOptions Options);
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
-	bool ModifyVerticesAsync(UObject* WorldContext, FSimpleMeshInfoPtr Original, FSimpleMeshInfoPtr Target,
-	                         float RealTimeSeconds, float CuspAngle = 0);
+	// TODO: Get rid of this callback & implement the logic via the Tick.
+	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+	                         FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback=nullptr);
+	
 	void AddTriFace(const FVector A, const FVector B, const FVector C);
 	void AddQuadFace(const FVector A, const FVector B, const FVector C, const FVector D);
 	void Transform(FTransform Transformer);
