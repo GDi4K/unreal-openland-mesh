@@ -194,17 +194,22 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygo
 		}
 
 		// Build faces & tangents for the TransformedMeshInfo
-        // So, we don't need to do that for Original after subdivided
-        TransformedMeshInfo.BoundingBox.Init();
-        for(size_t Index=0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
-        {
-            TransformedMeshInfo.BoundingBox += TransformedMeshInfo.Vertices.Get(Index).Position;
-        }
+	    // So, we don't need to do that for Original after subdivided
+	    TransformedMeshInfo.BoundingBox.Init();
+	    for(size_t Index=0; Index < TransformedMeshInfo.Triangles.Length(); Index++)
+	    {
+	        const FOpenLandMeshTriangle OTriangle = TransformedMeshInfo.Triangles.Get(Index);
+	        FOpenLandMeshVertex& T0 = TransformedMeshInfo.Vertices.GetRef(OTriangle.T0);
+	        FOpenLandMeshVertex& T1 = TransformedMeshInfo.Vertices.GetRef(OTriangle.T1);
+	        FOpenLandMeshVertex& T2 = TransformedMeshInfo.Vertices.GetRef(OTriangle.T2);
 
-        if (Options.CuspAngle > 0)
-        {
-            ApplyNormalSmoothing(&TransformedMeshInfo, Options.CuspAngle);
-        }
+	        BuildFaceTangents(T0, T1, T2);
+
+	        // Build Bounding Box
+	        TransformedMeshInfo.BoundingBox += T0.Position;
+	        TransformedMeshInfo.BoundingBox += T1.Position;
+	        TransformedMeshInfo.BoundingBox += T2.Position;
+	    }
 
 		FOpenLandMeshInfo Source = SubDivide(TransformedMeshInfo, Options.SubDivisions);
 		FOpenLandPolygonMeshBuildResult Result;
