@@ -91,6 +91,8 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 
 void AOpenLandMeshActor::BuildMesh()
 {
+	SetMaterial(Material);
+	
 	// TODO: Remove this once we introduced a pool for RenderTargets & Textures
 	if (GetWorld()->WorldType == EWorldType::Editor)
 		// Inside Editor, it's possible to call this function multiple times.
@@ -294,6 +296,8 @@ UTexture2D* AOpenLandMeshActor::GetGPUTextureParameter(FName Name)
 
 void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 {
+	SetMaterial(Material);
+	
 	PolygonMesh = GetPolygonMesh();
 	if (!PolygonMesh)
 		PolygonMesh = NewObject<UOpenLandMeshPolygonMeshProxy>();
