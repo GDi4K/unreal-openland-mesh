@@ -28,7 +28,7 @@ public:
 	~AOpenLandMeshActor();
 
 protected:
-	UPROPERTY()
+	UPROPERTY(Transient)
 	UOpenLandMeshPolygonMeshProxy* PolygonMesh;
 
 
@@ -54,7 +54,7 @@ public:
 #endif
 	void BuildMeshAsync(TFunction<void()> Callback = nullptr);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
 	UOpenLandMeshComponent* MeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)

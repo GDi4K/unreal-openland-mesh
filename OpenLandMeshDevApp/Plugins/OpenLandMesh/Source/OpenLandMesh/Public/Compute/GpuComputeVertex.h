@@ -31,17 +31,16 @@ struct FGpuComputeVertexDataTextureItem
 
 class OPENLANDMESH_API FGpuComputeVertex
 {
-	UPROPERTY()
-	;
+	UPROPERTY(Transient);
 	UMaterialInstanceDynamic* DynamicMaterialInstance0 = nullptr; // to Write X to Render Target
-	UPROPERTY()
-	;
+	
+	UPROPERTY(Transient);
 	UMaterialInstanceDynamic* DynamicMaterialInstance1 = nullptr; // to Write Y to Render Target
-	UPROPERTY()
-	;
+	
+	UPROPERTY(Transient);
 	UMaterialInstanceDynamic* DynamicMaterialInstance2 = nullptr; // to Write Z to Render Target
-	UPROPERTY()
-	;
+	
+	UPROPERTY(Transient);
 	UMaterialInstanceDynamic* DynamicMaterialInstance3 = nullptr; // to Write VertexColor to Render Target
 
 	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
