@@ -120,9 +120,22 @@ void AOpenLandMeshActor::BuildMesh()
 		PolygonMesh->RegisterVertexModifier(nullptr);
 
 	if (bRunGpuVertexModifiers)
+	{
+		// TODO: Check whether we really need this.
+		// This is something to make sure, we are starting with a compiled version
+		// And we are not stucked forever until when loading the actor
+#if WITH_EDITOR
+		if (GpuVertexModifier.Material != nullptr)
+		{
+			GpuVertexModifier.Material->ForceRecompileForRendering();
+		}
+#endif
 		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+	}
 	else
+	{
 		PolygonMesh->RegisterGpuVertexModifier({});
+	}
 
 	const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
 		SubDivisions,
@@ -311,9 +324,13 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 		PolygonMesh->RegisterVertexModifier(nullptr);
 
 	if (bRunGpuVertexModifiers)
+	{
 		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+	}
 	else
+	{
 		PolygonMesh->RegisterGpuVertexModifier({});
+	}
 
 	const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
 		SubDivisions,
