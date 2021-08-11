@@ -11,6 +11,13 @@
 
 #include "OpenLandMeshActor.generated.h"
 
+struct FLODInfo
+{
+	FOpenLandPolygonMeshBuildResult MeshBuildResult;
+	int32 MeshComponentIndex = 0;
+	int32 LODIndex = 0;
+};
+
 UCLASS()
 class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 {
@@ -20,7 +27,8 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	bool bModifyMeshIsInProgress = false;
 	bool bNeedToModifyMesh = true;
 
-	FOpenLandPolygonMeshBuildResult MeshBuildResult;
+	TArray<FLODInfo*> LODList;
+	FLODInfo* CurrentLOD = nullptr;
 
 public:
 	// Sets default values for this actor's properties
