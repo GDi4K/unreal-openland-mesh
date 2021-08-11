@@ -18,6 +18,8 @@ struct FLODInfo
 	int32 LODIndex = 0;
 };
 
+typedef TSharedPtr<FLODInfo> FLODInfoPtr;
+
 UCLASS()
 class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 {
@@ -27,8 +29,8 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	bool bModifyMeshIsInProgress = false;
 	bool bNeedToModifyMesh = true;
 
-	TArray<TSharedPtr<FLODInfo>> LODList;
-	TSharedPtr<FLODInfo> CurrentLOD = nullptr;
+	TArray<FLODInfoPtr> LODList;
+	FLODInfoPtr CurrentLOD = nullptr;
 
 public:
 	// Sets default values for this actor's properties
@@ -65,6 +67,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
 	UOpenLandMeshComponent* MeshComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	int32 CurrentLODIndex = 0;
+	
+	UFUNCTION(CallInEditor, Category=OpenLandMesh)
+	void ChangeLOD();
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	int SubDivisions = 0;
 
