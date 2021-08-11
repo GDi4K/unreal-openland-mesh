@@ -27,8 +27,8 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	bool bModifyMeshIsInProgress = false;
 	bool bNeedToModifyMesh = true;
 
-	TArray<FLODInfo*> LODList;
-	FLODInfo* CurrentLOD = nullptr;
+	TArray<TSharedPtr<FLODInfo>> LODList;
+	TSharedPtr<FLODInfo> CurrentLOD = nullptr;
 
 public:
 	// Sets default values for this actor's properties

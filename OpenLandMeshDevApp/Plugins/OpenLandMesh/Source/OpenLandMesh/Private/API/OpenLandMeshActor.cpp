@@ -16,10 +16,7 @@ AOpenLandMeshActor::AOpenLandMeshActor()
 
 AOpenLandMeshActor::~AOpenLandMeshActor()
 {
-	for(FLODInfo* LOD : LODList)
-	{
-		delete LOD;
-	}
+	CurrentLOD = nullptr;
 	LODList.Empty();
 }
 
@@ -154,7 +151,7 @@ void AOpenLandMeshActor::BuildMesh()
 
 	if (CurrentLOD == nullptr)
 	{
-		FLODInfo* LOD0 = new FLODInfo();
+		TSharedPtr<FLODInfo> LOD0 = MakeShared<FLODInfo>();
 		LOD0->MeshBuildResult = NewMeshBuildResult;
 		LOD0->MeshComponentIndex = 0;
 		LOD0->LODIndex = 0;
@@ -357,7 +354,7 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 
 		if (CurrentLOD == nullptr)
 		{
-            FLODInfo* LOD0 = new FLODInfo();
+			TSharedPtr<FLODInfo> LOD0 = MakeShared<FLODInfo>();
             LOD0->MeshBuildResult = Result;
             LOD0->MeshComponentIndex = 0;
             LOD0->LODIndex = 0;
