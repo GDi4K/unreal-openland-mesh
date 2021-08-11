@@ -93,8 +93,6 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 
 void AOpenLandMeshActor::BuildMesh()
 {
-	SetMaterial(Material);
-	
 	// TODO: Remove this once we introduced a pool for RenderTargets & Textures
 	if (GetWorld()->WorldType == EWorldType::Editor)
 		// Inside Editor, it's possible to call this function multiple times.
@@ -169,6 +167,7 @@ void AOpenLandMeshActor::BuildMesh()
 		MeshComponent->Invalidate();
 	}
 
+	SetMaterial(Material);
 	bMeshGenerated = true;
 }
 
@@ -319,8 +318,6 @@ UTexture2D* AOpenLandMeshActor::GetGPUTextureParameter(FName Name)
 
 void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 {
-	SetMaterial(Material);
-	
 	PolygonMesh = GetPolygonMesh();
 	if (!PolygonMesh)
 		PolygonMesh = NewObject<UOpenLandMeshPolygonMeshProxy>();
@@ -376,13 +373,17 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 			Callback();
 	});
 
+	SetMaterial(Material);
 	bMeshGenerated = true;
 }
 
 void AOpenLandMeshActor::SetMaterial(UMaterialInterface* InputMaterial)
 {
 	Material = InputMaterial;
-	MeshComponent->SetMaterial(0, Material);
+	for(int32 MeshSectionIndex = 0; MeshSectionIndex< MeshComponent->NumMeshSections(); MeshSectionIndex++)
+	{
+		MeshComponent->SetMaterial(MeshSectionIndex, Material);	
+	}
 }
 
 void AOpenLandMeshActor::OnConstruction(const FTransform& Transform)
