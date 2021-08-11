@@ -259,6 +259,11 @@ FPrimitiveViewRelevance FOpenLandMeshSceneProxy::GetViewRelevance(const FSceneVi
 	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bTranslucentSelfShadow = bCastVolumetricTranslucentShadow;
 	Result.bVelocityRelevance = IsMovable() && Result.bOpaque && Result.bRenderInMainPass;
+
+	// This adds the support for all the shading & blending modes in materials
+	// Including transparent, etc.
+	MaterialRelevance.SetPrimitiveViewRelevance(Result);
+	
 	return Result;
 }
 
