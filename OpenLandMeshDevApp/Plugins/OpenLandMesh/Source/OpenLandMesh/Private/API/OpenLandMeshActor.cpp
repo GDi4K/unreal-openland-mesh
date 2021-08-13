@@ -56,6 +56,9 @@ void AOpenLandMeshActor::OnAfterAnimations_Implementation()
 void AOpenLandMeshActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	SwitchLODs();
+	
 	if (GetWorld()->WorldType == EWorldType::Editor)
 		return;
 
@@ -125,10 +128,10 @@ void AOpenLandMeshActor::BuildMesh()
 		// This is something to make sure, we are starting with a compiled version
 		// And we are not stucked forever until when loading the actor
 #if WITH_EDITOR
-		// if (GpuVertexModifier.Material != nullptr)
-		// {
-		// 	GpuVertexModifier.Material->ForceRecompileForRendering();
-		// }
+		if (GpuVertexModifier.Material != nullptr)
+		{
+			GpuVertexModifier.Material->ForceRecompileForRendering();
+		}
 #endif
 		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 	}
@@ -139,7 +142,7 @@ void AOpenLandMeshActor::BuildMesh()
 
 
 	TArray<FLODInfoPtr> NewLODList;
-	for (int32 LODIndex=0; LODIndex<3; LODIndex++)
+	for (int32 LODIndex=0; LODIndex<MaximumLODCount; LODIndex++)
 	{
 		FLODInfoPtr LOD = MakeShared<FLODInfo>();
 
@@ -163,13 +166,13 @@ void AOpenLandMeshActor::BuildMesh()
 	for (const FLODInfoPtr LOD: NewLODList)
 	{
 		LOD->MeshBuildResult.Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
-		if (CurrentLOD == nullptr)
-		{
-			MeshComponent->CreateMeshSection(LOD->MeshComponentIndex, LOD->MeshBuildResult.Target);
-		}
-		else
+		const bool bHasSection = MeshComponent->NumMeshSections() > LOD->MeshComponentIndex;
+		if (bHasSection)
 		{
 			MeshComponent->ReplaceMeshSection(LOD->MeshComponentIndex, LOD->MeshBuildResult.Target);
+		} else
+		{
+			MeshComponent->CreateMeshSection(LOD->MeshComponentIndex, LOD->MeshBuildResult.Target);
 		}
 	}
 	MeshComponent->Invalidate();
@@ -405,8 +408,38 @@ void AOpenLandMeshActor::OnConstruction(const FTransform& Transform)
 		BuildMesh();
 }
 
-void AOpenLandMeshActor::ChangeLOD()
+void AOpenLandMeshActor::SwitchLODs()
 {
+	const UWorld* World = GetWorld();
+	if(World == nullptr)
+	{
+		return;
+	}
+ 
+	const TArray<FVector> ViewLocations = World->ViewLocationsRenderedLastFrame;
+	if(ViewLocations.Num() == 0)
+	{
+		return;
+	}
+
+	const FVector CameraLocation = ViewLocations[0];
+	const float Distance = FVector::Distance(CameraLocation, GetActorLocation());
+
+	const int32 LODCount = LODList.Num();
+	int32 DesiredLOD = 0;
+	
+	float RemainingDistance = Distance;
+	for(int32 LODIndex=0; LODIndex<LODCount; LODIndex++)
+	{
+		DesiredLOD = LODIndex;
+		RemainingDistance -= LODStepUnits * FMath::Pow(LODStepPower, LODIndex);
+		if (RemainingDistance <= 0)
+		{
+			break;
+		}
+	}
+	
+	CurrentLODIndex = DesiredLOD;
 	for(const FLODInfoPtr LOD: LODList)
 	{
 		LOD->MeshBuildResult.Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
@@ -416,6 +449,16 @@ void AOpenLandMeshActor::ChangeLOD()
 	CurrentLOD = LODList[CurrentLODIndex];
 }
 
+bool AOpenLandMeshActor::ShouldTickIfViewportsOnly() const
+{
+	const UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return false;
+	}
+
+	return World->WorldType == EWorldType::Editor;
+}
 
 #if WITH_EDITOR
 void AOpenLandMeshActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

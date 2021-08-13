@@ -32,6 +32,8 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	TArray<FLODInfoPtr> LODList;
 	FLODInfoPtr CurrentLOD = nullptr;
 
+	void SwitchLODs();
+
 public:
 	// Sets default values for this actor's properties
 	AOpenLandMeshActor();
@@ -59,6 +61,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	void SetMaterial(UMaterialInterface* Material);
+	virtual bool ShouldTickIfViewportsOnly() const override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
@@ -67,12 +70,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
 	UOpenLandMeshComponent* MeshComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	int32 CurrentLODIndex = 0;
-	
-	UFUNCTION(CallInEditor, Category=OpenLandMesh)
-	void ChangeLOD();
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	int SubDivisions = 0;
 
@@ -105,7 +102,19 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncAnimations = true;
+
+	UPROPERTY(VisibleAnywhere, Category=OpenLandMesh)
+	int32 CurrentLODIndex = 0;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	int32 MaximumLODCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	int32 LODStepUnits = 3000;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	float LODStepPower = 1.5;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	UMaterialInterface* Material;
 
