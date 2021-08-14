@@ -13,7 +13,7 @@
 
 struct FLODInfo
 {
-	FOpenLandPolygonMeshBuildResult MeshBuildResult;
+	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult = nullptr;
 	int32 MeshComponentIndex = 0;
 	int32 LODIndex = 0;
 };

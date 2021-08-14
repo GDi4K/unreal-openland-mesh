@@ -45,8 +45,10 @@ bool FDataRenderTarget::ReadDataAsync(TArray<FColor>& ModifiedData, TFunction<vo
 	if (bIsReadingData)
 		return false;
 
+	const int32 RectHeight = FMath::CeilToInt(ModifiedData.Num()/TextureWidth);
 	FRenderTarget* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
 	const FIntRect SampleRect = {0, 0, TextureWidth, TextureWidth};
+	
 	const FReadSurfaceDataFlags ReadSurfaceDataFlags;
 
 	// Read the render target surface data back.	

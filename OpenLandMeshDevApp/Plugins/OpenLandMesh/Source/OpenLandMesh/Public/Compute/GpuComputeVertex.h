@@ -43,8 +43,6 @@ class OPENLANDMESH_API FGpuComputeVertex
 	UPROPERTY(Transient);
 	UMaterialInstanceDynamic* DynamicMaterialInstance3 = nullptr; // to Write VertexColor to Render Target
 
-	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
-
 	int32 TextureWidth=0;
 
 	TSharedPtr<FDataRenderTarget> DataRenderTarget0 = nullptr; // for X float of Vector
@@ -52,13 +50,13 @@ class OPENLANDMESH_API FGpuComputeVertex
 	TSharedPtr<FDataRenderTarget> DataRenderTarget2 = nullptr; // for Z float of Vector
 	TSharedPtr<FDataRenderTarget> DataRenderTarget3 = nullptr; // for Vertex Color
 
-	void ApplyParameterValues(UMaterialInstanceDynamic* Material,
+	void ApplyParameterValues(UMaterialInstanceDynamic* Material, TArray<FGpuComputeVertexDataTextureItem> DataTextures,
 	                                 TArray<FComputeMaterialParameter> MaterialParameters);
 
 public:
 	~FGpuComputeVertex();
-	void Init(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> InputDataTextures, int32 Width);
+	void Init(UObject* WorldContext, int32 Width);
 	static FGpuComputeMaterialStatus IsValidMaterial(UMaterialInterface* Material);
-	void Compute(UObject* WorldContext, TArray<FGpuComputeVertexOutput>& ModifiedData,
+	void Compute(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> DataTextures, TArray<FGpuComputeVertexOutput>& ModifiedData,
 	             FComputeMaterial ComputeMaterial);
 };

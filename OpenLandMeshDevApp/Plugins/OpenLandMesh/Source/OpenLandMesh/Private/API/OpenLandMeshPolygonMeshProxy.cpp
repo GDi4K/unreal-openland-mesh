@@ -13,25 +13,25 @@ UOpenLandMeshPolygonMeshProxy::~UOpenLandMeshPolygonMeshProxy()
 	FOpenLandPolygonMesh::DeletePolygonMesh(PolygonMesh);
 }
 
-FOpenLandPolygonMeshBuildResult UOpenLandMeshPolygonMeshProxy::BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const
+FOpenLandPolygonMeshBuildResultPtr UOpenLandMeshPolygonMeshProxy::BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const
 {
 	return PolygonMesh->BuildMesh(WorldContext, Options);
 }
 
 void UOpenLandMeshPolygonMeshProxy::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
-                                                   std::function<void(FOpenLandPolygonMeshBuildResult)> Callback) const
+                                                   std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback) const
 {
 	return PolygonMesh->BuildMeshAsync(WorldContext, Options, Callback);
 }
 
-void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
                                                    FOpenLandPolygonMeshModifyOptions Options) const
                                                    
 {
 	return PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
 }
 
-bool UOpenLandMeshPolygonMeshProxy::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+bool UOpenLandMeshPolygonMeshProxy::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
                                                         FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback) const
 {
 	return PolygonMesh->ModifyVerticesAsync(WorldContext, MeshBuildResult, Options, Callback);

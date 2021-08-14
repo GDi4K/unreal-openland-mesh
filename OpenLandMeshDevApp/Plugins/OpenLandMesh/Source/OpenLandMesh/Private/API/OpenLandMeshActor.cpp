@@ -66,7 +66,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	if (CurrentLOD == nullptr)
 		return;
 
-	if (CurrentLOD->MeshBuildResult.Target->IsLocked())
+	if (CurrentLOD->MeshBuildResult->Target->IsLocked())
 		return;
 
 	if (!bAnimate)
@@ -142,19 +142,30 @@ void AOpenLandMeshActor::BuildMesh()
 
 
 	TArray<FLODInfoPtr> NewLODList;
+	int32 ForcedTextureWidth = 0;
 	for (int32 LODIndex=0; LODIndex<MaximumLODCount; LODIndex++)
 	{
 		FLODInfoPtr LOD = MakeShared<FLODInfo>();
 
 		const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
 			FMath::Max(SubDivisions - LODIndex, 0),
-	        SmoothNormalAngle
+	        SmoothNormalAngle,
+			ForcedTextureWidth
 	    };
-		const FOpenLandPolygonMeshBuildResult NewMeshBuildResult = PolygonMesh->BuildMesh(this, BuildMeshOptions);
+		const FOpenLandPolygonMeshBuildResultPtr NewMeshBuildResult = PolygonMesh->BuildMesh(this, BuildMeshOptions);
 
-		NewMeshBuildResult.Target->bSectionVisible = false;
-		NewMeshBuildResult.Target->bEnableCollision = bEnableCollision;
-		NewMeshBuildResult.Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
+		NewMeshBuildResult->Target->bSectionVisible = false;
+		NewMeshBuildResult->Target->bEnableCollision = bEnableCollision;
+		NewMeshBuildResult->Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
+
+		// We will set the first LOD's texture width for all other data textures
+		// For now, we use a single RenderTarget for each instance
+		// So, it's size will be the LOD0's size.
+		// That's why we do this.
+		if (LODIndex == 0)
+		{
+			ForcedTextureWidth = NewMeshBuildResult->TextureWidth;
+		}
 		
 		LOD->MeshBuildResult = NewMeshBuildResult;
 		LOD->MeshComponentIndex = LODIndex;
@@ -165,14 +176,14 @@ void AOpenLandMeshActor::BuildMesh()
 	
 	for (const FLODInfoPtr LOD: NewLODList)
 	{
-		LOD->MeshBuildResult.Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
+		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
 		const bool bHasSection = MeshComponent->NumMeshSections() > LOD->MeshComponentIndex;
 		if (bHasSection)
 		{
-			MeshComponent->ReplaceMeshSection(LOD->MeshComponentIndex, LOD->MeshBuildResult.Target);
+			MeshComponent->ReplaceMeshSection(LOD->MeshComponentIndex, LOD->MeshBuildResult->Target);
 		} else
 		{
-			MeshComponent->CreateMeshSection(LOD->MeshComponentIndex, LOD->MeshBuildResult.Target);
+			MeshComponent->CreateMeshSection(LOD->MeshComponentIndex, LOD->MeshBuildResult->Target);
 		}
 	}
 	MeshComponent->Invalidate();
@@ -359,10 +370,10 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 		SmoothNormalAngle
 	};
 	
-	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, Callback](FOpenLandPolygonMeshBuildResult Result)
+	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, Callback](FOpenLandPolygonMeshBuildResultPtr Result)
 	{
-		Result.Target->bEnableCollision = bEnableCollision;
-		Result.Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
+		Result->Target->bEnableCollision = bEnableCollision;
+		Result->Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
 
 		if (CurrentLOD == nullptr)
 		{
@@ -374,13 +385,13 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
             LODList.Push(LOD0);
             CurrentLOD = LOD0;
 		
-            MeshComponent->CreateMeshSection(LOD0->MeshComponentIndex, LOD0->MeshBuildResult.Target);
+            MeshComponent->CreateMeshSection(LOD0->MeshComponentIndex, LOD0->MeshBuildResult->Target);
             MeshComponent->Invalidate();
         }
         else
         {
             CurrentLOD->MeshBuildResult = Result;
-            MeshComponent->ReplaceMeshSection(CurrentLOD->MeshComponentIndex, CurrentLOD->MeshBuildResult.Target);
+            MeshComponent->ReplaceMeshSection(CurrentLOD->MeshComponentIndex, CurrentLOD->MeshBuildResult->Target);
             MeshComponent->Invalidate();
         }
 		
@@ -442,7 +453,7 @@ void AOpenLandMeshActor::SwitchLODs()
 	CurrentLODIndex = DesiredLOD;
 	for(const FLODInfoPtr LOD: LODList)
 	{
-		LOD->MeshBuildResult.Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
+		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
 		MeshComponent->UpdateMeshSectionVisibility(LOD->MeshComponentIndex);
 	}
 

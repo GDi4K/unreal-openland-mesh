@@ -25,15 +25,15 @@ public:
 	UOpenLandMeshPolygonMeshProxy();
 	~UOpenLandMeshPolygonMeshProxy();
 
-	FOpenLandPolygonMeshBuildResult BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const;
+	FOpenLandPolygonMeshBuildResultPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const;
 	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
-	                    std::function<void(FOpenLandPolygonMeshBuildResult)> Callback) const;
-	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+	                    std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback) const;
+	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                    FOpenLandPolygonMeshModifyOptions Options) const;
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
-	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                         FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback=nullptr) const;
 
 	void RegisterVertexModifier(function<FVertexModifierResult(FVertexModifierPayload)> Callback);
