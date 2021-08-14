@@ -40,14 +40,16 @@ bool FDataRenderTarget::DrawMaterial(UObject* WorldContext, UMaterialInterface* 
 	return true;
 }
 
-bool FDataRenderTarget::ReadDataAsync(TArray<FColor>& ModifiedData, TFunction<void()> ReadCompleteCallback)
+bool FDataRenderTarget::ReadDataAsync(int32 RowStart, int32 RowEnd, TArray<FColor>& ModifiedData, TFunction<void()> ReadCompleteCallback)
 {
 	if (bIsReadingData)
 		return false;
 
-	const int32 RectHeight = FMath::CeilToInt(ModifiedData.Num()/TextureWidth);
+	check(RowStart >= 0);
+	check(RowEnd <= TextureWidth);
+
 	FRenderTarget* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
-	const FIntRect SampleRect = {0, 0, TextureWidth, TextureWidth};
+	const FIntRect SampleRect = {0, RowStart, TextureWidth, RowEnd};
 	
 	const FReadSurfaceDataFlags ReadSurfaceDataFlags;
 

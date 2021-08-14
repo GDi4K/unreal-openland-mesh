@@ -43,9 +43,8 @@ void FGpuComputeFloat::Compute(UObject* WorldContext, TArray<float>& ModifiedDat
 	// Read from the Render Target
 	const int32 NumPixelsToRead = DataTexture->GetTextureWidth() * DataTexture->GetTextureWidth();
 	TArray<FColor> ReadBuffer;
-	ReadBuffer.SetNumUninitialized(NumPixelsToRead);
 
-	DataRenderTarget->ReadDataAsync(ReadBuffer, nullptr);
+	DataRenderTarget->ReadDataAsync(0, DataTexture->GetTextureWidth(), ReadBuffer, nullptr);
 	// This will block the game thread, until it finishes all the rendering commands
 	// That's why we don't need to use the callback above
 	FlushRenderingCommands();
