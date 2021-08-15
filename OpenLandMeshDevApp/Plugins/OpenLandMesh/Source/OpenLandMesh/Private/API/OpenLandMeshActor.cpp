@@ -2,6 +2,8 @@
 
 #include "API/OpenLandMeshActor.h"
 
+#include "Utils/TrackTime.h"
+
 
 // Sets default values
 AOpenLandMeshActor::AOpenLandMeshActor()
@@ -143,8 +145,11 @@ void AOpenLandMeshActor::BuildMesh()
 
 	TArray<FLODInfoPtr> NewLODList;
 	int32 ForcedTextureWidth = 0;
+
+	TrackTime TotalLODTime = TrackTime("Total LOD Gen", true);
 	for (int32 LODIndex=0; LODIndex<MaximumLODCount; LODIndex++)
 	{
+		auto LODGenTime = TrackTime(" LOD Gen: " + FString::FromInt(LODIndex), true);
 		FLODInfoPtr LOD = MakeShared<FLODInfo>();
 
 		const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
@@ -156,7 +161,13 @@ void AOpenLandMeshActor::BuildMesh()
 
 		NewMeshBuildResult->Target->bSectionVisible = false;
 		NewMeshBuildResult->Target->bEnableCollision = bEnableCollision;
-		NewMeshBuildResult->Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
+
+		// With this setting, we use the given LOD as the collision mesh
+		// Otherwise, we will use all of these sections
+		if (LODIndexForCollisions >= 0 && bEnableCollision)
+		{
+			NewMeshBuildResult->Target->bEnableCollision = LODIndex == LODIndexForCollisions;
+		}
 
 		// We will set the first LOD's texture width for all other data textures
 		// For now, we use a single RenderTarget for each instance
@@ -172,8 +183,11 @@ void AOpenLandMeshActor::BuildMesh()
 		LOD->LODIndex = LODIndex;
 		
 		NewLODList.Push(LOD);
+		LODGenTime.Finish();
 	}
-	
+	TotalLODTime.Finish();
+
+	TrackTime TotalLRenderingRegTime = TrackTime("Total Render Registration", true);
 	for (const FLODInfoPtr LOD: NewLODList)
 	{
 		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
@@ -186,11 +200,21 @@ void AOpenLandMeshActor::BuildMesh()
 			MeshComponent->CreateMeshSection(LOD->MeshComponentIndex, LOD->MeshBuildResult->Target);
 		}
 	}
-	MeshComponent->Invalidate();
+	TotalLRenderingRegTime.Finish();
+
+	TrackTime UpdateCollisionTime = TrackTime("Setup Collisions", true);
+	MeshComponent->SetupCollisions(bUseAsyncCollisionCooking);
+	UpdateCollisionTime.Finish();
+
+	MeshComponent->InvalidateRendering();
 
 	LODList.Empty();
 	LODList = NewLODList;
 
+	if (CurrentLODIndex >= LODList.Num())
+	{
+		CurrentLODIndex = 0;
+	}
 	CurrentLOD = LODList[CurrentLODIndex];
 	
 	SetMaterial(Material);
@@ -373,7 +397,6 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, Callback](FOpenLandPolygonMeshBuildResultPtr Result)
 	{
 		Result->Target->bEnableCollision = bEnableCollision;
-		Result->Target->bUseAsyncCollisionCooking = bUseAsyncCollisionCooking;
 
 		if (CurrentLOD == nullptr)
 		{
@@ -386,14 +409,16 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
             CurrentLOD = LOD0;
 		
             MeshComponent->CreateMeshSection(LOD0->MeshComponentIndex, LOD0->MeshBuildResult->Target);
-            MeshComponent->Invalidate();
+            MeshComponent->InvalidateRendering();
         }
         else
         {
             CurrentLOD->MeshBuildResult = Result;
             MeshComponent->ReplaceMeshSection(CurrentLOD->MeshComponentIndex, CurrentLOD->MeshBuildResult->Target);
-            MeshComponent->Invalidate();
+            MeshComponent->InvalidateRendering();
         }
+
+		MeshComponent->SetupCollisions(bUseAsyncCollisionCooking);
 		
 		if (Callback != nullptr)
 			Callback();
@@ -448,6 +473,10 @@ void AOpenLandMeshActor::SwitchLODs()
 		{
 			break;
 		}
+	}
+
+	if (DesiredLOD == CurrentLODIndex) {
+		return;
 	}
 	
 	CurrentLODIndex = DesiredLOD;

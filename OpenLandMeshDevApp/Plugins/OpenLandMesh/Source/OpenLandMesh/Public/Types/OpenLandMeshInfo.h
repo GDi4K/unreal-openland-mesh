@@ -19,7 +19,6 @@ public:
 	FBox BoundingBox;
 	bool bEnableCollision = true;
 	bool bSectionVisible = true;
-	bool bUseAsyncCollisionCooking = false;
 
 	FOpenLandMeshInfo();
 

@@ -6,8 +6,9 @@ class OPENLANDMESH_API TrackTime
 {
 	FString Caption = "";
 	FDateTime StartTime;
+	bool bEnable = false;
 
 public:
-	TrackTime(FString C);
+	TrackTime(FString C, bool bEnableIt = false);
 	void Finish();
 };

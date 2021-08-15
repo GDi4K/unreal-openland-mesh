@@ -98,7 +98,7 @@ public:
 	bool bEnableCollision = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	bool bUseAsyncCollisionCooking = false;
+	bool bUseAsyncCollisionCooking = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncAnimations = true;
@@ -115,6 +115,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	float LODStepPower = 1.5;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	int32 LODIndexForCollisions = -1;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	UMaterialInterface* Material;
 
