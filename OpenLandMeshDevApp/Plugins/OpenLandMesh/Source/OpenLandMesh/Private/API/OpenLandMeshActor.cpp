@@ -58,8 +58,14 @@ void AOpenLandMeshActor::OnAfterAnimations_Implementation()
 void AOpenLandMeshActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
-	SwitchLODs();
+
+	if (!bAnimate)
+	{
+		if(SwitchLODs())
+		{
+			EnsureLODVisibility();
+		}
+	}
 	
 	if (GetWorld()->WorldType == EWorldType::Editor)
 		return;
@@ -80,13 +86,25 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		if (bCanUpdate)
 		{
 			MeshComponent->UpdateMeshSection(CurrentLODIndex);
+			if (bNeedLODVisibilityChange)
+			{
+				EnsureLODVisibility();
+			}
 			OnAfterAnimations();
 			// When someone updated GPU parameters inside the above hook
 			// We need to update them like this
 			PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+			if (SwitchLODs())
+			{
+				bNeedLODVisibilityChange = true;
+			}
 		}
 	} else
 	{
+		if (SwitchLODs())
+		{
+			EnsureLODVisibility();
+		}
 		PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
 		MeshComponent->UpdateMeshSection(CurrentLODIndex);
 		OnAfterAnimations();
@@ -444,18 +462,27 @@ void AOpenLandMeshActor::OnConstruction(const FTransform& Transform)
 		BuildMesh();
 }
 
-void AOpenLandMeshActor::SwitchLODs()
+void AOpenLandMeshActor::EnsureLODVisibility()
+{
+	for(const FLODInfoPtr LOD: LODList)
+	{
+		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
+		MeshComponent->UpdateMeshSectionVisibility(LOD->MeshComponentIndex);
+	}
+}
+
+bool AOpenLandMeshActor::SwitchLODs()
 {
 	const UWorld* World = GetWorld();
 	if(World == nullptr)
 	{
-		return;
+		return false;
 	}
  
 	const TArray<FVector> ViewLocations = World->ViewLocationsRenderedLastFrame;
 	if(ViewLocations.Num() == 0)
 	{
-		return;
+		return false;
 	}
 
 	const FVector CameraLocation = ViewLocations[0];
@@ -476,17 +503,12 @@ void AOpenLandMeshActor::SwitchLODs()
 	}
 
 	if (DesiredLOD == CurrentLODIndex) {
-		return;
-	}
-	
-	CurrentLODIndex = DesiredLOD;
-	for(const FLODInfoPtr LOD: LODList)
-	{
-		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
-		MeshComponent->UpdateMeshSectionVisibility(LOD->MeshComponentIndex);
+		return false;
 	}
 
+	CurrentLODIndex = DesiredLOD;
 	CurrentLOD = LODList[CurrentLODIndex];
+	return true;
 }
 
 bool AOpenLandMeshActor::ShouldTickIfViewportsOnly() const

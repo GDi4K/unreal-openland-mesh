@@ -31,8 +31,10 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 
 	TArray<FLODInfoPtr> LODList;
 	FLODInfoPtr CurrentLOD = nullptr;
-
-	void SwitchLODs();
+	bool bNeedLODVisibilityChange = false;
+	
+	bool SwitchLODs();
+	void EnsureLODVisibility();
 
 public:
 	// Sets default values for this actor's properties
