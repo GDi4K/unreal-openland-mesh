@@ -93,7 +93,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bDisableGPUVertexModifiersOnAnimate = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	//TODO: Re-enable this when we fix async build-mesh support
+	UPROPERTY()
 	bool bUseAsyncBuildMeshOnGame = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
