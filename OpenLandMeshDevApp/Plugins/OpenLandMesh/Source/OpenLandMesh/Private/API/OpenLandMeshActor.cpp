@@ -59,7 +59,9 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!bAnimate)
+	bool bIsEditor = GetWorld()->WorldType == EWorldType::Editor;
+
+	if (bIsEditor || !bAnimate)
 	{
 		if(SwitchLODs())
 		{
@@ -67,18 +69,25 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		}
 	}
 	
-	if (GetWorld()->WorldType == EWorldType::Editor)
+	if (bIsEditor)
+	{
 		return;
-
+	}
 
 	if (CurrentLOD == nullptr)
+	{
 		return;
+	}
 
 	if (CurrentLOD->MeshBuildResult->Target->IsLocked())
+	{
 		return;
+	}
 
 	if (!bAnimate)
+	{
 		return;
+	}
 
 	if (bUseAsyncAnimations)
 	{
