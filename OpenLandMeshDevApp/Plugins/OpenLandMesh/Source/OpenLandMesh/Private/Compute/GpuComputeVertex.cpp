@@ -1,14 +1,11 @@
 ﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 #include "Compute/GpuComputeVertex.h"
-
 #include "Kismet/KismetMaterialLibrary.h"
 
-void FGpuComputeVertex::Init(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> InputDataTextures,
-                             int32 Width)
+void FGpuComputeVertex::Init(UObject* WorldContext, int32 Width)
 {
 	TextureWidth = Width;
-	DataTextures = InputDataTextures;
 
 	// Create the Render Targets
 	DataRenderTarget0 = MakeShared<FDataRenderTarget>(WorldContext, TextureWidth);
@@ -39,7 +36,7 @@ FGpuComputeMaterialStatus FGpuComputeVertex::IsValidMaterial(UMaterialInterface*
 	};
 }
 
-void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexOutput>& ModifiedData,
+void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> DataTextures, TArray<FGpuComputeVertexOutput>& ModifiedData,
                                 FComputeMaterial ComputeMaterial)
 {
 	checkf(ComputeMaterial.Material != nullptr, TEXT("Compute Material Needs a Proper Material"));
@@ -61,10 +58,10 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 		WorldContext, ComputeMaterial.Material);
 	DynamicMaterialInstance3->SetScalarParameterValue("OutputVertexColor", 1); // This indicate vertex colors
 
-	ApplyParameterValues(DynamicMaterialInstance0, ComputeMaterial.Parameters);
-	ApplyParameterValues(DynamicMaterialInstance1, ComputeMaterial.Parameters);
-	ApplyParameterValues(DynamicMaterialInstance2, ComputeMaterial.Parameters);
-	ApplyParameterValues(DynamicMaterialInstance3, ComputeMaterial.Parameters);
+	ApplyParameterValues(DynamicMaterialInstance0, DataTextures, ComputeMaterial.Parameters);
+	ApplyParameterValues(DynamicMaterialInstance1, DataTextures, ComputeMaterial.Parameters);
+	ApplyParameterValues(DynamicMaterialInstance2, DataTextures, ComputeMaterial.Parameters);
+	ApplyParameterValues(DynamicMaterialInstance3, DataTextures, ComputeMaterial.Parameters);
 
 	// Draw the RenderTarget
 	DataRenderTarget0->DrawMaterial(WorldContext, DynamicMaterialInstance0);
@@ -73,27 +70,25 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 	DataRenderTarget3->DrawMaterial(WorldContext, DynamicMaterialInstance3);
 
 	// Read from the Render Target
-	const int32 NumPixelsToRead = TextureWidth * TextureWidth;
+	const int32 NumPixelsToRead = FMath::Min(TextureWidth * TextureWidth, ModifiedData.Num());
 	TArray<FColor> ReadBuffer0;
 	TArray<FColor> ReadBuffer1;
 	TArray<FColor> ReadBuffer2;
 	TArray<FColor> ReadBuffer3;
-	ReadBuffer0.SetNumUninitialized(NumPixelsToRead);
-	ReadBuffer1.SetNumUninitialized(NumPixelsToRead);
-	ReadBuffer2.SetNumUninitialized(NumPixelsToRead);
-	ReadBuffer3.SetNumUninitialized(NumPixelsToRead);
 
-	DataRenderTarget0->ReadDataAsync(ReadBuffer0, nullptr);
-	DataRenderTarget1->ReadDataAsync(ReadBuffer1, nullptr);
-	DataRenderTarget2->ReadDataAsync(ReadBuffer2, nullptr);
-	DataRenderTarget3->ReadDataAsync(ReadBuffer3, nullptr);
+	const int32 RowStart = 0;
+	const int32 RowEnd = FMath::CeilToInt(ModifiedData.Num()/(TextureWidth + 0.0f));
+
+	DataRenderTarget0->ReadDataAsync(RowStart, RowEnd, ReadBuffer0, nullptr);
+	DataRenderTarget1->ReadDataAsync(RowStart, RowEnd, ReadBuffer1, nullptr);
+	DataRenderTarget2->ReadDataAsync(RowStart, RowEnd, ReadBuffer2, nullptr);
+	DataRenderTarget3->ReadDataAsync(RowStart, RowEnd, ReadBuffer3, nullptr);
 	// This will block the game thread, until it finishes all the rendering commands
 	// That's why we don't need to use the callback above
 	FlushRenderingCommands();
 
 	// Write them into the Modified Buffer
-	const int WritePixelCount = FMath::Min(NumPixelsToRead, ModifiedData.Num());
-	for (int32 Index = 0; Index < WritePixelCount; Index++)
+	for (int32 Index = 0; Index < NumPixelsToRead; Index++)
 	{
 		const FColor Color0 = ReadBuffer0[Index];
 		float& Result0 = ModifiedData[Index].Position.X;
@@ -129,7 +124,7 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexO
 	}
 }
 
-void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material,
+void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material, TArray<FGpuComputeVertexDataTextureItem> DataTextures,
                                              TArray<FComputeMaterialParameter> MaterialParameters)
 {
 	for (FGpuComputeVertexDataTextureItem DataTextureItem: DataTextures)

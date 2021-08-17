@@ -42,6 +42,9 @@ struct FOpenLandPolygonMeshBuildOptions
 {
 	int SubDivisions = 0;
 	float CuspAngle = 0;
+	// If this is non-zero, the result data texture
+	// will contain a texture width as mentioned below
+	int32 ForcedTextureWidth = 0;
 };
 
 struct FOpenLandPolygonMeshModifyOptions
@@ -58,6 +61,13 @@ struct FOpenLandPolygonMeshBuildResult
 	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
 };
 
+// Above TArray contains a runtime texture
+// If we pass FOpenLandPolygonMeshBuildResult by value
+// Unreal may need to create the array data many times
+// In those cases, Unreal might try to delete the texture
+// So, using a pointer will fix that issue
+typedef TSharedPtr<FOpenLandPolygonMeshBuildResult> FOpenLandPolygonMeshBuildResultPtr;
+
 class OPENLANDMESH_API FOpenLandPolygonMesh
 {
 	// For the delete delete schedular
@@ -68,6 +78,7 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier = nullptr;
 	TArray<bool> AsyncCompletions;
 	FTransform SourceTransformer;
+	TArray<TSharedPtr<FGpuComputeVertex>> OldGpuComputeEngines;
 
 	TSharedPtr<FGpuComputeVertex> GpuComputeEngine = nullptr;
 	FComputeMaterial GpuVertexModifier;
@@ -78,9 +89,9 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	static void BuildFaceTangents(FOpenLandMeshVertex& T0, FOpenLandMeshVertex& T1, FOpenLandMeshVertex& T2);
 	static void ApplyVertexModifiers(function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart, int RangeEnd,
 	                          float RealTimeSeconds);
-	static void BuildDataTextures(FOpenLandPolygonMeshBuildResult* Result);
-	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult);
-	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target,
+	static void BuildDataTextures(FOpenLandPolygonMeshBuildResultPtr Result, int32 ForcedTextureWidth);
+	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult);
+	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                            TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
 	static TArray<FComputeMaterialParameter> MakeParameters(float Time);
 
@@ -89,17 +100,17 @@ public:
 	void RegisterVertexModifier(std::function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial ComputeMaterial);
 	
-	FOpenLandPolygonMeshBuildResult BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options);
+	FOpenLandPolygonMeshBuildResultPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options);
 	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
-	                    std::function<void(FOpenLandPolygonMeshBuildResult)> Callback);
+	                    std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback);
 	
-	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                    FOpenLandPolygonMeshModifyOptions Options);
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
 	// TODO: Get rid of this callback & implement the logic via the Tick.
-	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResult MeshBuildResult,
+	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                         FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback=nullptr);
 	
 	void AddTriFace(const FVector A, const FVector B, const FVector C);

@@ -2,15 +2,20 @@
 
 #include "Utils/TrackTime.h"
 
-TrackTime::TrackTime(FString CaptionInput)
+TrackTime::TrackTime(FString CaptionInput, bool bEnableIt)
 {
 	Caption = CaptionInput;
 	StartTime = FDateTime::Now();
+	bEnable = bEnableIt;
 }
 
 void TrackTime::Finish()
 {
-	return;
+	if (!bEnable)
+	{
+		return;
+	}
+	
 	const float TimeDiff = (FDateTime::Now() - StartTime).GetTotalMilliseconds();
 	UE_LOG(LogTemp, Log, TEXT("TrackTime: %s for: %fms"), *Caption, TimeDiff);
 }

@@ -24,29 +24,36 @@ FDataRenderTarget::FDataRenderTarget(UObject* WorldContext, int32 Width)
 
 bool FDataRenderTarget::DrawMaterial(UObject* WorldContext, UMaterialInterface* Material)
 {
-	if (bIsReadingData)
-		return false;
-
 	checkf(Material != nullptr, TEXT("Material should exists to render"))
 	checkf(Material->GetBlendMode() == EBlendMode::BLEND_AlphaComposite,
 	       TEXT("Material should use the AlphaComposite blending mode"))
+	
+	if (!RenderTarget->Resource)
+	{
+		// TODO: Try to get render targets from a pool. So, we can avoid this issue.
+		UE_LOG(LogTemp, Warning, TEXT("Creating RenderTargets Again"))
+		RenderTarget = UKismetRenderingLibrary::CreateRenderTarget2D(WorldContext, TextureWidth, TextureWidth, RTF_RGBA8,
+																FLinearColor(0, 0, 0, 1), false);
+		RenderTarget->SRGB = 0;
+	}
 
 	// Here we use AlphaComposite blending mode to get the alpha channel
 	// In order to use that correct, we need to clear the color to following before rendering
 	RenderTarget->ClearColor = FColor(0, 0, 0, 1);
 	RenderTarget->UpdateResourceImmediate();
-
+	
 	UKismetRenderingLibrary::DrawMaterialToRenderTarget(WorldContext, RenderTarget, Material);
 	return true;
 }
 
-bool FDataRenderTarget::ReadDataAsync(TArray<FColor>& ModifiedData, TFunction<void()> ReadCompleteCallback)
+bool FDataRenderTarget::ReadDataAsync(int32 RowStart, int32 RowEnd, TArray<FColor>& ModifiedData, TFunction<void()> ReadCompleteCallback)
 {
-	if (bIsReadingData)
-		return false;
+	check(RowStart >= 0);
+	check(RowEnd <= TextureWidth);
 
 	FRenderTarget* RenderTargetResource = RenderTarget->GameThread_GetRenderTargetResource();
-	const FIntRect SampleRect = {0, 0, TextureWidth, TextureWidth};
+	const FIntRect SampleRect = {0, RowStart, TextureWidth, RowEnd};
+	
 	const FReadSurfaceDataFlags ReadSurfaceDataFlags;
 
 	// Read the render target surface data back.	
@@ -81,7 +88,6 @@ bool FDataRenderTarget::ReadDataAsync(TArray<FColor>& ModifiedData, TFunction<vo
 
 			FOpenLandThreading::RunOnGameThread([this, ReadCompleteCallback]()
 			{
-				bIsReadingData = false;
 				if (ReadCompleteCallback != nullptr)
 					ReadCompleteCallback();
 			});

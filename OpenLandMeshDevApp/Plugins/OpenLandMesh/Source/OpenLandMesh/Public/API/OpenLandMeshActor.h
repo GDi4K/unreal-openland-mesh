@@ -11,6 +11,15 @@
 
 #include "OpenLandMeshActor.generated.h"
 
+struct FLODInfo
+{
+	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult = nullptr;
+	int32 MeshComponentIndex = 0;
+	int32 LODIndex = 0;
+};
+
+typedef TSharedPtr<FLODInfo> FLODInfoPtr;
+
 UCLASS()
 class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 {
@@ -20,7 +29,12 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	bool bModifyMeshIsInProgress = false;
 	bool bNeedToModifyMesh = true;
 
-	FOpenLandPolygonMeshBuildResult MeshBuildResult;
+	TArray<FLODInfoPtr> LODList;
+	FLODInfoPtr CurrentLOD = nullptr;
+	bool bNeedLODVisibilityChange = false;
+	
+	bool SwitchLODs();
+	void EnsureLODVisibility();
 
 public:
 	// Sets default values for this actor's properties
@@ -49,6 +63,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	void SetMaterial(UMaterialInterface* Material);
+	virtual bool ShouldTickIfViewportsOnly() const override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
@@ -85,10 +100,25 @@ public:
 	bool bEnableCollision = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	bool bUseAsyncCollisionCooking = false;
+	bool bUseAsyncCollisionCooking = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncAnimations = true;
+
+	UPROPERTY(VisibleAnywhere, Category=OpenLandMesh)
+	int32 CurrentLODIndex = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	int32 MaximumLODCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	int32 LODStepUnits = 3000;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	float LODStepPower = 1.5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	int32 LODIndexForCollisions = -1;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	UMaterialInterface* Material;

@@ -28,8 +28,8 @@ private:
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	UBodySetup* CreateBodySetupHelper();
 	void CreateSimpleMeshBodySetup();
-	void UpdateCollision(bool bUseAsyncCollisionCooking);
 	void FinishPhysicsAsyncCook(bool bSuccess, UBodySetup* FinishedBodySetup);
+	void UpdateCollisionMesh();
 
 public:
 
@@ -94,5 +94,6 @@ public:
 	int32 NumMeshSections();
 	void UpdateMeshSectionVisibility(int32 SectionIndex);
 
-	void Invalidate();
+	void SetupCollisions(bool bUseAsyncCollisionCooking);
+	void InvalidateRendering();
 };

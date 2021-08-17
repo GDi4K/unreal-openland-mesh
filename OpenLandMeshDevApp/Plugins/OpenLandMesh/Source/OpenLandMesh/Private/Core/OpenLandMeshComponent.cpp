@@ -17,7 +17,7 @@ void UOpenLandMeshComponent::AddCollisionConvexMesh(TArray<FVector> ConvexVerts)
 		// Add to array of convex elements
 		CollisionConvexElems.Add(NewConvexElem);
 		// Refresh collision
-		UpdateCollision(false);
+		SetupCollisions(false);
 	}
 }
 
@@ -26,7 +26,7 @@ void UOpenLandMeshComponent::ClearCollisionConvexMeshes()
 	// Empty simple collision info
 	CollisionConvexElems.Empty();
 	// Refresh collision
-	UpdateCollision(false);
+	SetupCollisions(false);
 }
 
 void UOpenLandMeshComponent::SetCollisionConvexMeshes(const TArray<TArray<FVector>>& ConvexMeshes)
@@ -43,7 +43,7 @@ void UOpenLandMeshComponent::SetCollisionConvexMeshes(const TArray<TArray<FVecto
 		CollisionConvexElems.Add(NewConvexElem);
 	}
 
-	UpdateCollision(false);
+	SetupCollisions(false);
 }
 
 bool UOpenLandMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* CollisionData, bool InUseAllTriData)
@@ -58,7 +58,7 @@ bool UOpenLandMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* Collis
 	// For each section..
 	for (int32 SectionIdx = 0; SectionIdx < MeshSections.Num(); SectionIdx++)
 	{
-		FSimpleMeshInfoPtr Section = MeshSections[SectionIdx];
+		const FSimpleMeshInfoPtr Section = MeshSections[SectionIdx];
 		// Do we have collision enabled?
 		if (Section->bEnableCollision)
 		{
@@ -124,7 +124,7 @@ UBodySetup* UOpenLandMeshComponent::GetBodySetup()
 	return SimpleMeshBodySetup;
 }
 
-void UOpenLandMeshComponent::Invalidate()
+void UOpenLandMeshComponent::InvalidateRendering()
 {
 	MarkRenderStateDirty();
 }
@@ -186,7 +186,6 @@ void UOpenLandMeshComponent::CreateMeshSection(int32 SectionIndex, FSimpleMeshIn
 	MeshInfo->Freeze();
 
 	UpdateLocalBounds(); // Update overall bounds
-	UpdateCollision(MeshInfo->bUseAsyncCollisionCooking);
 }
 
 void UOpenLandMeshComponent::ReplaceMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo)
@@ -203,7 +202,34 @@ void UOpenLandMeshComponent::ReplaceMeshSection(int32 SectionIndex, FSimpleMeshI
 	MeshInfo->Freeze();
 
 	UpdateLocalBounds(); // Update overall bounds
-	UpdateCollision(MeshInfo->bUseAsyncCollisionCooking);
+}
+
+void UOpenLandMeshComponent::UpdateCollisionMesh()
+{
+	TArray<FVector> CollisionPositions;
+
+	// We have one collision mesh for all sections, so need to build array of _all_ positions
+	for (int32 Index = 0; Index < MeshSections.Num(); Index++)
+	{
+		const FSimpleMeshInfoPtr CollisionSection = MeshSections[Index];
+		// If section has collision, copy it
+		if (CollisionSection->bEnableCollision )
+		{
+			for (size_t VertIdx = 0; VertIdx < CollisionSection->Vertices.Length(); VertIdx++)
+			{
+				if (CollisionSection->bSectionVisible)
+				{
+					CollisionPositions.Add(CollisionSection->Vertices.Get(VertIdx).Position);
+				} else
+				{
+					CollisionPositions.Add(FVector(0, 0, -9999999));
+				}
+			}
+		}
+	}
+
+	// Pass new positions to trimesh
+	BodyInstance.UpdateTriMeshVertices(CollisionPositions);
 }
 
 void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
@@ -219,20 +245,7 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
 	// If we have collision enabled on this section, update that too
 	if (MeshSection->bEnableCollision)
 	{
-		TArray<FVector> CollisionPositions;
-
-		// We have one collision mesh for all sections, so need to build array of _all_ positions
-		for (int32 Index = 0; Index < MeshSections.Num(); Index++)
-		{
-			const FSimpleMeshInfoPtr CollisionSection = MeshSections[Index];
-			// If section has collision, copy it
-			if (CollisionSection->bEnableCollision)
-				for (size_t VertIdx = 0; VertIdx < CollisionSection->Vertices.Length(); VertIdx++)
-					CollisionPositions.Add(CollisionSection->Vertices.Get(VertIdx).Position);
-		}
-
-		// Pass new positions to trimesh
-		BodyInstance.UpdateTriMeshVertices(CollisionPositions);
+		UpdateCollisionMesh();
 	}
 
 	// If we have a valid proxy and it is not pending recreation
@@ -262,6 +275,7 @@ void UOpenLandMeshComponent::UpdateMeshSectionVisibility(int32 SectionIndex)
 {
 	if (SectionIndex < NumMeshSections())
 	{
+		
 		// Set game thread state
 		bool bVisibility = MeshSections[SectionIndex]->bSectionVisible;
 
@@ -325,7 +339,7 @@ void UOpenLandMeshComponent::CreateSimpleMeshBodySetup()
 		SimpleMeshBodySetup = CreateBodySetupHelper();
 }
 
-void UOpenLandMeshComponent::UpdateCollision(bool bUseAsyncCollisionCooking)
+void UOpenLandMeshComponent::SetupCollisions(bool bUseAsyncCollisionCooking)
 {
 	UWorld* World = GetWorld();
 
