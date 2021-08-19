@@ -30,12 +30,17 @@ void AOpenLandMeshActor::BeginPlay()
 		BuildMeshAsync([this]()
 		{
 			if (bDisableGPUVertexModifiersOnAnimate)
+			{
 				PolygonMesh->RegisterGpuVertexModifier({});
+			}
+			
 			ModifyMeshAsync([this]()
 			{
 				TrackTime UpdateCollisionTime = TrackTime("Setup Collisions", true);
 				MeshComponent->SetupCollisions(true);
 				UpdateCollisionTime.Finish();
+			
+				EnsureLODVisibility();
 			});
 		});
 	else
@@ -308,6 +313,11 @@ void AOpenLandMeshActor::ModifyMeshAsync(TFunction<void()> Callback)
 	PolygonMesh->ModifyVerticesAsync(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle}, AfterModifiedMesh);
 }
 
+void AOpenLandMeshActor::ModifyMe()
+{
+	ModifyMeshAsync(nullptr);
+}
+
 void AOpenLandMeshActor::SetGPUScalarParameter(FName Name, float Value)
 {
 	for(FComputeMaterialParameter& Param: GpuVertexModifier.Parameters)
@@ -452,7 +462,7 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, LODIndex, Callback, TotalLODTime](FOpenLandPolygonMeshBuildResultPtr NewMeshBuildResult) {
 		FLODInfoPtr LOD = MakeShared<FLODInfo>();
 
-		NewMeshBuildResult->Target->bSectionVisible = true;
+		NewMeshBuildResult->Target->bSectionVisible = false;
 		NewMeshBuildResult->Target->bEnableCollision = true;
 			
 		LOD->MeshBuildResult = NewMeshBuildResult;
@@ -462,7 +472,6 @@ void AOpenLandMeshActor::BuildMeshAsync(TFunction<void()> Callback)
 		TotalLODTime.Finish();
 
 		TrackTime TotalLRenderingRegTime = TrackTime("Total Render Registration", true);
-		LOD->MeshBuildResult->Target->bSectionVisible = true;
 		const bool bHasSection = MeshComponent->NumMeshSections() > LOD->MeshComponentIndex;
 		if (bHasSection)
 		{

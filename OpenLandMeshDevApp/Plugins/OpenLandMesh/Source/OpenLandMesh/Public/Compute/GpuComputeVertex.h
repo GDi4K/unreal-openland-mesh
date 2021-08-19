@@ -29,6 +29,12 @@ struct FGpuComputeVertexDataTextureItem
 	TSharedPtr<FDataTexture> DataTexture;
 };
 
+struct FGpuComputeVertexFetchOptions
+{
+	int32 RowStart = 0;
+	int32 RowEnd = -1;
+};
+
 class OPENLANDMESH_API FGpuComputeVertex
 {
 	UPROPERTY(Transient);
@@ -58,5 +64,5 @@ public:
 	void Init(UObject* WorldContext, int32 Width);
 	static FGpuComputeMaterialStatus IsValidMaterial(UMaterialInterface* Material);
 	void Compute(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> DataTextures, TArray<FGpuComputeVertexOutput>& ModifiedData,
-	             FComputeMaterial ComputeMaterial);
+	             FComputeMaterial ComputeMaterial, FGpuComputeVertexFetchOptions FetchOptions);
 };

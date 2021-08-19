@@ -336,24 +336,75 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 	ModifiedPositions.SetNumUninitialized(MeshBuildResult->Original->Vertices.Length());
 
 	for (auto Param : AdditionalMaterialParameters)
+	{
 		GpuVertexModifier.Parameters.Push(Param);
-	GpuComputeEngine->Compute(WorldContext, MeshBuildResult->DataTextures, ModifiedPositions, GpuVertexModifier);
+	}
+
+	constexpr FGpuComputeVertexFetchOptions FetchOptions = {0, -1};
+	GpuComputeEngine->Compute(WorldContext, MeshBuildResult->DataTextures, ModifiedPositions, GpuVertexModifier, FetchOptions);
 
 	for (size_t Index = 0; Index < MeshBuildResult->Original->Vertices.Length(); Index++)
 	{
 		FOpenLandMeshVertex& Vertex = MeshBuildResult->Target->Vertices.GetRef(Index);
-		
-		// FVector OriginalPosition = Original->Vertices.GetRef(Index).Position;
-		// FVector ModifiedPosition = ModifiedPositions[Index].Position;
-		
-		//UE_LOG(LogTemp, Warning, TEXT("Original: %f, %f, %f | Modified: %f, %f, %f"), OriginalPosition.X, OriginalPosition.Y, OriginalPosition.Z,  ModifiedPosition.X, ModifiedPosition.Y, ModifiedPosition.Z)
-		//UE_LOG(LogTemp, Warning, TEXT(""),)
 		
 		Vertex.Position = ModifiedPositions[Index].Position;
 		Vertex.Color = ModifiedPositions[Index].VertexColor;
 	}
 }
 
+void FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+												TArray<FComputeMaterialParameter> AdditionalMaterialParameters, std::function<void()> Callback)
+{
+	for (auto Param : AdditionalMaterialParameters)
+	{
+		GpuVertexModifier.Parameters.Push(Param);
+	}
+	
+	
+	constexpr int32 BatchRowCount = 10;
+	const int32 BatchVertexCount = MeshBuildResult->TextureWidth * BatchRowCount;
+	int32 CompletedRows = 0;
+
+	TArray<FGpuComputeVertexOutput> ModifiedPositions;
+	ModifiedPositions.SetNum(BatchVertexCount);
+	FGpuComputeVertexFetchOptions FetchOptions = {};
+	
+	while(true) {
+	    FetchOptions.RowStart = CompletedRows;
+		FetchOptions.RowEnd = CompletedRows + BatchRowCount;
+
+		if (FetchOptions.RowEnd > MeshBuildResult->TextureWidth)
+		{
+			FetchOptions.RowEnd = MeshBuildResult->TextureWidth;
+		}
+
+		GpuComputeEngine->Compute(WorldContext, MeshBuildResult->DataTextures, ModifiedPositions, GpuVertexModifier, FetchOptions);
+		
+		const int32 StartIndex = FetchOptions.RowStart * MeshBuildResult->TextureWidth;
+		for (size_t Index = 0; Index < BatchVertexCount; Index++)
+		{
+			const int32 TargetIndex = StartIndex + Index;
+			if (TargetIndex < MeshBuildResult->Target->Vertices.Length())
+			{
+				FOpenLandMeshVertex& Vertex = MeshBuildResult->Target->Vertices.GetRef(TargetIndex);
+			
+				Vertex.Position = ModifiedPositions[Index].Position;
+				Vertex.Color = ModifiedPositions[Index].VertexColor;
+			}
+		}
+
+		CompletedRows += BatchRowCount;
+
+		if (FetchOptions.RowEnd == MeshBuildResult->TextureWidth)
+		{
+			if (Callback != nullptr)
+			{
+				Callback();
+			}
+			break;
+		}
+	}
+}
 
 void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
                                           FOpenLandPolygonMeshModifyOptions Options)
@@ -417,81 +468,85 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 	EnsureGpuComputeEngine(WorldContext, MeshBuildResult);
 	TrackEnsureGpuComputeEngine.Finish();
 
-	FSimpleMeshInfoPtr Intermediate = MeshBuildResult->Original;
-	if (GpuVertexModifier.Material != nullptr)
+	//TODO: Support this for non-gpu based workflow as well
+	verify(GpuVertexModifier.Material != nullptr);
+	
+	auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
+	ApplyGpuVertexModifersAsync(WorldContext, MeshBuildResult, MakeParameters(Options.RealTimeSeconds), [
+		this, MeshBuildResult, TrackGpuVertexModifiers, Options, Callback
+	]()
 	{
-		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
-		ApplyGpuVertexModifers(WorldContext, MeshBuildResult, MakeParameters(Options.RealTimeSeconds));
+		FSimpleMeshInfoPtr Intermediate = MeshBuildResult->Original;
 		Intermediate = MeshBuildResult->Target;
 		TrackGpuVertexModifiers.Finish();
-	}
 
-	// Build Faces
-	MeshBuildResult->Target->BoundingBox.Init();
+		// Build Faces
+		MeshBuildResult->Target->BoundingBox.Init();
 
-	const int NumTris = MeshBuildResult->Original->Triangles.Length();
-	// TODO: Find out number of workers in the core & detect the workers accordingly
-	// TODO: May be we need to get worker information from the user may be.
-	const int NumWorkers = 10; // find this automatically based on number of cores in the system
-	const int TasksPerWorker = (NumTris / NumWorkers);
+		const int NumTris = MeshBuildResult->Original->Triangles.Length();
+		// TODO: Find out number of workers in the core & detect the workers accordingly
+		// TODO: May be we need to get worker information from the user may be.
+		const int NumWorkers = 10; // find this automatically based on number of cores in the system
+		const int TasksPerWorker = (NumTris / NumWorkers);
 
-	// Submit jobs
-	for (int WorkerId = 0; WorkerId < NumWorkers; WorkerId++)
-	{
-		AsyncCompletions.Push(false);
-		FOpenLandThreading::RunOnAnyBackgroundThread(
-			[this, Intermediate, MeshBuildResult, Options, NumWorkers, TasksPerWorker, WorkerId]
-			{
-				const int NumTris = Intermediate->Triangles.Length();
-				const int StartIndex = TasksPerWorker * WorkerId;
-				const int EndIndex = (WorkerId == NumWorkers - 1) ? NumTris : StartIndex + TasksPerWorker;
-				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), MeshBuildResult->Target.Get(), StartIndex, EndIndex, Options.RealTimeSeconds);
-
-				// Mark the work as completed.
-				// We need to do this on the game thread since AsyncCompletions is not thread safe.
-				FOpenLandThreading::RunOnGameThread([this, WorkerId]
-				{
-					//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), WorkerId)
-					AsyncCompletions[WorkerId] = true;
-				});
-			});
-	}
-
-	// Add a task to do the normal smoothing
-	AsyncCompletions.Push(false);
-	FOpenLandThreading::RunOnAnyBackgroundThread([this, MeshBuildResult, Options, Callback]
-	{
-		while (true)
+		// Submit jobs
+		for (int WorkerId = 0; WorkerId < NumWorkers; WorkerId++)
 		{
-			bool bAsyncTaskCompleted = true;
+			AsyncCompletions.Push(false);
+			FOpenLandThreading::RunOnAnyBackgroundThread(
+				[this, Intermediate, MeshBuildResult, Options, NumWorkers, TasksPerWorker, WorkerId]
+				{
+					const int NumTris = Intermediate->Triangles.Length();
+					const int StartIndex = TasksPerWorker * WorkerId;
+					const int EndIndex = (WorkerId == NumWorkers - 1) ? NumTris : StartIndex + TasksPerWorker;
+					ApplyVertexModifiers(VertexModifier, Intermediate.Get(), MeshBuildResult->Target.Get(), StartIndex, EndIndex, Options.RealTimeSeconds);
 
-			for (int32 Index = 0; Index < AsyncCompletions.Num() - 1; Index++)
-				//UE_LOG(LogTemp, Warning, TEXT("Value inside the Task Queue: %d=%s"), Index, AsyncCompletions[Index] == true? TEXT("T") : TEXT("F"))
-				bAsyncTaskCompleted = bAsyncTaskCompleted && AsyncCompletions[Index];
-			if (bAsyncTaskCompleted == false)
-			{
-				FPlatformProcess::Sleep(0.001);
-				continue;
-			}
-
-			ApplyNormalSmoothing(MeshBuildResult->Target.Get(), Options.CuspAngle);
-			break;
+					// Mark the work as completed.
+					// We need to do this on the game thread since AsyncCompletions is not thread safe.
+					FOpenLandThreading::RunOnGameThread([this, WorkerId]
+					{
+						//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), WorkerId)
+						AsyncCompletions[WorkerId] = true;
+					});
+				});
 		}
 
-		FOpenLandThreading::RunOnGameThread([this, Callback]
+		// Add a task to do the normal smoothing
+		AsyncCompletions.Push(false);
+		FOpenLandThreading::RunOnAnyBackgroundThread([this, MeshBuildResult, Options, Callback]
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), AsyncCompletions.Num() -1)
-			AsyncCompletions[AsyncCompletions.Num() - 1] = true;
-			if (Callback != nullptr)
+			while (true)
 			{
-				AsyncCompletions = {};
-				Callback();
-			}
-		});
-		//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), WorkerId)    
-	});
+				bool bAsyncTaskCompleted = true;
 
-	//UE_LOG(LogTemp, Warning, TEXT("Just Submit Some Work"))
+				for (int32 Index = 0; Index < AsyncCompletions.Num() - 1; Index++)
+					//UE_LOG(LogTemp, Warning, TEXT("Value inside the Task Queue: %d=%s"), Index, AsyncCompletions[Index] == true? TEXT("T") : TEXT("F"))
+					bAsyncTaskCompleted = bAsyncTaskCompleted && AsyncCompletions[Index];
+				if (bAsyncTaskCompleted == false)
+				{
+					FPlatformProcess::Sleep(0.001);
+					continue;
+				}
+
+				ApplyNormalSmoothing(MeshBuildResult->Target.Get(), Options.CuspAngle);
+				break;
+			}
+
+			FOpenLandThreading::RunOnGameThread([this, Callback]
+			{
+				//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), AsyncCompletions.Num() -1)
+				AsyncCompletions[AsyncCompletions.Num() - 1] = true;
+				if (Callback != nullptr)
+				{
+					AsyncCompletions = {};
+					Callback();
+				}
+			});
+			//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), WorkerId)    
+		});
+
+	});
+	
 	return false;
 }
 

@@ -133,6 +133,9 @@ public:
 	//TODO: Get rid of this callback or do something, because this is a useful API
 	void ModifyMeshAsync(TFunction<void()> Callback = nullptr);
 
+	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
+	void ModifyMe();
+
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	void SetGPUScalarParameter(FName Name, float Value);
 

@@ -93,6 +93,8 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult);
 	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                            TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
+	void ApplyGpuVertexModifersAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+								TArray<FComputeMaterialParameter> AdditionalMaterialParameters, std::function<void()> Callback);
 	static TArray<FComputeMaterialParameter> MakeParameters(float Time);
 
 public:
