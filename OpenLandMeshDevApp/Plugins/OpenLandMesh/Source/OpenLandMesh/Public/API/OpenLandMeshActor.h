@@ -93,8 +93,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bDisableGPUVertexModifiersOnAnimate = false;
 
-	//TODO: Re-enable this when we fix async build-mesh support
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncBuildMeshOnGame = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
@@ -130,8 +129,9 @@ public:
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMesh();
 
-	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
-	void ModifyMeshAsync();
+	//UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	//TODO: Get rid of this callback or do something, because this is a useful API
+	void ModifyMeshAsync(TFunction<void()> Callback = nullptr);
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	void SetGPUScalarParameter(FName Name, float Value);

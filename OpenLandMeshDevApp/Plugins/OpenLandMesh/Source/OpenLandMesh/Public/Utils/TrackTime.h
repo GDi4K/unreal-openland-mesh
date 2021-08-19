@@ -10,5 +10,5 @@ class OPENLANDMESH_API TrackTime
 
 public:
 	TrackTime(FString C, bool bEnableIt = false);
-	void Finish();
+	void Finish() const;
 };

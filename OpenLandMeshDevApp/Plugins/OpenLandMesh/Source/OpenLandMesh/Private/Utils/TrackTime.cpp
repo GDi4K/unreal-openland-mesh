@@ -9,7 +9,7 @@ TrackTime::TrackTime(FString CaptionInput, bool bEnableIt)
 	bEnable = bEnableIt;
 }
 
-void TrackTime::Finish()
+void TrackTime::Finish() const
 {
 	if (!bEnable)
 	{
