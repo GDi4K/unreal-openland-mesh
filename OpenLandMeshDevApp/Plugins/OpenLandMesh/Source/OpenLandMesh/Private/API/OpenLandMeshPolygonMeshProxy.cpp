@@ -32,9 +32,9 @@ void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FOpenL
 }
 
 bool UOpenLandMeshPolygonMeshProxy::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
-                                                        FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback) const
+                                                        FOpenLandPolygonMeshModifyOptions Options) const
 {
-	return PolygonMesh->ModifyVerticesAsync(WorldContext, MeshBuildResult, Options, Callback);
+	return PolygonMesh->ModifyVerticesAsync(WorldContext, MeshBuildResult, Options);
 }
 
 UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::AddTriFace(

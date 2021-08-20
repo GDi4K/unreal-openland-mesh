@@ -34,7 +34,7 @@ public:
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
 	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
-	                         FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback=nullptr) const;
+	                         FOpenLandPolygonMeshModifyOptions Options) const;
 
 	void RegisterVertexModifier(function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial VertexModifier);

@@ -394,7 +394,7 @@ void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygo
 }
 
 bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
-                                               FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback)
+                                               FOpenLandPolygonMeshModifyOptions Options)
 {
 	// There's a currently running job.
 	// So, we need to check the state of that
@@ -463,7 +463,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 
 	// Add a task to do the normal smoothing
 	AsyncCompletions.Push(false);
-	FOpenLandThreading::RunOnAnyBackgroundThread([this, MeshBuildResult, Options, Callback]
+	FOpenLandThreading::RunOnAnyBackgroundThread([this, MeshBuildResult, Options]
 	{
 		while (true)
 		{
@@ -482,15 +482,10 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 			break;
 		}
 
-		FOpenLandThreading::RunOnGameThread([this, Callback]
+		FOpenLandThreading::RunOnGameThread([this]
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), AsyncCompletions.Num() -1)
 			AsyncCompletions[AsyncCompletions.Num() - 1] = true;
-			if (Callback != nullptr)
-			{
-				AsyncCompletions = {};
-				Callback();
-			}
 		});
 		//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), WorkerId)    
 	});

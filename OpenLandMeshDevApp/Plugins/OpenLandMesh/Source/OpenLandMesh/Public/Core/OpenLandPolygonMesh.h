@@ -111,7 +111,7 @@ public:
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
 	// TODO: Get rid of this callback & implement the logic via the Tick.
 	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
-	                         FOpenLandPolygonMeshModifyOptions Options, function<void()> Callback=nullptr);
+	                         FOpenLandPolygonMeshModifyOptions Options);
 	
 	void AddTriFace(const FVector A, const FVector B, const FVector C);
 	void AddQuadFace(const FVector A, const FVector B, const FVector C, const FVector D);
