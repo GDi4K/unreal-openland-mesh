@@ -36,8 +36,7 @@ FGpuComputeMaterialStatus FGpuComputeVertex::IsValidMaterial(UMaterialInterface*
 	};
 }
 
-void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> DataTextures, TArray<FGpuComputeVertexOutput>& ModifiedData,
-                                FComputeMaterial ComputeMaterial)
+void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> DataTextures, FComputeMaterial ComputeMaterial)
 {
 	checkf(ComputeMaterial.Material != nullptr, TEXT("Compute Material Needs a Proper Material"));
 
@@ -68,16 +67,16 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexD
 	DataRenderTarget1->DrawMaterial(WorldContext, DynamicMaterialInstance1);
 	DataRenderTarget2->DrawMaterial(WorldContext, DynamicMaterialInstance2);
 	DataRenderTarget3->DrawMaterial(WorldContext, DynamicMaterialInstance3);
+}
 
+void FGpuComputeVertex::ReadData(TArray<FGpuComputeVertexOutput>& ModifiedData, int32 RowStart, int32 RowEnd) const
+{
 	// Read from the Render Target
 	const int32 NumPixelsToRead = FMath::Min(TextureWidth * TextureWidth, ModifiedData.Num());
 	TArray<FColor> ReadBuffer0;
 	TArray<FColor> ReadBuffer1;
 	TArray<FColor> ReadBuffer2;
 	TArray<FColor> ReadBuffer3;
-
-	const int32 RowStart = 0;
-	const int32 RowEnd = FMath::CeilToInt(ModifiedData.Num()/(TextureWidth + 0.0f));
 
 	DataRenderTarget0->ReadDataAsync(RowStart, RowEnd, ReadBuffer0, nullptr);
 	DataRenderTarget1->ReadDataAsync(RowStart, RowEnd, ReadBuffer1, nullptr);
@@ -123,6 +122,7 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexD
 		ModifiedData[Index].VertexColor = ReadBuffer3[Index];
 	}
 }
+
 
 void FGpuComputeVertex::ApplyParameterValues(UMaterialInstanceDynamic* Material, TArray<FGpuComputeVertexDataTextureItem> DataTextures,
                                              TArray<FComputeMaterialParameter> MaterialParameters)

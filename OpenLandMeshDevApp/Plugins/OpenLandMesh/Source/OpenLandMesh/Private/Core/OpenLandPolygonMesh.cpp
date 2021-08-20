@@ -336,8 +336,12 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 	ModifiedPositions.SetNumUninitialized(MeshBuildResult->Original->Vertices.Length());
 
 	for (auto Param : AdditionalMaterialParameters)
+	{
 		GpuVertexModifier.Parameters.Push(Param);
-	GpuComputeEngine->Compute(WorldContext, MeshBuildResult->DataTextures, ModifiedPositions, GpuVertexModifier);
+	}
+	
+	GpuComputeEngine->Compute(WorldContext, MeshBuildResult->DataTextures, GpuVertexModifier);
+	GpuComputeEngine->ReadData(ModifiedPositions, 0, MeshBuildResult->TextureWidth);
 
 	for (size_t Index = 0; Index < MeshBuildResult->Original->Vertices.Length(); Index++)
 	{
