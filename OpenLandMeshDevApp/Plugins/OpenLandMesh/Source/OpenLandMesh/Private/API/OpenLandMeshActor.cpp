@@ -54,12 +54,51 @@ void AOpenLandMeshActor::OnAfterAnimations_Implementation()
 {
 }
 
+void AOpenLandMeshActor::RunAsyncModifyMeshProcess()
+{
+	const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
+	if (bCanUpdate)
+	{
+		bModifyMeshIsInProgress = false;
+		MeshComponent->UpdateMeshSection(CurrentLODIndex);
+		if (bNeedLODVisibilityChange)
+		{
+			EnsureLODVisibility();
+		}
+		OnAfterAnimations();
+		// When someone updated GPU parameters inside the above hook
+		// We need to update them like this
+		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+		if (SwitchLODs())
+		{
+			bNeedLODVisibilityChange = true;
+		}
+	} else
+	{
+		bModifyMeshIsInProgress = true;
+	}
+}
+
+void AOpenLandMeshActor::RunSyncModifyMeshProcess()
+{
+	if (SwitchLODs())
+	{
+		EnsureLODVisibility();
+	}
+	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
+	MeshComponent->UpdateMeshSection(CurrentLODIndex);
+	OnAfterAnimations();
+	// When someone updated GPU parameters inside the above hook
+	// We need to update them like this
+	PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+}
+
 // Called every frame
 void AOpenLandMeshActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	bool bIsEditor = GetWorld()->WorldType == EWorldType::Editor;
+	const bool bIsEditor = GetWorld()->WorldType == EWorldType::Editor;
 
 	if (bIsEditor || !bAnimate)
 	{
@@ -67,11 +106,6 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		{
 			EnsureLODVisibility();
 		}
-	}
-	
-	if (bIsEditor)
-	{
-		return;
 	}
 
 	if (CurrentLOD == nullptr)
@@ -84,6 +118,24 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		return;
 	}
 
+	if (!bModifyMeshIsInProgress && bNeedToAsyncModifyMesh)
+	{
+		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+		RunAsyncModifyMeshProcess();
+		return;
+	}
+
+	if (bModifyMeshIsInProgress)
+	{
+		RunAsyncModifyMeshProcess();
+		return;
+	}
+	
+	if (bIsEditor)
+	{
+		return;
+	}
+
 	if (!bAnimate)
 	{
 		return;
@@ -91,35 +143,10 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 
 	if (bUseAsyncAnimations)
 	{
-		const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
-		if (bCanUpdate)
-		{
-			MeshComponent->UpdateMeshSection(CurrentLODIndex);
-			if (bNeedLODVisibilityChange)
-			{
-				EnsureLODVisibility();
-			}
-			OnAfterAnimations();
-			// When someone updated GPU parameters inside the above hook
-			// We need to update them like this
-			PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
-			if (SwitchLODs())
-			{
-				bNeedLODVisibilityChange = true;
-			}
-		}
+		RunAsyncModifyMeshProcess();
 	} else
 	{
-		if (SwitchLODs())
-		{
-			EnsureLODVisibility();
-		}
-		PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
-		MeshComponent->UpdateMeshSection(CurrentLODIndex);
-		OnAfterAnimations();
-		// When someone updated GPU parameters inside the above hook
-		// We need to update them like this
-		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+		RunSyncModifyMeshProcess();
 	}
 }
 
@@ -263,38 +290,7 @@ void AOpenLandMeshActor::ModifyMesh()
 
 void AOpenLandMeshActor::ModifyMeshAsync()
 {
-	if (bModifyMeshIsInProgress)
-	{
-		bNeedToModifyMesh = true;
-		return;
-	}
-
-	bModifyMeshIsInProgress = true;
-	bNeedToModifyMesh = false;
-	
-	if (bRunGpuVertexModifiers)
-	{
-		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
-	}
-	else
-	{
-		PolygonMesh->RegisterGpuVertexModifier({});
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Start Modifying"));
-	auto AfterModifiedMesh = [this]()
-	{
-
-		UE_LOG(LogTemp, Warning, TEXT("Done!"));
-		MeshComponent->UpdateMeshSection(CurrentLODIndex);
-		bModifyMeshIsInProgress = false;
-
-		if (bNeedToModifyMesh)
-		{
-			ModifyMeshAsync();
-		}
-	};
-	PolygonMesh->ModifyVerticesAsync(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle}, AfterModifiedMesh);
+	bNeedToAsyncModifyMesh = true;
 }
 
 void AOpenLandMeshActor::SetGPUScalarParameter(FName Name, float Value)

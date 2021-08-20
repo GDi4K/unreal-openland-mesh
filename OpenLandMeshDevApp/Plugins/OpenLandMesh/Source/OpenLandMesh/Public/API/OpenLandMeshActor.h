@@ -27,12 +27,14 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 
 	bool bMeshGenerated = false;
 	bool bModifyMeshIsInProgress = false;
-	bool bNeedToModifyMesh = true;
+	bool bNeedToAsyncModifyMesh = false;
 
 	TArray<FLODInfoPtr> LODList;
 	FLODInfoPtr CurrentLOD = nullptr;
 	bool bNeedLODVisibilityChange = false;
-	
+
+	void RunAsyncModifyMeshProcess();
+	void RunSyncModifyMeshProcess();
 	bool SwitchLODs();
 	void EnsureLODVisibility();
 
