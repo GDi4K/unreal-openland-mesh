@@ -68,9 +68,37 @@ struct FOpenLandPolygonMeshBuildResult
 // So, using a pointer will fix that issue
 typedef TSharedPtr<FOpenLandPolygonMeshBuildResult> FOpenLandPolygonMeshBuildResultPtr;
 
+struct FOpenLandPolygonMeshModifyStatus
+{
+	bool bStarted = false;
+	bool bGpuTasksCompleted = false;
+	bool bCompleted = false;
+	bool bAborted = false;
+
+	bool IsRunning() const
+	{
+		if (bCompleted || bAborted || !bStarted)
+		{
+			return false;
+		}
+
+		return true;
+	}
+};
+
+struct FOpenLandPolygonMeshModifyInfo
+{
+	UObject* WorldContext;
+	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult;
+	FOpenLandPolygonMeshModifyOptions Options;
+	
+	int32 GpuRowsCompleted = 0;
+	FOpenLandPolygonMeshModifyStatus Status = {};
+};
+
 class OPENLANDMESH_API FOpenLandPolygonMesh
 {
-	// For the delete delete schedular
+	// For the delete delete scheduler
 	static bool bIsDeleteSchedulerRunning;
 	static TArray<FOpenLandPolygonMesh*> PolygonMeshesToDelete;
 
@@ -82,7 +110,7 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 
 	TSharedPtr<FGpuComputeVertex> GpuComputeEngine = nullptr;
 	FComputeMaterial GpuVertexModifier;
-	int32 GpuRowsCompleted = 0;
+	FOpenLandPolygonMeshModifyInfo ModifyInfo = {};
 
 	static void ApplyNormalSmoothing(FOpenLandMeshInfo* MeshInfo, float CuspAngle);
 	static FOpenLandMeshInfo SubDivide(FOpenLandMeshInfo SourceMeshInfo, int Depth);
@@ -94,7 +122,7 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult);
 	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                            TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
-	bool ApplyGpuVertexModifersAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+	void ApplyGpuVertexModifersAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 								TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
 	static TArray<FComputeMaterialParameter> MakeParameters(float Time);
 
@@ -109,13 +137,14 @@ public:
 	
 	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                    FOpenLandPolygonMeshModifyOptions Options);
+	
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
-	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+	FOpenLandPolygonMeshModifyStatus StartModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                         FOpenLandPolygonMeshModifyOptions Options);
-
 	
+	FOpenLandPolygonMeshModifyStatus CheckModifyVerticesStatus(float LastFrameTime);
 	
 	void AddTriFace(const FVector A, const FVector B, const FVector C);
 	void AddQuadFace(const FVector A, const FVector B, const FVector C, const FVector D);

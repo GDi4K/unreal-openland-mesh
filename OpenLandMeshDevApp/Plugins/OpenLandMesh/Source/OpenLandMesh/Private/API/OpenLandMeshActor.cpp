@@ -56,10 +56,26 @@ void AOpenLandMeshActor::OnAfterAnimations_Implementation()
 
 void AOpenLandMeshActor::RunAsyncModifyMeshProcess()
 {
-	const bool bCanUpdate = PolygonMesh->ModifyVerticesAsync(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
-	if (bCanUpdate)
+	// UE_LOG(LogTemp, Warning, TEXT("RunAsyncModifyMeshProcess Request"))
+	
+	if (!ModifyStatus.bStarted)
 	{
-		bModifyMeshIsInProgress = false;
+		ModifyStatus = PolygonMesh->StartModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
+		return;
+	}
+
+	// TODO: Add the delta time here
+	ModifyStatus = PolygonMesh->CheckModifyVerticesStatus(0);
+	
+	if (ModifyStatus.bAborted)
+	{
+		UE_LOG(LogTemp, Warning, TEXT(" RunAsyncModifyMeshProcess Aborted"))
+		ModifyStatus = PolygonMesh->StartModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
+		return;
+	}
+
+	if (ModifyStatus.bCompleted)
+	{
 		MeshComponent->UpdateMeshSection(CurrentLODIndex);
 		if (bNeedLODVisibilityChange)
 		{
@@ -73,9 +89,9 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess()
 		{
 			bNeedLODVisibilityChange = true;
 		}
-	} else
-	{
-		bModifyMeshIsInProgress = true;
+
+		// This is important to notify that we process the current modify operation
+		ModifyStatus = {};
 	}
 }
 
@@ -118,14 +134,15 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		return;
 	}
 
-	if (!bModifyMeshIsInProgress && bNeedToAsyncModifyMesh)
+	if (!ModifyStatus.bStarted && bNeedToAsyncModifyMesh)
 	{
+		bNeedToAsyncModifyMesh = false;
 		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 		RunAsyncModifyMeshProcess();
 		return;
 	}
 
-	if (bModifyMeshIsInProgress)
+	if (ModifyStatus.bStarted)
 	{
 		RunAsyncModifyMeshProcess();
 		return;
@@ -277,7 +294,12 @@ void AOpenLandMeshActor::BuildMesh()
 
 void AOpenLandMeshActor::ModifyMesh()
 {
-	bModifyMeshIsInProgress = false;
+	if (ModifyStatus.bStarted)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cannot ModifyMesh while there's an async ModifyMesh task in process"))
+		bNeedToAsyncModifyMesh = true;
+		return;
+	}
 	
 	if (bRunGpuVertexModifiers)
 		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);

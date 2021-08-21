@@ -358,7 +358,7 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 	}
 }
 
-bool FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
+void FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
 	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult, TArray<FComputeMaterialParameter> AdditionalMaterialParameters)
 {
 	for (auto Param : AdditionalMaterialParameters)
@@ -366,17 +366,17 @@ bool FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
 		GpuVertexModifier.Parameters.Push(Param);
 	}
 
-	const int32 RowsPerFrame = MeshBuildResult->TextureWidth/20;
+	const int32 RowsPerFrame = MeshBuildResult->TextureWidth/2;
 	TArray<FGpuComputeVertexOutput> ModifiedPositions;
 	ModifiedPositions.SetNumUninitialized(RowsPerFrame * MeshBuildResult->TextureWidth);
 
-	int32 NewGpuRowsCompleted = GpuRowsCompleted + RowsPerFrame;
+	int32 NewGpuRowsCompleted = ModifyInfo.GpuRowsCompleted + RowsPerFrame;
 	if (NewGpuRowsCompleted >= MeshBuildResult->TextureWidth)
 	{
 		NewGpuRowsCompleted = MeshBuildResult->TextureWidth;
 	}
 
-	if (GpuRowsCompleted == 0)
+	if (ModifyInfo.GpuRowsCompleted == 0)
 	{
 		GpuComputeEngine->Compute(WorldContext, MeshBuildResult->DataTextures, GpuVertexModifier);
 	}
@@ -388,14 +388,13 @@ bool FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
 	// Only solution is to abort
 	if (!GpuComputeEngine->IsActive())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Abort Please"))
-		GpuRowsCompleted = 0;
-		return true;
+		ModifyInfo.Status.bAborted = true;
+		return;
 	}
 	
-	GpuComputeEngine->ReadData(ModifiedPositions, GpuRowsCompleted, NewGpuRowsCompleted);
+	GpuComputeEngine->ReadData(ModifiedPositions, ModifyInfo.GpuRowsCompleted, NewGpuRowsCompleted);
 
-	const int32 StartIndex = GpuRowsCompleted * MeshBuildResult->TextureWidth;
+	const int32 StartIndex = ModifyInfo.GpuRowsCompleted * MeshBuildResult->TextureWidth;
  
 	for (int32 Index = 0; Index < ModifiedPositions.Num(); Index++)
 	{
@@ -410,14 +409,11 @@ bool FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
 		Vertex.Color = ModifiedPositions[Index].VertexColor;
 	}
 
-	GpuRowsCompleted = NewGpuRowsCompleted;
-	if (GpuRowsCompleted >= MeshBuildResult->TextureWidth)
+	ModifyInfo.GpuRowsCompleted = NewGpuRowsCompleted;
+	if (ModifyInfo.GpuRowsCompleted >= MeshBuildResult->TextureWidth)
 	{
-		GpuRowsCompleted = 0;
-		return true;
+		ModifyInfo.Status.bGpuTasksCompleted = true;
 	}
-	
-	return false;
 }
 
 void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
@@ -454,10 +450,28 @@ void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygo
 	}
 }
 
-bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+FOpenLandPolygonMeshModifyStatus FOpenLandPolygonMesh::StartModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
                                                FOpenLandPolygonMeshModifyOptions Options)
 {
-	// There's a currently running job.
+	checkf(!ModifyInfo.Status.IsRunning(), TEXT("Modify vertices process in progress"));
+
+	ModifyInfo = {};
+	ModifyInfo.WorldContext = WorldContext;
+	ModifyInfo.MeshBuildResult = MeshBuildResult;
+	ModifyInfo.Options = Options;
+	ModifyInfo.Status.bStarted = true;
+	
+	return CheckModifyVerticesStatus(0);
+}
+
+FOpenLandPolygonMeshModifyStatus FOpenLandPolygonMesh::CheckModifyVerticesStatus(float LastFrameTime)
+{
+	if (!ModifyInfo.Status.IsRunning())
+	{
+		return ModifyInfo.Status;
+	}
+	
+	// There's a currently running thread job.
 	// So, we need to check the state of that
 	if (AsyncCompletions.Num() != 0)
 	{
@@ -471,31 +485,35 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 		if (bAsyncTaskCompleted == true)
 		{
 			AsyncCompletions = {};
-			return true;
+			ModifyInfo = {};
+			ModifyInfo.Status.bCompleted = true;
+			return ModifyInfo.Status;
 		}
 
-		return false;
+		return ModifyInfo.Status;
 	}
 
-	EnsureGpuComputeEngine(WorldContext, MeshBuildResult);
+	EnsureGpuComputeEngine(ModifyInfo.WorldContext, ModifyInfo.MeshBuildResult);
 
-	FSimpleMeshInfoPtr Intermediate = MeshBuildResult->Original;
+	FSimpleMeshInfoPtr Intermediate = ModifyInfo.MeshBuildResult->Original;
 	if (GpuVertexModifier.Material != nullptr)
 	{
-		const bool GpuFetchingCompleted = ApplyGpuVertexModifersAsync(WorldContext, MeshBuildResult, MakeParameters(Options.RealTimeSeconds));
-
-		if (!GpuFetchingCompleted)
+		ApplyGpuVertexModifersAsync(ModifyInfo.WorldContext, ModifyInfo.MeshBuildResult, MakeParameters(ModifyInfo.Options.RealTimeSeconds));
+		if (!ModifyInfo.Status.bGpuTasksCompleted)
 		{
-			return false;
+			return ModifyInfo.Status;
 		}
-		
-		Intermediate = MeshBuildResult->Target;
+
+		Intermediate = ModifyInfo.MeshBuildResult->Target;
+	} else
+	{
+		ModifyInfo.Status.bGpuTasksCompleted = true;
 	}
 
 	// Build Faces
-	MeshBuildResult->Target->BoundingBox.Init();
+	ModifyInfo.MeshBuildResult->Target->BoundingBox.Init();
 
-	const int NumTris = MeshBuildResult->Original->Triangles.Length();
+	const int NumTris = ModifyInfo.MeshBuildResult->Original->Triangles.Length();
 	// TODO: Find out number of workers in the core & detect the workers accordingly
 	// TODO: May be we need to get worker information from the user may be.
 	const int NumWorkers = 10; // find this automatically based on number of cores in the system
@@ -506,12 +524,12 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 	{
 		AsyncCompletions.Push(false);
 		FOpenLandThreading::RunOnAnyBackgroundThread(
-			[this, Intermediate, MeshBuildResult, Options, NumWorkers, TasksPerWorker, WorkerId]
+			[this, Intermediate, NumWorkers, TasksPerWorker, WorkerId]
 			{
 				const int NumTris = Intermediate->Triangles.Length();
 				const int StartIndex = TasksPerWorker * WorkerId;
 				const int EndIndex = (WorkerId == NumWorkers - 1) ? NumTris : StartIndex + TasksPerWorker;
-				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), MeshBuildResult->Target.Get(), StartIndex, EndIndex, Options.RealTimeSeconds);
+				ApplyVertexModifiers(VertexModifier, Intermediate.Get(), ModifyInfo.MeshBuildResult->Target.Get(), StartIndex, EndIndex, ModifyInfo.Options.RealTimeSeconds);
 
 				// Mark the work as completed.
 				// We need to do this on the game thread since AsyncCompletions is not thread safe.
@@ -524,7 +542,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 
 	// Add a task to do the normal smoothing
 	AsyncCompletions.Push(false);
-	FOpenLandThreading::RunOnAnyBackgroundThread([this, MeshBuildResult, Options]
+	FOpenLandThreading::RunOnAnyBackgroundThread([this]
 	{
 		while (true)
 		{
@@ -541,7 +559,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 				continue;
 			}
 
-			ApplyNormalSmoothing(MeshBuildResult->Target.Get(), Options.CuspAngle);
+			ApplyNormalSmoothing(ModifyInfo.MeshBuildResult->Target.Get(), ModifyInfo.Options.CuspAngle);
 			break;
 		}
 
@@ -551,7 +569,7 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 		});
 	});
 
-	return false;
+	return ModifyInfo.Status;
 }
 
 void FOpenLandPolygonMesh::AddTriFace(const FVector A, const FVector B, const FVector C)

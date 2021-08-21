@@ -26,8 +26,8 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	GENERATED_BODY()
 
 	bool bMeshGenerated = false;
-	bool bModifyMeshIsInProgress = false;
 	bool bNeedToAsyncModifyMesh = false;
+	FOpenLandPolygonMeshModifyStatus ModifyStatus = {};
 
 	TArray<FLODInfoPtr> LODList;
 	FLODInfoPtr CurrentLOD = nullptr;

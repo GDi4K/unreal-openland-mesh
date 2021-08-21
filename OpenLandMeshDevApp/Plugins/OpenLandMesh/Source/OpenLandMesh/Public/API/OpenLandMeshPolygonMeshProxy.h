@@ -33,8 +33,9 @@ public:
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
-	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+	FOpenLandPolygonMeshModifyStatus StartModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                         FOpenLandPolygonMeshModifyOptions Options) const;
+	FOpenLandPolygonMeshModifyStatus CheckModifyVerticesStatus(float LastFrameTime) const;
 
 	void RegisterVertexModifier(function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial VertexModifier);

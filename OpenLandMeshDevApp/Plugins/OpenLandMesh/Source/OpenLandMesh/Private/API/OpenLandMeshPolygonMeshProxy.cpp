@@ -31,10 +31,15 @@ void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FOpenL
 	return PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
 }
 
-bool UOpenLandMeshPolygonMeshProxy::ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+FOpenLandPolygonMeshModifyStatus UOpenLandMeshPolygonMeshProxy::StartModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
                                                         FOpenLandPolygonMeshModifyOptions Options) const
 {
-	return PolygonMesh->ModifyVerticesAsync(WorldContext, MeshBuildResult, Options);
+	return PolygonMesh->StartModifyVertices(WorldContext, MeshBuildResult, Options);
+}
+
+FOpenLandPolygonMeshModifyStatus UOpenLandMeshPolygonMeshProxy::CheckModifyVerticesStatus(float LastFrameTime) const
+{
+	return PolygonMesh->CheckModifyVerticesStatus(LastFrameTime);
 }
 
 UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::AddTriFace(
