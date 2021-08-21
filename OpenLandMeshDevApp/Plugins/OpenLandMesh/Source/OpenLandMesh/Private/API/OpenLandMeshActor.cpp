@@ -54,23 +54,33 @@ void AOpenLandMeshActor::OnAfterAnimations_Implementation()
 {
 }
 
-void AOpenLandMeshActor::RunAsyncModifyMeshProcess()
+void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 {
 	// UE_LOG(LogTemp, Warning, TEXT("RunAsyncModifyMeshProcess Request"))
 	
 	if (!ModifyStatus.bStarted)
 	{
-		ModifyStatus = PolygonMesh->StartModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
+		FOpenLandPolygonMeshModifyOptions ModifyOptions = {};
+		ModifyOptions.RealTimeSeconds = GetWorld()->RealTimeSeconds;
+		ModifyOptions.CuspAngle = SmoothNormalAngle;
+		ModifyOptions.LastFrameTime = LastFrameTime;
+		ModifyOptions.DesiredFrameRate = DesiredFrameRateOnModify;
+		ModifyStatus = PolygonMesh->StartModifyVertices(this, CurrentLOD->MeshBuildResult, ModifyOptions);
+		
 		return;
 	}
-
-	// TODO: Add the delta time here
-	ModifyStatus = PolygonMesh->CheckModifyVerticesStatus(0);
+	
+	ModifyStatus = PolygonMesh->CheckModifyVerticesStatus(LastFrameTime);
 	
 	if (ModifyStatus.bAborted)
 	{
 		UE_LOG(LogTemp, Warning, TEXT(" RunAsyncModifyMeshProcess Aborted"))
-		ModifyStatus = PolygonMesh->StartModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
+		FOpenLandPolygonMeshModifyOptions ModifyOptions = {};
+		ModifyOptions.RealTimeSeconds = GetWorld()->RealTimeSeconds;
+		ModifyOptions.CuspAngle = SmoothNormalAngle;
+		ModifyOptions.LastFrameTime = LastFrameTime;
+		ModifyOptions.DesiredFrameRate = DesiredFrameRateOnModify;
+		ModifyStatus = PolygonMesh->StartModifyVertices(this, CurrentLOD->MeshBuildResult, ModifyOptions);
 		return;
 	}
 
@@ -138,13 +148,13 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	{
 		bNeedToAsyncModifyMesh = false;
 		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
-		RunAsyncModifyMeshProcess();
+		RunAsyncModifyMeshProcess(DeltaTime);
 		return;
 	}
 
 	if (ModifyStatus.bStarted)
 	{
-		RunAsyncModifyMeshProcess();
+		RunAsyncModifyMeshProcess(DeltaTime);
 		return;
 	}
 	
@@ -160,7 +170,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 
 	if (bUseAsyncAnimations)
 	{
-		RunAsyncModifyMeshProcess();
+		RunAsyncModifyMeshProcess(DeltaTime);
 	} else
 	{
 		RunSyncModifyMeshProcess();

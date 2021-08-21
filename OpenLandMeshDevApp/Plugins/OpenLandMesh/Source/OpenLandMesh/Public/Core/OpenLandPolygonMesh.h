@@ -51,6 +51,8 @@ struct FOpenLandPolygonMeshModifyOptions
 {
 	float RealTimeSeconds = 0;
 	float CuspAngle = 0;
+	float DesiredFrameRate = 110;
+	float LastFrameTime = 0;
 };
 
 struct FOpenLandPolygonMeshBuildResult
@@ -111,6 +113,8 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	TSharedPtr<FGpuComputeVertex> GpuComputeEngine = nullptr;
 	FComputeMaterial GpuVertexModifier;
 	FOpenLandPolygonMeshModifyInfo ModifyInfo = {};
+	int32 GpuLastRowsPerFrame = 0;
+	float GpuLastFrameTime = 0;
 
 	static void ApplyNormalSmoothing(FOpenLandMeshInfo* MeshInfo, float CuspAngle);
 	static FOpenLandMeshInfo SubDivide(FOpenLandMeshInfo SourceMeshInfo, int Depth);

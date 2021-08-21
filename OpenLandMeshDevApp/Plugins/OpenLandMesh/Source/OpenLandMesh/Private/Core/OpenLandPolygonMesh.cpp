@@ -365,8 +365,23 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
 	{
 		GpuVertexModifier.Parameters.Push(Param);
 	}
+	
+	int32 RowsPerFrame;
+	
+	const float DesiredFrameTime = 1000 / ModifyInfo.Options.DesiredFrameRate;
+	const float LastFrameTime = GpuLastFrameTime * 1000.0f;
+	if (DesiredFrameTime > LastFrameTime)
+	{
+		RowsPerFrame = GpuLastRowsPerFrame + 10;
+	} else
+	{
+		RowsPerFrame = FMath::Max(GpuLastRowsPerFrame - 10, 4);
+	}
 
-	const int32 RowsPerFrame = MeshBuildResult->TextureWidth/2;
+	RowsPerFrame = FMath::Min(RowsPerFrame, ModifyInfo.MeshBuildResult->TextureWidth);
+
+	GpuLastRowsPerFrame = RowsPerFrame;
+	
 	TArray<FGpuComputeVertexOutput> ModifiedPositions;
 	ModifiedPositions.SetNumUninitialized(RowsPerFrame * MeshBuildResult->TextureWidth);
 
@@ -391,9 +406,9 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
 		ModifyInfo.Status.bAborted = true;
 		return;
 	}
-	
-	GpuComputeEngine->ReadData(ModifiedPositions, ModifyInfo.GpuRowsCompleted, NewGpuRowsCompleted);
 
+	GpuComputeEngine->ReadData(ModifiedPositions, ModifyInfo.GpuRowsCompleted, NewGpuRowsCompleted);
+	
 	const int32 StartIndex = ModifyInfo.GpuRowsCompleted * MeshBuildResult->TextureWidth;
  
 	for (int32 Index = 0; Index < ModifiedPositions.Num(); Index++)
@@ -461,7 +476,7 @@ FOpenLandPolygonMeshModifyStatus FOpenLandPolygonMesh::StartModifyVertices(UObje
 	ModifyInfo.Options = Options;
 	ModifyInfo.Status.bStarted = true;
 	
-	return CheckModifyVerticesStatus(0);
+	return CheckModifyVerticesStatus(Options.LastFrameTime);
 }
 
 FOpenLandPolygonMeshModifyStatus FOpenLandPolygonMesh::CheckModifyVerticesStatus(float LastFrameTime)
@@ -498,6 +513,7 @@ FOpenLandPolygonMeshModifyStatus FOpenLandPolygonMesh::CheckModifyVerticesStatus
 	FSimpleMeshInfoPtr Intermediate = ModifyInfo.MeshBuildResult->Original;
 	if (GpuVertexModifier.Material != nullptr)
 	{
+		GpuLastFrameTime = LastFrameTime;
 		ApplyGpuVertexModifersAsync(ModifyInfo.WorldContext, ModifyInfo.MeshBuildResult, MakeParameters(ModifyInfo.Options.RealTimeSeconds));
 		if (!ModifyInfo.Status.bGpuTasksCompleted)
 		{

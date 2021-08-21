@@ -33,7 +33,7 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	FLODInfoPtr CurrentLOD = nullptr;
 	bool bNeedLODVisibilityChange = false;
 
-	void RunAsyncModifyMeshProcess();
+	void RunAsyncModifyMeshProcess(float LastFrameTime);
 	void RunSyncModifyMeshProcess();
 	bool SwitchLODs();
 	void EnsureLODVisibility();
@@ -108,6 +108,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncAnimations = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	int32 DesiredFrameRateOnModify = 110;
+	
 	UPROPERTY(VisibleAnywhere, Category=OpenLandMesh)
 	int32 CurrentLODIndex = 0;
 	
