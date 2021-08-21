@@ -72,7 +72,7 @@ void FGpuComputeVertex::Compute(UObject* WorldContext, TArray<FGpuComputeVertexD
 void FGpuComputeVertex::ReadData(TArray<FGpuComputeVertexOutput>& ModifiedData, int32 RowStart, int32 RowEnd) const
 {
 	// Read from the Render Target
-	const int32 NumPixelsToRead = FMath::Min(TextureWidth * TextureWidth, ModifiedData.Num());
+	const int32 NumPixelsToRead = FMath::Min(TextureWidth * (RowEnd - RowStart), ModifiedData.Num());
 	TArray<FColor> ReadBuffer0;
 	TArray<FColor> ReadBuffer1;
 	TArray<FColor> ReadBuffer2;
@@ -121,6 +121,11 @@ void FGpuComputeVertex::ReadData(TArray<FGpuComputeVertexOutput>& ModifiedData, 
 		// Apply Vertex Colors
 		ModifiedData[Index].VertexColor = ReadBuffer3[Index];
 	}
+}
+
+bool FGpuComputeVertex::IsActive() const
+{
+	return DataRenderTarget0->IsActive() && DataRenderTarget1->IsActive() && DataRenderTarget2->IsActive() && DataRenderTarget3->IsActive();
 }
 
 

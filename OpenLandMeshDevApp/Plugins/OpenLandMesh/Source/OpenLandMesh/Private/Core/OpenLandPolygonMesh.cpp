@@ -358,6 +358,67 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifers(UObject* WorldContext, FOpenLa
 	}
 }
 
+bool FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
+	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult, TArray<FComputeMaterialParameter> AdditionalMaterialParameters)
+{
+	for (auto Param : AdditionalMaterialParameters)
+	{
+		GpuVertexModifier.Parameters.Push(Param);
+	}
+
+	const int32 RowsPerFrame = MeshBuildResult->TextureWidth/20;
+	TArray<FGpuComputeVertexOutput> ModifiedPositions;
+	ModifiedPositions.SetNumUninitialized(RowsPerFrame * MeshBuildResult->TextureWidth);
+
+	int32 NewGpuRowsCompleted = GpuRowsCompleted + RowsPerFrame;
+	if (NewGpuRowsCompleted >= MeshBuildResult->TextureWidth)
+	{
+		NewGpuRowsCompleted = MeshBuildResult->TextureWidth;
+	}
+
+	if (GpuRowsCompleted == 0)
+	{
+		GpuComputeEngine->Compute(WorldContext, MeshBuildResult->DataTextures, GpuVertexModifier);
+	}
+
+	// Sometimes underline render targets getting destroyed.
+	// In that case, we need to recreate them.
+	// Above Compute logic will handle it properly.
+	// But when we are reading, there is not much we can do about that.
+	// Only solution is to abort
+	if (!GpuComputeEngine->IsActive())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Abort Please"))
+		GpuRowsCompleted = 0;
+		return true;
+	}
+	
+	GpuComputeEngine->ReadData(ModifiedPositions, GpuRowsCompleted, NewGpuRowsCompleted);
+
+	const int32 StartIndex = GpuRowsCompleted * MeshBuildResult->TextureWidth;
+ 
+	for (int32 Index = 0; Index < ModifiedPositions.Num(); Index++)
+	{
+		const int32 TargetIndex = StartIndex + Index;
+		if (TargetIndex >= MeshBuildResult->Target->Vertices.Length())
+		{
+			break;
+		}
+		
+		FOpenLandMeshVertex& Vertex = MeshBuildResult->Target->Vertices.GetRef(TargetIndex);
+		Vertex.Position = ModifiedPositions[Index].Position;
+		Vertex.Color = ModifiedPositions[Index].VertexColor;
+	}
+
+	GpuRowsCompleted = NewGpuRowsCompleted;
+	if (GpuRowsCompleted >= MeshBuildResult->TextureWidth)
+	{
+		GpuRowsCompleted = 0;
+		return true;
+	}
+	
+	return false;
+}
 
 void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
                                           FOpenLandPolygonMeshModifyOptions Options)
@@ -403,31 +464,32 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 		bool bAsyncTaskCompleted = true;
 
 		for (int32 Index = 0; Index < AsyncCompletions.Num(); Index++)
-			//UE_LOG(LogTemp, Warning, TEXT("Value inside the Task Queue: %d=%s"), Index, AsyncCompletions[Index] == true? TEXT("T") : TEXT("F"))
+		{
 			bAsyncTaskCompleted = bAsyncTaskCompleted && AsyncCompletions[Index];
+		}
 
 		if (bAsyncTaskCompleted == true)
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("Finished & Queue for Rendering: %d"), AsyncCompletions.Num())
 			AsyncCompletions = {};
 			return true;
 		}
 
-		//UE_LOG(LogTemp, Warning, TEXT("Not Finished Yet!: %d"), AsyncCompletions.Num())
 		return false;
 	}
 
-	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
 	EnsureGpuComputeEngine(WorldContext, MeshBuildResult);
-	TrackEnsureGpuComputeEngine.Finish();
 
 	FSimpleMeshInfoPtr Intermediate = MeshBuildResult->Original;
 	if (GpuVertexModifier.Material != nullptr)
 	{
-		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
-		ApplyGpuVertexModifers(WorldContext, MeshBuildResult, MakeParameters(Options.RealTimeSeconds));
+		const bool GpuFetchingCompleted = ApplyGpuVertexModifersAsync(WorldContext, MeshBuildResult, MakeParameters(Options.RealTimeSeconds));
+
+		if (!GpuFetchingCompleted)
+		{
+			return false;
+		}
+		
 		Intermediate = MeshBuildResult->Target;
-		TrackGpuVertexModifiers.Finish();
 	}
 
 	// Build Faces
@@ -455,7 +517,6 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 				// We need to do this on the game thread since AsyncCompletions is not thread safe.
 				FOpenLandThreading::RunOnGameThread([this, WorkerId]
 				{
-					//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), WorkerId)
 					AsyncCompletions[WorkerId] = true;
 				});
 			});
@@ -470,8 +531,10 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 			bool bAsyncTaskCompleted = true;
 
 			for (int32 Index = 0; Index < AsyncCompletions.Num() - 1; Index++)
-				//UE_LOG(LogTemp, Warning, TEXT("Value inside the Task Queue: %d=%s"), Index, AsyncCompletions[Index] == true? TEXT("T") : TEXT("F"))
+			{
 				bAsyncTaskCompleted = bAsyncTaskCompleted && AsyncCompletions[Index];
+			}
+			
 			if (bAsyncTaskCompleted == false)
 			{
 				FPlatformProcess::Sleep(0.001);
@@ -484,13 +547,10 @@ bool FOpenLandPolygonMesh::ModifyVerticesAsync(UObject* WorldContext, FOpenLandP
 
 		FOpenLandThreading::RunOnGameThread([this]
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), AsyncCompletions.Num() -1)
 			AsyncCompletions[AsyncCompletions.Num() - 1] = true;
 		});
-		//UE_LOG(LogTemp, Warning, TEXT("Completing Worker: %d"), WorkerId)    
 	});
 
-	//UE_LOG(LogTemp, Warning, TEXT("Just Submit Some Work"))
 	return false;
 }
 

@@ -17,4 +17,5 @@ public:
 	FDataRenderTarget(UObject* WorldContext, int32 Width);
 	bool DrawMaterial(UObject* WorldContext, UMaterialInterface* Material);
 	bool ReadDataAsync(int32 RowStart, int32 RowEnd, TArray<FColor>& ModifiedData, TFunction<void()> ReadCompleteCallback);
+	bool IsActive() const;
 };

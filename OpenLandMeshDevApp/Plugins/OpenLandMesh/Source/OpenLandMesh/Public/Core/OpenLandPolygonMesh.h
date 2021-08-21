@@ -82,6 +82,7 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 
 	TSharedPtr<FGpuComputeVertex> GpuComputeEngine = nullptr;
 	FComputeMaterial GpuVertexModifier;
+	int32 GpuRowsCompleted = 0;
 
 	static void ApplyNormalSmoothing(FOpenLandMeshInfo* MeshInfo, float CuspAngle);
 	static FOpenLandMeshInfo SubDivide(FOpenLandMeshInfo SourceMeshInfo, int Depth);
@@ -93,6 +94,8 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	void EnsureGpuComputeEngine(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult);
 	void ApplyGpuVertexModifers(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                            TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
+	bool ApplyGpuVertexModifersAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+								TArray<FComputeMaterialParameter> AdditionalMaterialParameters);
 	static TArray<FComputeMaterialParameter> MakeParameters(float Time);
 
 public:
@@ -109,9 +112,10 @@ public:
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
-	// TODO: Get rid of this callback & implement the logic via the Tick.
 	bool ModifyVerticesAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                         FOpenLandPolygonMeshModifyOptions Options);
+
+	
 	
 	void AddTriFace(const FVector A, const FVector B, const FVector C);
 	void AddQuadFace(const FVector A, const FVector B, const FVector C, const FVector D);

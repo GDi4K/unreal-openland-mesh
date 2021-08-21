@@ -59,4 +59,5 @@ public:
 	static FGpuComputeMaterialStatus IsValidMaterial(UMaterialInterface* Material);
 	void Compute(UObject* WorldContext, TArray<FGpuComputeVertexDataTextureItem> DataTextures, FComputeMaterial ComputeMaterial);
 	void ReadData(TArray<FGpuComputeVertexOutput>& ModifiedData, int32 RowStart, int32 RowEnd) const;
+	bool IsActive() const;
 };
