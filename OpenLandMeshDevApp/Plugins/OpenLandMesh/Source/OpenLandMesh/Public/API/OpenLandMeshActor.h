@@ -29,6 +29,10 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	bool bNeedToAsyncModifyMesh = false;
 	FOpenLandPolygonMeshModifyStatus ModifyStatus = {};
 
+	bool bMeshUpdatingStarted = false;
+	int32 UpdatedMeshVertices = 0;
+	float NeedToWaitMs = 0;
+
 	TArray<FLODInfoPtr> LODList;
 	FLODInfoPtr CurrentLOD = nullptr;
 	bool bNeedLODVisibilityChange = false;
@@ -37,6 +41,7 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	void RunSyncModifyMeshProcess();
 	bool SwitchLODs();
 	void EnsureLODVisibility();
+	void UpdateMeshSectionAsync(float LastFrameTime);
 
 public:
 	// Sets default values for this actor's properties
@@ -110,6 +115,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	int32 DesiredFrameRateOnModify = 110;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	bool bUpdateMeshViaAsync = false;
 	
 	UPROPERTY(VisibleAnywhere, Category=OpenLandMesh)
 	int32 CurrentLODIndex = 0;

@@ -103,7 +103,7 @@ void FOpenLandMeshSceneProxy::SetSectionVisibility_RenderThread(int32 SectionInd
 		ProxySections[SectionIndex]->bSectionVisible = bNewVisibility;
 }
 
-void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FSimpleMeshInfoPtr const SectionData)
+void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FSimpleMeshInfoPtr const SectionData, FOpenLandMeshComponentUpdateRange UpdateRange)
 {
 	check(IsInRenderingThread());
 
@@ -115,11 +115,11 @@ void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FSi
 		{
 			FOpenLandMeshProxySection* Section = ProxySections[SectionIndex];
 
-			// Lock vertex buffer
 			const int32 NumVerts = SectionData->Vertices.Length();
+			const int32 EndIndex = UpdateRange.StartIndex + (UpdateRange.Count == -1? NumVerts : UpdateRange.Count);
 
 			// Iterate through vertex data, copying in new info
-			for (int32 i = 0; i < NumVerts; i++)
+			for (int32 i = UpdateRange.StartIndex; i < EndIndex; i++)
 			{
 				const FOpenLandMeshVertex& ProcVert = SectionData->Vertices.Get(i);
 				FDynamicMeshVertex Vertex;

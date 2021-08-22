@@ -86,20 +86,28 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 
 	if (ModifyStatus.bCompleted)
 	{
-		MeshComponent->UpdateMeshSection(CurrentLODIndex);
-		if (bNeedLODVisibilityChange)
+		if (bUpdateMeshViaAsync)
 		{
-			EnsureLODVisibility();
+			bMeshUpdatingStarted = true;
+			UpdateMeshSectionAsync(LastFrameTime);
+		} else
+		{
+			MeshComponent->UpdateMeshSection(CurrentLOD->MeshComponentIndex, {0, -1});
+			if (bNeedLODVisibilityChange)
+			{
+				EnsureLODVisibility();
+			}
+		
+			if (SwitchLODs())
+			{
+				bNeedLODVisibilityChange = true;
+			}
 		}
+
 		OnAfterAnimations();
 		// When someone updated GPU parameters inside the above hook
 		// We need to update them like this
 		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
-		if (SwitchLODs())
-		{
-			bNeedLODVisibilityChange = true;
-		}
-
 		// This is important to notify that we process the current modify operation
 		ModifyStatus = {};
 	}
@@ -112,17 +120,81 @@ void AOpenLandMeshActor::RunSyncModifyMeshProcess()
 		EnsureLODVisibility();
 	}
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
-	MeshComponent->UpdateMeshSection(CurrentLODIndex);
+	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
 	OnAfterAnimations();
 	// When someone updated GPU parameters inside the above hook
 	// We need to update them like this
 	PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 }
 
+void AOpenLandMeshActor::UpdateMeshSectionAsync(float LastFrameTime)
+{
+	const float LastFrameTimeMs = LastFrameTime * 1000;
+	const float DesiredFrameTimeMs = 1000.0 / DesiredFrameRateOnModify;
+
+	UE_LOG(LogTemp, Warning, TEXT("LastFrameTimeMs: %f, DesiredFrameTimeMs: %f"), LastFrameTimeMs, DesiredFrameTimeMs)
+
+	if (NeedToWaitMs > 0)
+	{
+		NeedToWaitMs -= LastFrameTimeMs;
+	}
+
+	if (NeedToWaitMs > 0)
+	{
+		return;
+	}
+	
+	if (DesiredFrameTimeMs < LastFrameTimeMs)
+	{
+		NeedToWaitMs = LastFrameTimeMs + DesiredFrameTimeMs;
+		return;
+	}
+	
+	const int32 TotalVertices = CurrentLOD->MeshBuildResult->Target->Vertices.Length();
+	const int32 ChunkSize = 100000;
+	const int32 StartIndex = UpdatedMeshVertices;
+	int32 Count = ChunkSize;
+	if (StartIndex + ChunkSize > TotalVertices)
+	{
+		Count = TotalVertices - StartIndex;
+	}
+
+	MeshComponent->UpdateMeshSection(CurrentLOD->MeshComponentIndex, {StartIndex, Count});
+
+	NeedToWaitMs = 0;
+	UpdatedMeshVertices = StartIndex + Count;
+
+	if (UpdatedMeshVertices >= TotalVertices)
+	{
+		bMeshUpdatingStarted = false;
+		UpdatedMeshVertices = 0;
+		if (bNeedLODVisibilityChange)
+		{
+			EnsureLODVisibility();
+		}
+		
+		if (SwitchLODs())
+		{
+			bNeedLODVisibilityChange = true;
+		}
+	}
+}
+
 // Called every frame
 void AOpenLandMeshActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (CurrentLOD && CurrentLOD->MeshBuildResult->Target->IsLocked())
+	{
+		return;
+	}
+
+	if (bMeshUpdatingStarted)
+	{
+		UpdateMeshSectionAsync(DeltaTime);
+		return;
+	}
 
 	const bool bIsEditor = GetWorld()->WorldType == EWorldType::Editor;
 
@@ -135,11 +207,6 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	}
 
 	if (CurrentLOD == nullptr)
-	{
-		return;
-	}
-
-	if (CurrentLOD->MeshBuildResult->Target->IsLocked())
 	{
 		return;
 	}
@@ -317,7 +384,7 @@ void AOpenLandMeshActor::ModifyMesh()
 		PolygonMesh->RegisterGpuVertexModifier({});
 
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
-	MeshComponent->UpdateMeshSection(CurrentLODIndex);
+	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
 }
 
 void AOpenLandMeshActor::ModifyMeshAsync()

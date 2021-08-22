@@ -232,7 +232,7 @@ void UOpenLandMeshComponent::UpdateCollisionMesh()
 	BodyInstance.UpdateTriMeshVertices(CollisionPositions);
 }
 
-void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
+void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex, FOpenLandMeshComponentUpdateRange UpdateRange)
 {
 	// We cannot update not existing mesh section.
 	// TODO: May be we need to throw
@@ -249,21 +249,21 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
 	}
 
 	// If we have a valid proxy and it is not pending recreation
-	if (SceneProxy && !IsRenderStateDirty())
-	{
-		// Enqueue command to send to render thread
-		FOpenLandMeshSceneProxy* ProcMeshSceneProxy = static_cast<FOpenLandMeshSceneProxy*>(SceneProxy);
-		MeshSection->Lock();
-		ENQUEUE_RENDER_COMMAND(FProcMeshSectionUpdate)
-		([ProcMeshSceneProxy, SectionIndex, MeshSection](FRHICommandListImmediate& RHICmdList)
-		{
-			ProcMeshSceneProxy->UpdateSection_RenderThread(SectionIndex, MeshSection);
-			MeshSection->UnLock();
-		});
-	}
+	 if (SceneProxy && !IsRenderStateDirty())
+	 {
+	 	// Enqueue command to send to render thread
+	 	FOpenLandMeshSceneProxy* ProcMeshSceneProxy = static_cast<FOpenLandMeshSceneProxy*>(SceneProxy);
+	 	MeshSection->Lock();
+	 	ENQUEUE_RENDER_COMMAND(FProcMeshSectionUpdate)
+	 	([ProcMeshSceneProxy, SectionIndex, MeshSection, UpdateRange](FRHICommandListImmediate& RHICmdList)
+	 	{
+	 		ProcMeshSceneProxy->UpdateSection_RenderThread(SectionIndex, MeshSection, UpdateRange);
+	 		MeshSection->UnLock();
+	 	});
+	 }
 
-	UpdateLocalBounds(); // Update overall bounds
-	MarkRenderTransformDirty(); // Need to send new bounds to render thread
+	// UpdateLocalBounds(); // Update overall bounds
+	// MarkRenderTransformDirty(); // Need to send new bounds to render thread
 }
 
 int32 UOpenLandMeshComponent::NumMeshSections()
