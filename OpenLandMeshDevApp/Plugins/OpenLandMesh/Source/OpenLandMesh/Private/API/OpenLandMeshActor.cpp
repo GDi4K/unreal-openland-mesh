@@ -28,7 +28,8 @@ void AOpenLandMeshActor::BeginPlay()
 	Super::BeginPlay();
 	if (bUseAsyncBuildMeshOnGame)
 	{
-		BuildMeshAsync();
+		SwitchLODs();
+		bMeshGenerated = true;
 	}
 	else
 	{
@@ -54,6 +55,9 @@ void AOpenLandMeshActor::OnAfterAnimations_Implementation()
 
 void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 {
+	
+	const FLODInfoPtr ModifyingLOD = AsyncBuildingLODIndex >= 0? LODList[AsyncBuildingLODIndex] : CurrentLOD;
+	
 	if (!ModifyStatus.bStarted)
 	{
 		FOpenLandPolygonMeshModifyOptions ModifyOptions = {};
@@ -61,7 +65,7 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 		ModifyOptions.CuspAngle = SmoothNormalAngle;
 		ModifyOptions.LastFrameTime = LastFrameTime;
 		ModifyOptions.DesiredFrameRate = DesiredFrameRateOnModify;
-		ModifyStatus = PolygonMesh->StartModifyVertices(this, CurrentLOD->MeshBuildResult, ModifyOptions);
+		ModifyStatus = PolygonMesh->StartModifyVertices(this, ModifyingLOD->MeshBuildResult, ModifyOptions);
 		
 		return;
 	}
@@ -76,33 +80,37 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 		ModifyOptions.CuspAngle = SmoothNormalAngle;
 		ModifyOptions.LastFrameTime = LastFrameTime;
 		ModifyOptions.DesiredFrameRate = DesiredFrameRateOnModify;
-		ModifyStatus = PolygonMesh->StartModifyVertices(this, CurrentLOD->MeshBuildResult, ModifyOptions);
+		ModifyStatus = PolygonMesh->StartModifyVertices(this, ModifyingLOD->MeshBuildResult, ModifyOptions);
 		return;
 	}
 
 	if (ModifyStatus.bCompleted)
 	{
+		OnAfterAnimations();
+		// When someone updated GPU parameters inside the above hook
+		// We need to update them like this
+		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
+		// This is important to notify that we process the current modify operation
+		ModifyStatus = {};
+		
 		if (AsyncBuildingLODIndex >= 0)
 		{
-			const bool bHasMeshSection = MeshComponent->NumMeshSections() < CurrentLOD->MeshSectionIndex;
-			if (bHasMeshSection)
-			{
-				MeshComponent->ReplaceMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
-			} else
-			{
-				MeshComponent->CreateMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
-			}
+			ModifyingLOD->MeshSectionIndex = MeshComponent->NumMeshSections();
+			MeshComponent->CreateMeshSection(ModifyingLOD->MeshSectionIndex, ModifyingLOD->MeshBuildResult->Target);
 			MeshComponent->InvalidateRendering();
-			if (CurrentLOD->MeshBuildResult->Target->bEnableCollision)
+			
+			if (ModifyingLOD->MeshBuildResult->Target->bEnableCollision)
 			{
 				MeshComponent->SetupCollisions(true);
 			}
 			AsyncBuildingLODIndex = -1;
-		} else
-		{
-			MeshComponent->UpdateMeshSection(CurrentLOD->MeshSectionIndex, {0, -1});
+			//SetMaterial(Material);
+			EnsureLODVisibility();
+			UE_LOG(LogTemp, Warning, TEXT("LOD Building Completed"))
+			return;
 		}
 		
+		MeshComponent->UpdateMeshSection(CurrentLOD->MeshSectionIndex, {0, -1});
 		if (bNeedLODVisibilityChange)
 		{
 			EnsureLODVisibility();
@@ -112,13 +120,6 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 		{
 			bNeedLODVisibilityChange = true;
 		}
-
-		OnAfterAnimations();
-		// When someone updated GPU parameters inside the above hook
-		// We need to update them like this
-		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
-		// This is important to notify that we process the current modify operation
-		ModifyStatus = {};
 	}
 }
 
@@ -140,12 +141,7 @@ void AOpenLandMeshActor::RunSyncModifyMeshProcess()
 void AOpenLandMeshActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (CurrentLOD && CurrentLOD->MeshBuildResult->Target->IsLocked())
-	{
-		return;
-	}
-
+	
 	const bool bIsEditor = GetWorld()->WorldType == EWorldType::Editor;
 
 	if (bIsEditor || !bAnimate)
@@ -161,6 +157,11 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		return;
 	}
 
+	if (CurrentLOD->MeshBuildResult->Target->IsLocked())
+	{
+		return;
+	}
+	
 	if (!ModifyStatus.bStarted && bNeedToAsyncModifyMesh)
 	{
 		bNeedToAsyncModifyMesh = false;
@@ -438,7 +439,7 @@ UTexture2D* AOpenLandMeshActor::GetGPUTextureParameter(FName Name)
 	return nullptr;
 }
 
-void AOpenLandMeshActor::BuildMeshAsync()
+void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 {
 	PolygonMesh = GetPolygonMesh();
 	if (!PolygonMesh)
@@ -467,28 +468,24 @@ void AOpenLandMeshActor::BuildMeshAsync()
 		PolygonMesh->RegisterGpuVertexModifier({});
 	}
 
-	const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
-		SubDivisions,
-		SmoothNormalAngle
-	};
-	
-	AsyncBuildingLODIndex = 0;
-	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this](FOpenLandPolygonMeshBuildResultPtr Result)
+	FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {};
+	BuildMeshOptions.SubDivisions = FMath::Max(0, SubDivisions - LODIndex);
+	BuildMeshOptions.CuspAngle = SmoothNormalAngle;
+
+	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, LODIndex](FOpenLandPolygonMeshBuildResultPtr Result)
 	{
 		Result->Target->bSectionVisible = true;
 		Result->Target->bEnableCollision = bEnableCollision;
-		const FLODInfoPtr LOD0 = MakeShared<FLODInfo>();
-		LOD0->MeshBuildResult = Result;
-		LOD0->MeshSectionIndex = 0;
-		LOD0->LODIndex = 0;
-		
-		CurrentLOD = LOD0;
+		const FLODInfoPtr LOD = MakeShared<FLODInfo>();
+		LOD->MeshBuildResult = Result;
+		LOD->MeshSectionIndex = -1;
+		LOD->LODIndex = LODIndex;
+
+		LODList[LODIndex] = LOD;
+		CurrentLOD = LOD;
 		
 		ModifyMeshAsync();
 	});
-
-	SetMaterial(Material);
-	bMeshGenerated = true;
 }
 
 void AOpenLandMeshActor::SetMaterial(UMaterialInterface* InputMaterial)
@@ -511,13 +508,24 @@ void AOpenLandMeshActor::EnsureLODVisibility()
 {
 	for(const FLODInfoPtr LOD: LODList)
 	{
+		if (LOD == nullptr)
+		{
+			continue;
+		}
+
 		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
 		MeshComponent->UpdateMeshSectionVisibility(LOD->MeshSectionIndex);
+		UE_LOG(LogTemp, Warning, TEXT("Mesh Visibility. LODIndex: %d, Visible: %s"), LOD->LODIndex, LOD->MeshBuildResult->Target->bSectionVisible? TEXT("Yes") : TEXT("No"))
 	}
 }
 
 bool AOpenLandMeshActor::SwitchLODs()
 {
+	if (AsyncBuildingLODIndex >=0)
+	{
+		return false;
+	}
+	
 	const UWorld* World = GetWorld();
 	if(World == nullptr)
 	{
@@ -533,17 +541,32 @@ bool AOpenLandMeshActor::SwitchLODs()
 	const FVector CameraLocation = ViewLocations[0];
 	const float Distance = FVector::Distance(CameraLocation, GetActorLocation());
 
-	const int32 LODCount = LODList.Num();
 	int32 DesiredLOD = 0;
 	
 	float RemainingDistance = Distance;
-	for(int32 LODIndex=0; LODIndex<LODCount; LODIndex++)
+	for(int32 LODIndex=0; LODIndex<MaximumLODCount; LODIndex++)
 	{
 		DesiredLOD = LODIndex;
 		RemainingDistance -= LODStepUnits * FMath::Pow(LODStepPower, LODIndex);
 		if (RemainingDistance <= 0)
 		{
 			break;
+		}
+	}
+
+	const bool bHasLOD = LODList.Num() > DesiredLOD && LODList[DesiredLOD] != nullptr;
+	if (!bHasLOD)
+	{
+		if (GetWorld()->WorldType == EWorldType::Editor)
+		{
+			return false;
+		}
+		else
+		{
+			AsyncBuildingLODIndex = DesiredLOD;
+			LODList.SetNumZeroed(DesiredLOD + 1, false);
+			BuildMeshAsync(DesiredLOD);
+			return false;
 		}
 	}
 

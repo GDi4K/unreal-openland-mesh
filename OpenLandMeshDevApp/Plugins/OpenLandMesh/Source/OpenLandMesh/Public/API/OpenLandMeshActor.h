@@ -71,7 +71,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	void BuildMeshAsync();
+	void BuildMeshAsync(int32 LODIndex);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
 	UOpenLandMeshComponent* MeshComponent;
