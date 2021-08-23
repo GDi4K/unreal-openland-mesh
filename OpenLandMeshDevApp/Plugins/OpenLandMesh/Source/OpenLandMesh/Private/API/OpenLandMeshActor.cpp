@@ -104,9 +104,9 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 				MeshComponent->SetupCollisions(true);
 			}
 			AsyncBuildingLODIndex = -1;
-			//SetMaterial(Material);
+			SetMaterial(Material);
 			EnsureLODVisibility();
-			UE_LOG(LogTemp, Warning, TEXT("LOD Building Completed"))
+			UE_LOG(LogTemp, Warning, TEXT("LOD Building Completed: LODIndex: %d"), ModifyingLOD->LODIndex)
 			return;
 		}
 		
@@ -476,6 +476,14 @@ void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 	{
 		Result->Target->bSectionVisible = true;
 		Result->Target->bEnableCollision = bEnableCollision;
+		
+		// With this setting, we use the given LOD as the collision mesh
+		// Otherwise, we will use all of these sections
+		if (LODIndexForCollisions >= 0 && bEnableCollision)
+		{
+			Result->Target->bEnableCollision = LODIndex == LODIndexForCollisions;
+		}
+
 		const FLODInfoPtr LOD = MakeShared<FLODInfo>();
 		LOD->MeshBuildResult = Result;
 		LOD->MeshSectionIndex = -1;
@@ -515,7 +523,6 @@ void AOpenLandMeshActor::EnsureLODVisibility()
 
 		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
 		MeshComponent->UpdateMeshSectionVisibility(LOD->MeshSectionIndex);
-		UE_LOG(LogTemp, Warning, TEXT("Mesh Visibility. LODIndex: %d, Visible: %s"), LOD->LODIndex, LOD->MeshBuildResult->Target->bSectionVisible? TEXT("Yes") : TEXT("No"))
 	}
 }
 
@@ -554,6 +561,16 @@ bool AOpenLandMeshActor::SwitchLODs()
 		}
 	}
 
+	const int32 CorrectedLODIndexForCollisions = FMath::Min(LODIndexForCollisions, FMath::Max(MaximumLODCount - 1, 0));
+	if (CorrectedLODIndexForCollisions >= 0)
+	{
+		const bool bHasCollisionLOD = LODList.Num() > CorrectedLODIndexForCollisions && LODList[CorrectedLODIndexForCollisions] != nullptr;
+		if (DesiredLOD != CorrectedLODIndexForCollisions && !bHasCollisionLOD)
+		{
+			DesiredLOD = CorrectedLODIndexForCollisions;
+		}
+	}
+
 	const bool bHasLOD = LODList.Num() > DesiredLOD && LODList[DesiredLOD] != nullptr;
 	if (!bHasLOD)
 	{
@@ -564,7 +581,10 @@ bool AOpenLandMeshActor::SwitchLODs()
 		else
 		{
 			AsyncBuildingLODIndex = DesiredLOD;
-			LODList.SetNumZeroed(DesiredLOD + 1, false);
+			if (LODList.Num() <= DesiredLOD)
+			{
+				LODList.SetNumZeroed(DesiredLOD + 1, false);
+			}
 			BuildMeshAsync(DesiredLOD);
 			return false;
 		}
