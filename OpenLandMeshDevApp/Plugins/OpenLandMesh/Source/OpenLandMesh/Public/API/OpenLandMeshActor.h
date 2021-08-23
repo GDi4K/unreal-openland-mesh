@@ -14,7 +14,7 @@
 struct FLODInfo
 {
 	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult = nullptr;
-	int32 MeshComponentIndex = 0;
+	int32 MeshSectionIndex = 0;
 	int32 LODIndex = 0;
 };
 
@@ -29,13 +29,10 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	bool bNeedToAsyncModifyMesh = false;
 	FOpenLandPolygonMeshModifyStatus ModifyStatus = {};
 
-	bool bMeshUpdatingStarted = false;
-	int32 UpdatedMeshVertices = 0;
-	float NeedToWaitMs = 0;
-
 	TArray<FLODInfoPtr> LODList;
 	FLODInfoPtr CurrentLOD = nullptr;
 	bool bNeedLODVisibilityChange = false;
+	int32 AsyncBuildingLODIndex = -1;
 
 	void RunAsyncModifyMeshProcess(float LastFrameTime);
 	void RunSyncModifyMeshProcess();
@@ -74,7 +71,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	void BuildMeshAsync(TFunction<void()> Callback = nullptr);
+	void BuildMeshAsync();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
 	UOpenLandMeshComponent* MeshComponent;
@@ -100,8 +97,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bDisableGPUVertexModifiersOnAnimate = false;
 
-	//TODO: Re-enable this when we fix async build-mesh support
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncBuildMeshOnGame = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
@@ -115,9 +111,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	int32 DesiredFrameRateOnModify = 110;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	bool bUpdateMeshViaAsync = false;
 	
 	UPROPERTY(VisibleAnywhere, Category=OpenLandMesh)
 	int32 CurrentLODIndex = 0;
@@ -143,7 +136,7 @@ public:
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMesh();
 
-	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMeshAsync();
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)

@@ -218,6 +218,17 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygo
 		Result->Target = Source.Clone();
 		BuildDataTextures(Result, Options.ForcedTextureWidth);
 
+		auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
+		ApplyVertexModifiers(VertexModifier, Result->Original.Get(), Result->Target.Get(), 0, Result->Original->Triangles.Length(), 0);
+		TrackCpuVertexModifiers.Finish();
+
+		if (Options.CuspAngle > 0.0)
+		{
+			auto TrackNormalSmoothing = TrackTime("NormalSmoothing");
+			ApplyNormalSmoothing(Result->Target.Get(), Options.CuspAngle);
+			TrackNormalSmoothing.Finish();
+		}
+
 		FOpenLandThreading::RunOnGameThread([HandleCallback, Result]()
 		{
 			HandleCallback(Result);
