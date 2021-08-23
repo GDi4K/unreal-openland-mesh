@@ -42,6 +42,11 @@ FOpenLandPolygonMeshModifyStatus UOpenLandMeshPolygonMeshProxy::CheckModifyVerti
 	return PolygonMesh->CheckModifyVerticesStatus(LastFrameTime);
 }
 
+int32 UOpenLandMeshPolygonMeshProxy::CalculateVerticesForSubdivision(int32 Subdivision) const
+{
+	return PolygonMesh->CalculateVerticesForSubdivision(Subdivision);
+}
+
 UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::AddTriFace(
 	const FVector A, const FVector B, const FVector C)
 {

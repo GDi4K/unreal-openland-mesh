@@ -599,6 +599,11 @@ FOpenLandPolygonMeshModifyStatus FOpenLandPolygonMesh::CheckModifyVerticesStatus
 	return ModifyInfo.Status;
 }
 
+int32 FOpenLandPolygonMesh::CalculateVerticesForSubdivision(int32 Subdivision) const
+{
+	return SourceMeshInfo.Vertices.Length() * FMath::Pow(4, Subdivision);
+}
+
 void FOpenLandPolygonMesh::AddTriFace(const FVector A, const FVector B, const FVector C)
 {
 	const TOpenLandArray<FOpenLandMeshVertex> InputVertices = {

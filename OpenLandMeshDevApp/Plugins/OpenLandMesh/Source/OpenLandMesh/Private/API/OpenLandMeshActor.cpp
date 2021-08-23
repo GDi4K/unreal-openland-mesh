@@ -242,8 +242,13 @@ void AOpenLandMeshActor::BuildMesh()
 	}
 
 
+	// We will set the first LOD's texture width for all other data textures
+	// For now, we use a single RenderTarget for each instance
+	// So, it's size will be the LOD0's size.
+	// That's why we do this.
+	const int32 NumVerticesForLOD0 = PolygonMesh->CalculateVerticesForSubdivision(SubDivisions);
+	const int32 ForcedTextureWidth = FMath::CeilToInt(FMath::Sqrt(NumVerticesForLOD0));
 	TArray<FLODInfoPtr> NewLODList;
-	int32 ForcedTextureWidth = 0;
 
 	TrackTime TotalLODTime = TrackTime("Total LOD Gen", true);
 	for (int32 LODIndex=0; LODIndex<MaximumLODCount; LODIndex++)
@@ -266,15 +271,6 @@ void AOpenLandMeshActor::BuildMesh()
 		if (LODIndexForCollisions >= 0 && bEnableCollision)
 		{
 			NewMeshBuildResult->Target->bEnableCollision = LODIndex == LODIndexForCollisions;
-		}
-
-		// We will set the first LOD's texture width for all other data textures
-		// For now, we use a single RenderTarget for each instance
-		// So, it's size will be the LOD0's size.
-		// That's why we do this.
-		if (LODIndex == 0)
-		{
-			ForcedTextureWidth = NewMeshBuildResult->TextureWidth;
 		}
 		
 		LOD->MeshBuildResult = NewMeshBuildResult;
@@ -467,10 +463,13 @@ void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 	{
 		PolygonMesh->RegisterGpuVertexModifier({});
 	}
-
+	
 	FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {};
 	BuildMeshOptions.SubDivisions = FMath::Max(0, SubDivisions - LODIndex);
 	BuildMeshOptions.CuspAngle = SmoothNormalAngle;
+	
+	const int32 NumVerticesForLOD0 = PolygonMesh->CalculateVerticesForSubdivision(SubDivisions);
+	BuildMeshOptions.ForcedTextureWidth = FMath::CeilToInt(FMath::Sqrt(NumVerticesForLOD0));
 
 	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, LODIndex](FOpenLandPolygonMeshBuildResultPtr Result)
 	{

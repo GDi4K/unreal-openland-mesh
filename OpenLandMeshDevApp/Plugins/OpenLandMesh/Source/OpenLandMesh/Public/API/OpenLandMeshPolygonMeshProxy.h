@@ -39,6 +39,7 @@ public:
 
 	void RegisterVertexModifier(function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial VertexModifier);
+	int32 CalculateVerticesForSubdivision(int32 Subdivision) const;
 
 	// Blueprint Methods
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)

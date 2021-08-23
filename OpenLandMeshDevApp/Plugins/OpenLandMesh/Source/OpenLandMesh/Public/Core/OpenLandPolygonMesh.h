@@ -154,6 +154,7 @@ public:
 	void AddQuadFace(const FVector A, const FVector B, const FVector C, const FVector D);
 	void Transform(FTransform Transformer);
 	bool IsThereAnyAsyncTask() const;
+	int32 CalculateVerticesForSubdivision(int32 Subdivision) const;
 
 	// Methods for delete schedular
 	static void RunDeleteScheduler();
