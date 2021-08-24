@@ -354,6 +354,13 @@ void AOpenLandMeshActor::ModifyMesh()
 
 void AOpenLandMeshActor::ModifyMeshAsync()
 {
+	// We cannot use the CPU vertex modifier inside the Editor.
+	// So, then we need to use the ModifyMesh instead.
+	if (GetWorld()->WorldType == EWorldType::Editor && bRunCpuVertexModifiers)
+	{
+		ModifyMesh();
+		return;
+	} 
 	bNeedToAsyncModifyMesh = true;
 }
 

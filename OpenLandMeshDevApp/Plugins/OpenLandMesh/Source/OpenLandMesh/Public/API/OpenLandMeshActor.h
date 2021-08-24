@@ -116,7 +116,7 @@ public:
 	bool bUseAsyncAnimations = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	int32 DesiredFrameRateOnModify = 110;
+	int32 DesiredFrameRateOnModify = 60;
 	
 	UPROPERTY(VisibleAnywhere, Category=OpenLandMesh)
 	int32 CurrentLODIndex = 0;
@@ -142,7 +142,7 @@ public:
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMesh();
 
-	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMeshAsync();
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
