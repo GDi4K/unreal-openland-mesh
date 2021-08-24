@@ -18,6 +18,12 @@ struct FLODInfo
 	int32 LODIndex = 0;
 };
 
+struct FSwitchLODsStatus
+{
+	bool bNeedLODVisibilityChange = false;
+	bool bAsyncBuildStarted = false;
+};
+
 typedef TSharedPtr<FLODInfo> FLODInfoPtr;
 
 UCLASS()
@@ -36,7 +42,7 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 
 	void RunAsyncModifyMeshProcess(float LastFrameTime);
 	void RunSyncModifyMeshProcess();
-	bool SwitchLODs();
+	FSwitchLODsStatus SwitchLODs();
 	void EnsureLODVisibility();
 	void UpdateMeshSectionAsync(float LastFrameTime);
 

@@ -28,7 +28,7 @@ void AOpenLandMeshActor::BeginPlay()
 	Super::BeginPlay();
 	if (bUseAsyncBuildMeshOnGame)
 	{
-		SwitchLODs();
+		// Building Mesh with async will take care by SwitchLODs() & inside the Tick()
 		bMeshGenerated = true;
 	}
 	else
@@ -116,7 +116,7 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 			EnsureLODVisibility();
 		}
 		
-		if (SwitchLODs())
+		if (SwitchLODs().bNeedLODVisibilityChange)
 		{
 			bNeedLODVisibilityChange = true;
 		}
@@ -125,7 +125,7 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 
 void AOpenLandMeshActor::RunSyncModifyMeshProcess()
 {
-	if (SwitchLODs())
+	if (SwitchLODs().bNeedLODVisibilityChange)
 	{
 		EnsureLODVisibility();
 	}
@@ -146,18 +146,30 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 
 	if (bIsEditor || !bAnimate)
 	{
-		if(SwitchLODs())
+		const FSwitchLODsStatus Status = SwitchLODs();
+		if(Status.bNeedLODVisibilityChange)
 		{
 			EnsureLODVisibility();
+		}
+
+		if (Status.bAsyncBuildStarted)
+		{
+			return;
 		}
 	}
 
 	if (CurrentLOD == nullptr)
 	{
+		// If there's No CurrentLOD but if it's animating, we need to change SwitchLODs.
+		// In this way, it will build LOD in async fashion (If async building enabled)
+		if (bAnimate)
+		{
+			SwitchLODs();
+		}
 		return;
 	}
 
-	if (CurrentLOD->MeshBuildResult->Target->IsLocked())
+	if (CurrentLOD->MeshBuildResult && CurrentLOD->MeshBuildResult->Target->IsLocked())
 	{
 		return;
 	}
@@ -165,6 +177,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	if (!ModifyStatus.bStarted && bNeedToAsyncModifyMesh)
 	{
 		bNeedToAsyncModifyMesh = false;
+		OnAfterAnimations();
 		PolygonMesh->RegisterGpuVertexModifier(GpuVertexModifier);
 		RunAsyncModifyMeshProcess(DeltaTime);
 		return;
@@ -173,6 +186,11 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 	if (ModifyStatus.bStarted)
 	{
 		RunAsyncModifyMeshProcess(DeltaTime);
+		return;
+	}
+
+	if (AsyncBuildingLODIndex >= 0)
+	{
 		return;
 	}
 	
@@ -471,7 +489,14 @@ void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 	const int32 NumVerticesForLOD0 = PolygonMesh->CalculateVerticesForSubdivision(SubDivisions);
 	BuildMeshOptions.ForcedTextureWidth = FMath::CeilToInt(FMath::Sqrt(NumVerticesForLOD0));
 
-	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this, LODIndex](FOpenLandPolygonMeshBuildResultPtr Result)
+	const FLODInfoPtr LOD = MakeShared<FLODInfo>();
+	LOD->MeshSectionIndex = -1;
+	LOD->LODIndex = LODIndex;
+	
+	LODList[LODIndex] = LOD;
+	CurrentLOD = LOD;
+
+	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this](FOpenLandPolygonMeshBuildResultPtr Result)
 	{
 		Result->Target->bSectionVisible = true;
 		Result->Target->bEnableCollision = bEnableCollision;
@@ -480,16 +505,10 @@ void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 		// Otherwise, we will use all of these sections
 		if (LODIndexForCollisions >= 0 && bEnableCollision)
 		{
-			Result->Target->bEnableCollision = LODIndex == LODIndexForCollisions;
+			Result->Target->bEnableCollision = CurrentLOD->LODIndex == LODIndexForCollisions;
 		}
-
-		const FLODInfoPtr LOD = MakeShared<FLODInfo>();
-		LOD->MeshBuildResult = Result;
-		LOD->MeshSectionIndex = -1;
-		LOD->LODIndex = LODIndex;
-
-		LODList[LODIndex] = LOD;
-		CurrentLOD = LOD;
+		
+		CurrentLOD->MeshBuildResult = Result;
 		
 		ModifyMeshAsync();
 	});
@@ -525,23 +544,24 @@ void AOpenLandMeshActor::EnsureLODVisibility()
 	}
 }
 
-bool AOpenLandMeshActor::SwitchLODs()
+FSwitchLODsStatus AOpenLandMeshActor::SwitchLODs()
 {
+	FSwitchLODsStatus Status = {};
 	if (AsyncBuildingLODIndex >=0)
 	{
-		return false;
+		return Status;
 	}
 	
 	const UWorld* World = GetWorld();
 	if(World == nullptr)
 	{
-		return false;
+		return Status;
 	}
  
 	const TArray<FVector> ViewLocations = World->ViewLocationsRenderedLastFrame;
 	if(ViewLocations.Num() == 0)
 	{
-		return false;
+		return Status;
 	}
 
 	const FVector CameraLocation = ViewLocations[0];
@@ -575,7 +595,7 @@ bool AOpenLandMeshActor::SwitchLODs()
 	{
 		if (GetWorld()->WorldType == EWorldType::Editor)
 		{
-			return false;
+			return Status;
 		}
 		else
 		{
@@ -585,17 +605,21 @@ bool AOpenLandMeshActor::SwitchLODs()
 				LODList.SetNumZeroed(DesiredLOD + 1, false);
 			}
 			BuildMeshAsync(DesiredLOD);
-			return false;
+			
+			Status.bAsyncBuildStarted = true;
+			return Status;
 		}
 	}
 
 	if (DesiredLOD == CurrentLODIndex) {
-		return false;
+		return Status;
 	}
 
 	CurrentLODIndex = DesiredLOD;
 	CurrentLOD = LODList[CurrentLODIndex];
-	return true;
+
+	Status.bNeedLODVisibilityChange = true;
+	return Status;
 }
 
 bool AOpenLandMeshActor::ShouldTickIfViewportsOnly() const
