@@ -95,3 +95,8 @@ bool FDataRenderTarget::ReadDataAsync(int32 RowStart, int32 RowEnd, TArray<FColo
 
 	return true;
 }
+
+bool FDataRenderTarget::IsActive() const
+{
+	return RenderTarget->Resource != nullptr;
+}

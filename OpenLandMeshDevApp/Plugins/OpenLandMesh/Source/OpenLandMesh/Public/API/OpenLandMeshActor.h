@@ -14,8 +14,14 @@
 struct FLODInfo
 {
 	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult = nullptr;
-	int32 MeshComponentIndex = 0;
+	int32 MeshSectionIndex = 0;
 	int32 LODIndex = 0;
+};
+
+struct FSwitchLODsStatus
+{
+	bool bNeedLODVisibilityChange = false;
+	bool bAsyncBuildStarted = false;
 };
 
 typedef TSharedPtr<FLODInfo> FLODInfoPtr;
@@ -26,15 +32,19 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	GENERATED_BODY()
 
 	bool bMeshGenerated = false;
-	bool bModifyMeshIsInProgress = false;
-	bool bNeedToModifyMesh = true;
+	bool bNeedToAsyncModifyMesh = false;
+	FOpenLandPolygonMeshModifyStatus ModifyStatus = {};
 
 	TArray<FLODInfoPtr> LODList;
 	FLODInfoPtr CurrentLOD = nullptr;
 	bool bNeedLODVisibilityChange = false;
-	
-	bool SwitchLODs();
+	int32 AsyncBuildingLODIndex = -1;
+
+	void RunAsyncModifyMeshProcess(float LastFrameTime);
+	void RunSyncModifyMeshProcess();
+	FSwitchLODsStatus SwitchLODs();
 	void EnsureLODVisibility();
+	void UpdateMeshSectionAsync(float LastFrameTime);
 
 public:
 	// Sets default values for this actor's properties
@@ -67,7 +77,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	void BuildMeshAsync(TFunction<void()> Callback = nullptr);
+	void BuildMeshAsync(int32 LODIndex);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
 	UOpenLandMeshComponent* MeshComponent;
@@ -93,8 +103,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bDisableGPUVertexModifiersOnAnimate = false;
 
-	//TODO: Re-enable this when we fix async build-mesh support
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncBuildMeshOnGame = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
@@ -106,6 +115,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bUseAsyncAnimations = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	int32 DesiredFrameRateOnModify = 60;
+	
 	UPROPERTY(VisibleAnywhere, Category=OpenLandMesh)
 	int32 CurrentLODIndex = 0;
 	
