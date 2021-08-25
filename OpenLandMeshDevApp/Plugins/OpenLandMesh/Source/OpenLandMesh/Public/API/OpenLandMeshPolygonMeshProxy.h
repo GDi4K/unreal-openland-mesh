@@ -11,6 +11,13 @@
 #include "UObject/Object.h"
 #include "OpenLandMeshPolygonMeshProxy.generated.h"
 
+struct FOpenLandBuildMeshResultCacheInfo {
+	FString CacheKey;
+	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult;
+	FDateTime CachedAt;
+	FDateTime LastCacheHitAt;
+	bool IsModifying = false;
+};
 /**
  * 
  */
@@ -20,15 +27,16 @@ class OPENLANDMESH_API UOpenLandMeshPolygonMeshProxy : public UObject
 	GENERATED_BODY()
 
 	FOpenLandPolygonMesh* PolygonMesh;
+	static TMap<FString, FOpenLandBuildMeshResultCacheInfo> CachedBuildMesh;
 
 public:
 	UOpenLandMeshPolygonMeshProxy();
 	~UOpenLandMeshPolygonMeshProxy();
 
-	FOpenLandPolygonMeshBuildResultPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const;
+	FOpenLandPolygonMeshBuildResultPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options, FString CacheKey="") const;
 	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
 	                    std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback) const;
-	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+	void ModifyVertices(::UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                    FOpenLandPolygonMeshModifyOptions Options) const;
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not

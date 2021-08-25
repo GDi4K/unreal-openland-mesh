@@ -44,7 +44,7 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	void RunSyncModifyMeshProcess();
 	FSwitchLODsStatus SwitchLODs();
 	void EnsureLODVisibility();
-	void UpdateMeshSectionAsync(float LastFrameTime);
+	FString MakeCacheKey(FString SourceCacheKey, int32 CurrentSubdivisions) const;
 
 public:
 	// Sets default values for this actor's properties

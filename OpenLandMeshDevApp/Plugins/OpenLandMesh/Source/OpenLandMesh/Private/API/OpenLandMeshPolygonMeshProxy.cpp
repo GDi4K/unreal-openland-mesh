@@ -2,6 +2,8 @@
 
 #include "API/OpenLandMeshPolygonMeshProxy.h"
 
+TMap<FString, FOpenLandBuildMeshResultCacheInfo> UOpenLandMeshPolygonMeshProxy::CachedBuildMesh = {};
+
 UOpenLandMeshPolygonMeshProxy::UOpenLandMeshPolygonMeshProxy()
 {
 	PolygonMesh = new FOpenLandPolygonMesh();
@@ -13,9 +15,35 @@ UOpenLandMeshPolygonMeshProxy::~UOpenLandMeshPolygonMeshProxy()
 	FOpenLandPolygonMesh::DeletePolygonMesh(PolygonMesh);
 }
 
-FOpenLandPolygonMeshBuildResultPtr UOpenLandMeshPolygonMeshProxy::BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const
+FOpenLandPolygonMeshBuildResultPtr UOpenLandMeshPolygonMeshProxy::BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options, FString CacheKey) const
 {
-	return PolygonMesh->BuildMesh(WorldContext, Options);
+	if (CacheKey.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Cache Key"))
+		return PolygonMesh->BuildMesh(WorldContext, Options);
+	}
+
+	FOpenLandBuildMeshResultCacheInfo* CachedInfo = CachedBuildMesh.Find(CacheKey);
+	if (CachedInfo != nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cache Hit"))
+		CachedInfo->LastCacheHitAt = FDateTime::Now();
+		return CachedInfo->MeshBuildResult;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Cache Create"))
+	const FOpenLandPolygonMeshBuildResultPtr Result = PolygonMesh->BuildMesh(WorldContext, Options);
+	Result->CacheKey = CacheKey;
+	
+	FOpenLandBuildMeshResultCacheInfo NewCacheInfo = {};
+	NewCacheInfo.CacheKey = CacheKey;
+	NewCacheInfo.MeshBuildResult = Result;
+	NewCacheInfo.CachedAt = FDateTime::Now();
+	NewCacheInfo.LastCacheHitAt = NewCacheInfo.CachedAt;
+	
+	CachedBuildMesh.Add(CacheKey, NewCacheInfo);
+
+	return NewCacheInfo.MeshBuildResult;
 }
 
 void UOpenLandMeshPolygonMeshProxy::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
@@ -28,7 +56,26 @@ void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FOpenL
                                                    FOpenLandPolygonMeshModifyOptions Options) const
                                                    
 {
-	return PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
+	UE_LOG(LogTemp, Warning, TEXT("ModifyVertices"))
+	if (MeshBuildResult->CacheKey.IsEmpty())
+	{
+		PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
+	}
+
+	FOpenLandBuildMeshResultCacheInfo* CacheInfo = CachedBuildMesh.Find(MeshBuildResult->CacheKey);
+	if (CacheInfo == nullptr)
+	{
+		PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
+	}
+
+	if (CacheInfo->IsModifying)
+	{
+		return;
+	}
+
+	CacheInfo->IsModifying = true;
+	PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
+	CacheInfo->IsModifying = false;
 }
 
 FOpenLandPolygonMeshModifyStatus UOpenLandMeshPolygonMeshProxy::StartModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,

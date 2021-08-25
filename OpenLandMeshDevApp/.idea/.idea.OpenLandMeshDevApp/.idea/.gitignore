@@ -7,7 +7,7 @@
 /projectSettingsUpdater.xml
 /.idea.OpenLandMeshDevApp.iml
 # Datasource local storage ignored files
-/../../../../../../../../:\Repos\GameDev4K\openland-mesh\OpenLandMeshDevApp\.idea\.idea.OpenLandMeshDevApp\.idea/dataSources/
+/dataSources/
 /dataSources.local.xml
 # Editor-based HTTP Client requests
 /httpRequests/

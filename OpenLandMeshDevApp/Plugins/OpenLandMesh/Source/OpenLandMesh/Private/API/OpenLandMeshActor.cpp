@@ -279,7 +279,9 @@ void AOpenLandMeshActor::BuildMesh()
 	        SmoothNormalAngle,
 			ForcedTextureWidth
 	    };
-		const FOpenLandPolygonMeshBuildResultPtr NewMeshBuildResult = PolygonMesh->BuildMesh(this, BuildMeshOptions);
+
+		const FString CacheKey = MakeCacheKey("Okay", BuildMeshOptions.SubDivisions);
+		const FOpenLandPolygonMeshBuildResultPtr NewMeshBuildResult = PolygonMesh->BuildMesh(this, BuildMeshOptions, CacheKey);
 
 		NewMeshBuildResult->Target->bSectionVisible = false;
 		NewMeshBuildResult->Target->bEnableCollision = bEnableCollision;
@@ -627,6 +629,11 @@ FSwitchLODsStatus AOpenLandMeshActor::SwitchLODs()
 
 	Status.bNeedLODVisibilityChange = true;
 	return Status;
+}
+
+FString AOpenLandMeshActor::MakeCacheKey(FString SourceCacheKey, int32 CurrentSubdivisions) const
+{
+	return SourceCacheKey + "::" + FString::FromInt(SubDivisions) + "::" + FString::FromInt(CurrentSubdivisions);
 }
 
 bool AOpenLandMeshActor::ShouldTickIfViewportsOnly() const

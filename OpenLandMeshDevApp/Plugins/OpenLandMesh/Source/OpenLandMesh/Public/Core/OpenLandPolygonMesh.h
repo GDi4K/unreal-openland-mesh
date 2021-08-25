@@ -59,8 +59,10 @@ struct FOpenLandPolygonMeshBuildResult
 {
 	FSimpleMeshInfoPtr Original = nullptr;
 	FSimpleMeshInfoPtr Target = nullptr;
+	int32 SubDivisions = 0;
 	int32 TextureWidth = 0;
 	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
+	FString CacheKey;
 };
 
 // Above TArray contains a runtime texture

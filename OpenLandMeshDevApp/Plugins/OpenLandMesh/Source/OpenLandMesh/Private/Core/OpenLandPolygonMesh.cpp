@@ -138,9 +138,10 @@ FOpenLandPolygonMeshBuildResultPtr FOpenLandPolygonMesh::BuildMesh(UObject* Worl
 	FOpenLandMeshInfo Source = SubDivide(TransformedMeshInfo, Options.SubDivisions);
 
 	FOpenLandPolygonMeshBuildResultPtr Result = MakeShared<FOpenLandPolygonMeshBuildResult>();
-	
+
 	Result->Original = Source.Clone();
 	Result->Target = Source.Clone();
+	Result->SubDivisions = Options.SubDivisions;
 	BuildDataTextures(Result, Options.ForcedTextureWidth);
 
 	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
@@ -216,6 +217,7 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygo
 		
 		Result->Original = Source.Clone();
 		Result->Target = Source.Clone();
+		Result->SubDivisions = Options.SubDivisions;
 		BuildDataTextures(Result, Options.ForcedTextureWidth);
 
 		auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
