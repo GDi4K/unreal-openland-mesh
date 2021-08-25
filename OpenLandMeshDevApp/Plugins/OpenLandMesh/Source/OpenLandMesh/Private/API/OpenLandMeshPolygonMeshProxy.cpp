@@ -94,6 +94,11 @@ int32 UOpenLandMeshPolygonMeshProxy::CalculateVerticesForSubdivision(int32 Subdi
 	return PolygonMesh->CalculateVerticesForSubdivision(Subdivision);
 }
 
+void UOpenLandMeshPolygonMeshProxy::ClearCache()
+{
+	CachedBuildMesh.Empty();
+}
+
 UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::AddTriFace(
 	const FVector A, const FVector B, const FVector C)
 {

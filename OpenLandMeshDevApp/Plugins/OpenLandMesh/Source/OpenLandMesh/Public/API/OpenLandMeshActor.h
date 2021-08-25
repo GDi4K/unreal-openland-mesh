@@ -145,6 +145,9 @@ public:
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMesh();
 
+	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
+	void ResetCache();
+
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMeshAsync();
 

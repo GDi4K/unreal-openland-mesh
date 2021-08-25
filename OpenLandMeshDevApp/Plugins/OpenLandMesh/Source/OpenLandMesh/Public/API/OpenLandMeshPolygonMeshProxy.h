@@ -71,4 +71,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	static UOpenLandMeshPolygonMeshProxy* MakePyramidMesh();
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	static void ClearCache();
 };

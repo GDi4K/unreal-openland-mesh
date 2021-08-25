@@ -527,6 +527,11 @@ void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 	});
 }
 
+void AOpenLandMeshActor::ResetCache()
+{
+	PolygonMesh->ClearCache();
+}
+
 void AOpenLandMeshActor::SetMaterial(UMaterialInterface* InputMaterial)
 {
 	Material = InputMaterial;
