@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 #include "API/OpenLandMeshActor.h"
-
 #include "Utils/TrackTime.h"
 
 
@@ -280,7 +279,7 @@ void AOpenLandMeshActor::BuildMesh()
 			ForcedTextureWidth
 	    };
 
-		const FString CacheKey = MakeCacheKey("Okay", BuildMeshOptions.SubDivisions);
+		const FString CacheKey = MakeCacheKey(BuildMeshOptions.SubDivisions);
 		const FOpenLandPolygonMeshBuildResultPtr NewMeshBuildResult = PolygonMesh->BuildMesh(this, BuildMeshOptions, CacheKey);
 
 		NewMeshBuildResult->Target->bSectionVisible = false;
@@ -462,6 +461,11 @@ UTexture2D* AOpenLandMeshActor::GetGPUTextureParameter(FName Name)
 	return nullptr;
 }
 
+FString AOpenLandMeshActor::GetCacheKey_Implementation() const
+{
+	return "";
+}
+
 void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 {
 	PolygonMesh = GetPolygonMesh();
@@ -631,8 +635,16 @@ FSwitchLODsStatus AOpenLandMeshActor::SwitchLODs()
 	return Status;
 }
 
-FString AOpenLandMeshActor::MakeCacheKey(FString SourceCacheKey, int32 CurrentSubdivisions) const
+FString AOpenLandMeshActor::MakeCacheKey(int32 CurrentSubdivisions) const
 {
+	const FString SourceCacheKey = GetCacheKey();
+
+	// So, this actor is not cacheable
+	if (SourceCacheKey.IsEmpty())
+	{
+		return "";
+	}
+	
 	return SourceCacheKey + "::" + FString::FromInt(SubDivisions) + "::" + FString::FromInt(CurrentSubdivisions);
 }
 

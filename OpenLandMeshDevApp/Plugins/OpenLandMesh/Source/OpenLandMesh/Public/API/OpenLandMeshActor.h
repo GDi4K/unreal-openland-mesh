@@ -44,7 +44,7 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	void RunSyncModifyMeshProcess();
 	FSwitchLODsStatus SwitchLODs();
 	void EnsureLODVisibility();
-	FString MakeCacheKey(FString SourceCacheKey, int32 CurrentSubdivisions) const;
+	FString MakeCacheKey(int32 CurrentSubdivisions) const;
 
 public:
 	// Sets default values for this actor's properties
@@ -68,6 +68,9 @@ protected:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="OpenLandMesh")
     void OnAfterAnimations();
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="OpenLandMesh")
+	FString GetCacheKey() const;
+
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -83,7 +86,7 @@ public:
 	UOpenLandMeshComponent* MeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	int SubDivisions = 0;
+	int32 SubDivisions = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	float SmoothNormalAngle = 0;
