@@ -425,7 +425,8 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
 	for (int32 Index = 0; Index < ModifiedPositions.Num(); Index++)
 	{
 		const int32 TargetIndex = StartIndex + Index;
-		if (TargetIndex >= MeshBuildResult->Target->Vertices.Length())
+		const int32 TotalVertices = MeshBuildResult->Target->Vertices.Length();
+		if (TargetIndex >= TotalVertices)
 		{
 			break;
 		}
