@@ -16,7 +16,7 @@ struct FOpenLandBuildMeshResultCacheInfo {
 	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult;
 	FDateTime CachedAt;
 	FDateTime LastCacheHitAt;
-	bool IsModifying = false;
+	TArray<std::function<void(FOpenLandPolygonMeshBuildResultPtr)>> AsyncMeshBuildCallbacks;
 };
 /**
  * 
@@ -35,7 +35,7 @@ public:
 
 	FOpenLandPolygonMeshBuildResultPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options, FString CacheKey="") const;
 	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
-	                    std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback) const;
+	                    std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback, FString CacheKey="") const;
 	void ModifyVertices(::UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                    FOpenLandPolygonMeshModifyOptions Options) const;
 	// Here we do vertex modifications outside of the game thread
@@ -43,7 +43,7 @@ public:
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
 	FOpenLandPolygonMeshModifyStatus StartModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                         FOpenLandPolygonMeshModifyOptions Options) const;
-	FOpenLandPolygonMeshModifyStatus CheckModifyVerticesStatus(float LastFrameTime) const;
+	FOpenLandPolygonMeshModifyStatus CheckModifyVerticesStatus(FOpenLandPolygonMeshBuildResultPtr MeshBuildResult, float LastFrameTime) const;
 
 	void RegisterVertexModifier(function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial VertexModifier);

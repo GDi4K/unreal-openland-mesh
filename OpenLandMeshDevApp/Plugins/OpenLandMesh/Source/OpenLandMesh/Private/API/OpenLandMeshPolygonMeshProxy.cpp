@@ -28,7 +28,7 @@ FOpenLandPolygonMeshBuildResultPtr UOpenLandMeshPolygonMeshProxy::BuildMesh(UObj
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Cache Hit"))
 		CachedInfo->LastCacheHitAt = FDateTime::Now();
-		return CachedInfo->MeshBuildResult;
+		return CachedInfo->MeshBuildResult->ShallowClone();
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Cache Create"))
@@ -43,39 +43,70 @@ FOpenLandPolygonMeshBuildResultPtr UOpenLandMeshPolygonMeshProxy::BuildMesh(UObj
 	
 	CachedBuildMesh.Add(CacheKey, NewCacheInfo);
 
-	return NewCacheInfo.MeshBuildResult;
+	return NewCacheInfo.MeshBuildResult->ShallowClone();
 }
 
 void UOpenLandMeshPolygonMeshProxy::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
-                                                   std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback) const
+                                                   std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback, FString CacheKey) const
 {
-	return PolygonMesh->BuildMeshAsync(WorldContext, Options, Callback);
+	if (CacheKey.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BuildMeshAsync:No Cache Key"))
+		return  PolygonMesh->BuildMeshAsync(WorldContext, Options, Callback);
+	}
+
+	FOpenLandBuildMeshResultCacheInfo* CachedInfo = CachedBuildMesh.Find(CacheKey);
+	if (CachedInfo != nullptr)
+	{
+		if (CachedInfo->MeshBuildResult == nullptr || CachedInfo->MeshBuildResult->Target == nullptr)
+		{
+			
+			CachedInfo->AsyncMeshBuildCallbacks.Push(Callback);
+			return;
+		}
+		
+		UE_LOG(LogTemp, Warning, TEXT("BuildMeshAsync:Cache Hit, Have Target"))
+		CachedInfo->LastCacheHitAt = FDateTime::Now();
+		Callback(CachedInfo->MeshBuildResult->ShallowClone());
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("BuildMeshAsync:Cache Create"));
+	
+	FOpenLandBuildMeshResultCacheInfo NewCacheInfo = {};
+	NewCacheInfo.CacheKey = CacheKey;
+	NewCacheInfo.CachedAt = FDateTime::Now();
+	NewCacheInfo.LastCacheHitAt = NewCacheInfo.CachedAt;
+	
+	CachedBuildMesh.Add(CacheKey, NewCacheInfo);
+	
+	auto CallbackWrapper = [Callback, CacheKey](FOpenLandPolygonMeshBuildResultPtr Result)
+	{
+		Result->CacheKey = CacheKey;
+		CachedBuildMesh[CacheKey].MeshBuildResult = Result->ShallowClone();
+		Callback(Result);
+	};
+	
+	return PolygonMesh->BuildMeshAsync(WorldContext, Options, CallbackWrapper);
 }
 
 void UOpenLandMeshPolygonMeshProxy::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
                                                    FOpenLandPolygonMeshModifyOptions Options) const
                                                    
 {
-	UE_LOG(LogTemp, Warning, TEXT("ModifyVertices"))
-	if (MeshBuildResult->CacheKey.IsEmpty())
-	{
-		PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
-	}
-
 	FOpenLandBuildMeshResultCacheInfo* CacheInfo = CachedBuildMesh.Find(MeshBuildResult->CacheKey);
-	if (CacheInfo == nullptr)
-	{
-		PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
-	}
-
-	if (CacheInfo->IsModifying)
-	{
-		return;
-	}
-
-	CacheInfo->IsModifying = true;
 	PolygonMesh->ModifyVertices(WorldContext, MeshBuildResult, Options);
-	CacheInfo->IsModifying = false;
+
+	if (CacheInfo && CacheInfo->MeshBuildResult->Target == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ModifyVertices: Processing Callabcks"))
+		CacheInfo->MeshBuildResult->Target = MeshBuildResult->Target->Clone();
+		for (const auto Callback: CacheInfo->AsyncMeshBuildCallbacks)
+		{
+			Callback(CacheInfo->MeshBuildResult->ShallowClone());
+		}
+		CacheInfo->AsyncMeshBuildCallbacks = {};
+	}
 }
 
 FOpenLandPolygonMeshModifyStatus UOpenLandMeshPolygonMeshProxy::StartModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
@@ -84,9 +115,25 @@ FOpenLandPolygonMeshModifyStatus UOpenLandMeshPolygonMeshProxy::StartModifyVerti
 	return PolygonMesh->StartModifyVertices(WorldContext, MeshBuildResult, Options);
 }
 
-FOpenLandPolygonMeshModifyStatus UOpenLandMeshPolygonMeshProxy::CheckModifyVerticesStatus(float LastFrameTime) const
+FOpenLandPolygonMeshModifyStatus UOpenLandMeshPolygonMeshProxy::CheckModifyVerticesStatus(FOpenLandPolygonMeshBuildResultPtr MeshBuildResult, float LastFrameTime) const
 {
-	return PolygonMesh->CheckModifyVerticesStatus(LastFrameTime);
+	const FOpenLandPolygonMeshModifyStatus Status = PolygonMesh->CheckModifyVerticesStatus(LastFrameTime);
+	if (Status.bCompleted)
+	{
+		FOpenLandBuildMeshResultCacheInfo* CacheInfo = CachedBuildMesh.Find(MeshBuildResult->CacheKey);
+		if (CacheInfo && CacheInfo->MeshBuildResult->Target == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("CheckModifyVerticesStatus: Processing Callabcks"))
+			CacheInfo->MeshBuildResult->Target = MeshBuildResult->Target->Clone();
+			for (const auto Callback: CacheInfo->AsyncMeshBuildCallbacks)
+			{
+				Callback(CacheInfo->MeshBuildResult->ShallowClone());
+			}
+			CacheInfo->AsyncMeshBuildCallbacks = {};
+		}
+	}
+
+	return Status;
 }
 
 int32 UOpenLandMeshPolygonMeshProxy::CalculateVerticesForSubdivision(int32 Subdivision) const

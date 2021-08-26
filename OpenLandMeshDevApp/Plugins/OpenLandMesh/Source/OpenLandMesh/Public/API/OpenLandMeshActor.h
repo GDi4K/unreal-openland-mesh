@@ -32,7 +32,10 @@ struct FLODInfo
 
 		bIsModifyReady = true;
 		MeshBuildResult = MeshBuildResult->ShallowClone();
-		MeshBuildResult->Target = MeshBuildResult->Target->Clone();
+		if (MeshBuildResult->Target)
+		{
+			MeshBuildResult->Target = MeshBuildResult->Target->Clone();
+		}
 
 		return true;
 	}
@@ -65,7 +68,8 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	FSwitchLODsStatus SwitchLODs();
 	void EnsureLODVisibility();
 	FString MakeCacheKey(int32 CurrentSubdivisions) const;
-	void MakeModifyReady() const;
+	void MakeModifyReady();
+	void FinishBuildMeshAsync();
 
 public:
 	// Sets default values for this actor's properties

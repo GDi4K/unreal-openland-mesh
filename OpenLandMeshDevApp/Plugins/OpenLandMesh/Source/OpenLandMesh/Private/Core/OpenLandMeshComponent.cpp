@@ -173,6 +173,7 @@ void UOpenLandMeshComponent::PostLoad()
 
 void UOpenLandMeshComponent::CreateMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo)
 {
+	UE_LOG(LogTemp, Warning, TEXT("CreateMeshSection"))
 	if (SectionIndex < MeshSections.Num())
 	{
 		checkf(false, TEXT("It's not possible to create an already created mesh section with index: %d"), SectionIndex);
@@ -190,6 +191,7 @@ void UOpenLandMeshComponent::CreateMeshSection(int32 SectionIndex, FSimpleMeshIn
 
 void UOpenLandMeshComponent::ReplaceMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo)
 {
+	UE_LOG(LogTemp, Warning, TEXT("ReplaceMeshSection"))
 	if (SectionIndex >= MeshSections.Num())
 	{
 		checkf(false, TEXT("There is no existing mesh section with the index: %d"), SectionIndex);
