@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 #include "API/OpenLandMeshActor.h"
-
 #include "Utils/TrackTime.h"
 
 
@@ -65,12 +64,14 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 		ModifyOptions.CuspAngle = SmoothNormalAngle;
 		ModifyOptions.LastFrameTime = LastFrameTime;
 		ModifyOptions.DesiredFrameRate = DesiredFrameRateOnModify;
+
+		MakeModifyReady();
 		ModifyStatus = PolygonMesh->StartModifyVertices(this, ModifyingLOD->MeshBuildResult, ModifyOptions);
 		
 		return;
 	}
 	
-	ModifyStatus = PolygonMesh->CheckModifyVerticesStatus(LastFrameTime);
+	ModifyStatus = PolygonMesh->CheckModifyVerticesStatus(ModifyingLOD->MeshBuildResult, LastFrameTime);
 	
 	if (ModifyStatus.bAborted)
 	{
@@ -95,17 +96,7 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 		
 		if (AsyncBuildingLODIndex >= 0)
 		{
-			ModifyingLOD->MeshSectionIndex = MeshComponent->NumMeshSections();
-			MeshComponent->CreateMeshSection(ModifyingLOD->MeshSectionIndex, ModifyingLOD->MeshBuildResult->Target);
-			MeshComponent->InvalidateRendering();
-			
-			if (ModifyingLOD->MeshBuildResult->Target->bEnableCollision)
-			{
-				MeshComponent->SetupCollisions(true);
-			}
-			AsyncBuildingLODIndex = -1;
-			SetMaterial(Material);
-			EnsureLODVisibility();
+			FinishBuildMeshAsync();
 			UE_LOG(LogTemp, Warning, TEXT("LOD Building Completed: LODIndex: %d"), ModifyingLOD->LODIndex)
 			return;
 		}
@@ -129,6 +120,8 @@ void AOpenLandMeshActor::RunSyncModifyMeshProcess()
 	{
 		EnsureLODVisibility();
 	}
+
+	MakeModifyReady();
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
 	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
 	OnAfterAnimations();
@@ -169,7 +162,7 @@ void AOpenLandMeshActor::Tick(float DeltaTime)
 		return;
 	}
 
-	if (CurrentLOD->MeshBuildResult && CurrentLOD->MeshBuildResult->Target->IsLocked())
+	if (CurrentLOD->MeshBuildResult && CurrentLOD->MeshBuildResult->Target && CurrentLOD->MeshBuildResult->Target->IsLocked())
 	{
 		return;
 	}
@@ -279,7 +272,9 @@ void AOpenLandMeshActor::BuildMesh()
 	        SmoothNormalAngle,
 			ForcedTextureWidth
 	    };
-		const FOpenLandPolygonMeshBuildResultPtr NewMeshBuildResult = PolygonMesh->BuildMesh(this, BuildMeshOptions);
+
+		const FString CacheKey = MakeCacheKey(BuildMeshOptions.SubDivisions);
+		const FOpenLandPolygonMeshBuildResultPtr NewMeshBuildResult = PolygonMesh->BuildMesh(this, BuildMeshOptions, CacheKey);
 
 		NewMeshBuildResult->Target->bSectionVisible = false;
 		NewMeshBuildResult->Target->bEnableCollision = bEnableCollision;
@@ -348,6 +343,7 @@ void AOpenLandMeshActor::ModifyMesh()
 	else
 		PolygonMesh->RegisterGpuVertexModifier({});
 
+	MakeModifyReady();
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
 	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
 }
@@ -460,6 +456,11 @@ UTexture2D* AOpenLandMeshActor::GetGPUTextureParameter(FName Name)
 	return nullptr;
 }
 
+FString AOpenLandMeshActor::GetCacheKey_Implementation() const
+{
+	return "";
+}
+
 void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 {
 	PolygonMesh = GetPolygonMesh();
@@ -503,22 +504,26 @@ void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 	LODList[LODIndex] = LOD;
 	CurrentLOD = LOD;
 
+	const FString CacheKey = MakeCacheKey(BuildMeshOptions.SubDivisions);
 	PolygonMesh->BuildMeshAsync(this, BuildMeshOptions, [this](FOpenLandPolygonMeshBuildResultPtr Result)
 	{
-		Result->Target->bSectionVisible = true;
-		Result->Target->bEnableCollision = bEnableCollision;
-		
-		// With this setting, we use the given LOD as the collision mesh
-		// Otherwise, we will use all of these sections
-		if (LODIndexForCollisions >= 0 && bEnableCollision)
+		CurrentLOD->MeshBuildResult = Result;
+		// This is coming from the cache & we can simply render it without modifying
+		if (CurrentLOD->MeshBuildResult->Target)
 		{
-			Result->Target->bEnableCollision = CurrentLOD->LODIndex == LODIndexForCollisions;
+			UE_LOG(LogTemp, Warning, TEXT("Async Rendering With Cache"))
+			FinishBuildMeshAsync();
+		} else
+		{
+			ModifyMeshAsync();
 		}
 		
-		CurrentLOD->MeshBuildResult = Result;
-		
-		ModifyMeshAsync();
-	});
+	}, CacheKey);
+}
+
+void AOpenLandMeshActor::ResetCache()
+{
+	PolygonMesh->ClearCache();
 }
 
 void AOpenLandMeshActor::SetMaterial(UMaterialInterface* InputMaterial)
@@ -627,6 +632,54 @@ FSwitchLODsStatus AOpenLandMeshActor::SwitchLODs()
 
 	Status.bNeedLODVisibilityChange = true;
 	return Status;
+}
+
+FString AOpenLandMeshActor::MakeCacheKey(int32 CurrentSubdivisions) const
+{
+	const FString SourceCacheKey = GetCacheKey();
+
+	// So, this actor is not cacheable
+	if (SourceCacheKey.IsEmpty())
+	{
+		return "";
+	}
+	
+	return SourceCacheKey + "::" + FString::FromInt(SubDivisions) + "::" + FString::FromInt(CurrentSubdivisions);
+}
+
+void AOpenLandMeshActor::MakeModifyReady()
+{
+	const bool bNeedMeshChange = CurrentLOD->MakeModifyReady();
+	if (bNeedMeshChange && CurrentLOD->MeshSectionIndex >= 0)
+	{
+		MeshComponent->ReplaceMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
+	}
+}
+
+void AOpenLandMeshActor::FinishBuildMeshAsync()
+{
+	CurrentLOD->MeshSectionIndex = MeshComponent->NumMeshSections();
+	MeshComponent->CreateMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
+	MeshComponent->InvalidateRendering();
+
+	CurrentLOD->MeshBuildResult->Target->bSectionVisible = true;
+	CurrentLOD->MeshBuildResult->Target->bEnableCollision = bEnableCollision;
+		
+	// With this setting, we use the given LOD as the collision mesh
+	// Otherwise, we will use all of these sections
+	if (LODIndexForCollisions >= 0 && bEnableCollision)
+	{
+		CurrentLOD->MeshBuildResult->Target->bEnableCollision = CurrentLOD->LODIndex == LODIndexForCollisions;
+	}
+			
+	if (CurrentLOD->MeshBuildResult->Target->bEnableCollision)
+	{
+		MeshComponent->SetupCollisions(true);
+	}
+			
+	AsyncBuildingLODIndex = -1;
+	SetMaterial(Material);
+	EnsureLODVisibility();
 }
 
 bool AOpenLandMeshActor::ShouldTickIfViewportsOnly() const

@@ -59,8 +59,23 @@ struct FOpenLandPolygonMeshBuildResult
 {
 	FSimpleMeshInfoPtr Original = nullptr;
 	FSimpleMeshInfoPtr Target = nullptr;
+	int32 SubDivisions = 0;
 	int32 TextureWidth = 0;
 	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
+	FString CacheKey;
+
+	TSharedPtr<FOpenLandPolygonMeshBuildResult> ShallowClone()
+	{
+		TSharedPtr<FOpenLandPolygonMeshBuildResult> NewOne = MakeShared<FOpenLandPolygonMeshBuildResult>();
+		NewOne->Original = Original;
+		NewOne->Target = Target;
+		NewOne->SubDivisions = SubDivisions;
+		NewOne->TextureWidth = TextureWidth;
+		NewOne->DataTextures = DataTextures;
+		NewOne->CacheKey = CacheKey;
+
+		return NewOne;
+	}
 };
 
 // Above TArray contains a runtime texture

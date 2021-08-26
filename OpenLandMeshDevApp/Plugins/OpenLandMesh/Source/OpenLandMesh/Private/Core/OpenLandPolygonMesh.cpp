@@ -138,9 +138,10 @@ FOpenLandPolygonMeshBuildResultPtr FOpenLandPolygonMesh::BuildMesh(UObject* Worl
 	FOpenLandMeshInfo Source = SubDivide(TransformedMeshInfo, Options.SubDivisions);
 
 	FOpenLandPolygonMeshBuildResultPtr Result = MakeShared<FOpenLandPolygonMeshBuildResult>();
-	
+
 	Result->Original = Source.Clone();
 	Result->Target = Source.Clone();
+	Result->SubDivisions = Options.SubDivisions;
 	BuildDataTextures(Result, Options.ForcedTextureWidth);
 
 	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
@@ -215,19 +216,13 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygo
 		FOpenLandPolygonMeshBuildResultPtr Result = MakeShared<FOpenLandPolygonMeshBuildResult>();
 		
 		Result->Original = Source.Clone();
-		Result->Target = Source.Clone();
+		// We cannot create Target vertices here.
+		// We will create them right inside one of the ModifyVertices call.
+		// Technically, we can create them here. But, setting nullptr makes things logical
+		// So, we can render this result as is. But need to wait for the first modify call
+		Result->Target = nullptr;
+		Result->SubDivisions = Options.SubDivisions;
 		BuildDataTextures(Result, Options.ForcedTextureWidth);
-
-		auto TrackCpuVertexModifiers = TrackTime("CpuVertexModifiers");
-		ApplyVertexModifiers(VertexModifier, Result->Original.Get(), Result->Target.Get(), 0, Result->Original->Triangles.Length(), 0);
-		TrackCpuVertexModifiers.Finish();
-
-		if (Options.CuspAngle > 0.0)
-		{
-			auto TrackNormalSmoothing = TrackTime("NormalSmoothing");
-			ApplyNormalSmoothing(Result->Target.Get(), Options.CuspAngle);
-			TrackNormalSmoothing.Finish();
-		}
 
 		FOpenLandThreading::RunOnGameThread([HandleCallback, Result]()
 		{
@@ -446,6 +441,14 @@ void FOpenLandPolygonMesh::ApplyGpuVertexModifersAsync(UObject* WorldContext,
 void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
                                           FOpenLandPolygonMeshModifyOptions Options)
 {
+	// If the MeshBuildResult, created with an async build process
+	// There's no Target vertices
+	// So, we need to create them here before we proceed.
+	if (MeshBuildResult->Target == nullptr)
+	{
+		MeshBuildResult->Target = MeshBuildResult->Original->Clone();	
+	}
+	
 	// TODO: check for sizes of both original & target
 	// Setup & Gpu Vertex Modifiers if needed
 	auto TrackEnsureGpuComputeEngine = TrackTime("EnsureGpuComputeEngine");
@@ -487,6 +490,11 @@ FOpenLandPolygonMeshModifyStatus FOpenLandPolygonMesh::StartModifyVertices(UObje
 	ModifyInfo.MeshBuildResult = MeshBuildResult;
 	ModifyInfo.Options = Options;
 	ModifyInfo.Status.bStarted = true;
+
+	if (ModifyInfo.MeshBuildResult->Target == nullptr)
+	{
+		ModifyInfo.MeshBuildResult->Target = ModifyInfo.MeshBuildResult->Original->Clone();
+	}
 	
 	return CheckModifyVerticesStatus(Options.LastFrameTime);
 }

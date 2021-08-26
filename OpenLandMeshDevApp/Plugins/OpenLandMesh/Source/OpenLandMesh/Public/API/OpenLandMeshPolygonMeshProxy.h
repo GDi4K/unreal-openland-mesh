@@ -11,6 +11,13 @@
 #include "UObject/Object.h"
 #include "OpenLandMeshPolygonMeshProxy.generated.h"
 
+struct FOpenLandBuildMeshResultCacheInfo {
+	FString CacheKey;
+	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult;
+	FDateTime CachedAt;
+	FDateTime LastCacheHitAt;
+	TArray<std::function<void(FOpenLandPolygonMeshBuildResultPtr)>> AsyncMeshBuildCallbacks;
+};
 /**
  * 
  */
@@ -20,22 +27,23 @@ class OPENLANDMESH_API UOpenLandMeshPolygonMeshProxy : public UObject
 	GENERATED_BODY()
 
 	FOpenLandPolygonMesh* PolygonMesh;
+	static TMap<FString, FOpenLandBuildMeshResultCacheInfo> CachedBuildMesh;
 
 public:
 	UOpenLandMeshPolygonMeshProxy();
 	~UOpenLandMeshPolygonMeshProxy();
 
-	FOpenLandPolygonMeshBuildResultPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options) const;
+	FOpenLandPolygonMeshBuildResultPtr BuildMesh(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options, FString CacheKey="") const;
 	void BuildMeshAsync(UObject* WorldContext, FOpenLandPolygonMeshBuildOptions Options,
-	                    std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback) const;
-	void ModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
+	                    std::function<void(FOpenLandPolygonMeshBuildResultPtr)> Callback, FString CacheKey="") const;
+	void ModifyVertices(::UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                    FOpenLandPolygonMeshModifyOptions Options) const;
 	// Here we do vertex modifications outside of the game thread
 	// The return boolean value indicates whether we should render the Target MeshInfo or not
 	// Note: It's very important to pass the same Target all the time because the return value is related to something happens earlier.
 	FOpenLandPolygonMeshModifyStatus StartModifyVertices(UObject* WorldContext, FOpenLandPolygonMeshBuildResultPtr MeshBuildResult,
 	                         FOpenLandPolygonMeshModifyOptions Options) const;
-	FOpenLandPolygonMeshModifyStatus CheckModifyVerticesStatus(float LastFrameTime) const;
+	FOpenLandPolygonMeshModifyStatus CheckModifyVerticesStatus(FOpenLandPolygonMeshBuildResultPtr MeshBuildResult, float LastFrameTime) const;
 
 	void RegisterVertexModifier(function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial VertexModifier);
@@ -63,4 +71,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	static UOpenLandMeshPolygonMeshProxy* MakePyramidMesh();
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	static void ClearCache();
 };

@@ -16,6 +16,29 @@ struct FLODInfo
 	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult = nullptr;
 	int32 MeshSectionIndex = 0;
 	int32 LODIndex = 0;
+	bool bIsModifyReady = false;
+
+	bool MakeModifyReady()
+	{
+		if (bIsModifyReady)
+		{
+			return false;
+		}
+
+		if (MeshBuildResult->CacheKey.IsEmpty())
+		{
+			return false;
+		}
+
+		bIsModifyReady = true;
+		MeshBuildResult = MeshBuildResult->ShallowClone();
+		if (MeshBuildResult->Target)
+		{
+			MeshBuildResult->Target = MeshBuildResult->Target->Clone();
+		}
+
+		return true;
+	}
 };
 
 struct FSwitchLODsStatus
@@ -44,7 +67,9 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	void RunSyncModifyMeshProcess();
 	FSwitchLODsStatus SwitchLODs();
 	void EnsureLODVisibility();
-	void UpdateMeshSectionAsync(float LastFrameTime);
+	FString MakeCacheKey(int32 CurrentSubdivisions) const;
+	void MakeModifyReady();
+	void FinishBuildMeshAsync();
 
 public:
 	// Sets default values for this actor's properties
@@ -68,6 +93,9 @@ protected:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="OpenLandMesh")
     void OnAfterAnimations();
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="OpenLandMesh")
+	FString GetCacheKey() const;
+
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -83,7 +111,7 @@ public:
 	UOpenLandMeshComponent* MeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	int SubDivisions = 0;
+	int32 SubDivisions = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	float SmoothNormalAngle = 0;
@@ -141,6 +169,9 @@ public:
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMesh();
+
+	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
+	void ResetCache();
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMeshAsync();
