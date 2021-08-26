@@ -64,6 +64,8 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 		ModifyOptions.CuspAngle = SmoothNormalAngle;
 		ModifyOptions.LastFrameTime = LastFrameTime;
 		ModifyOptions.DesiredFrameRate = DesiredFrameRateOnModify;
+
+		MakeModifyReady();
 		ModifyStatus = PolygonMesh->StartModifyVertices(this, ModifyingLOD->MeshBuildResult, ModifyOptions);
 		
 		return;
@@ -128,6 +130,8 @@ void AOpenLandMeshActor::RunSyncModifyMeshProcess()
 	{
 		EnsureLODVisibility();
 	}
+
+	MakeModifyReady();
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
 	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
 	OnAfterAnimations();
@@ -349,6 +353,7 @@ void AOpenLandMeshActor::ModifyMesh()
 	else
 		PolygonMesh->RegisterGpuVertexModifier({});
 
+	MakeModifyReady();
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
 	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
 }
@@ -651,6 +656,15 @@ FString AOpenLandMeshActor::MakeCacheKey(int32 CurrentSubdivisions) const
 	}
 	
 	return SourceCacheKey + "::" + FString::FromInt(SubDivisions) + "::" + FString::FromInt(CurrentSubdivisions);
+}
+
+void AOpenLandMeshActor::MakeModifyReady() const
+{
+	const bool bNeedMeshChange = CurrentLOD->MakeModifyReady();
+	if (bNeedMeshChange)
+	{
+		MeshComponent->ReplaceMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
+	}
 }
 
 bool AOpenLandMeshActor::ShouldTickIfViewportsOnly() const

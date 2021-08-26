@@ -16,6 +16,26 @@ struct FLODInfo
 	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult = nullptr;
 	int32 MeshSectionIndex = 0;
 	int32 LODIndex = 0;
+	bool bIsModifyReady = false;
+
+	bool MakeModifyReady()
+	{
+		if (bIsModifyReady)
+		{
+			return false;
+		}
+
+		if (MeshBuildResult->CacheKey.IsEmpty())
+		{
+			return false;
+		}
+
+		bIsModifyReady = true;
+		MeshBuildResult = MeshBuildResult->ShallowClone();
+		MeshBuildResult->Target = MeshBuildResult->Target->Clone();
+
+		return true;
+	}
 };
 
 struct FSwitchLODsStatus
@@ -45,6 +65,7 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	FSwitchLODsStatus SwitchLODs();
 	void EnsureLODVisibility();
 	FString MakeCacheKey(int32 CurrentSubdivisions) const;
+	void MakeModifyReady() const;
 
 public:
 	// Sets default values for this actor's properties
