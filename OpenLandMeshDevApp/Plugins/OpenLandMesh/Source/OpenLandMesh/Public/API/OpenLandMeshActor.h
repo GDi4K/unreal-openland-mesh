@@ -14,7 +14,7 @@
 struct FLODInfo
 {
 	FOpenLandPolygonMeshBuildResultPtr MeshBuildResult = nullptr;
-	int32 MeshSectionIndex = 0;
+	int32 MeshSectionIndex = -1;
 	int32 LODIndex = 0;
 	bool bIsModifyReady = false;
 

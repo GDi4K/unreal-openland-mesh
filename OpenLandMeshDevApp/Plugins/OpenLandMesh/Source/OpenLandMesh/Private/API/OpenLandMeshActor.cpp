@@ -259,13 +259,13 @@ void AOpenLandMeshActor::BuildMesh()
 	// That's why we do this.
 	const int32 NumVerticesForLOD0 = PolygonMesh->CalculateVerticesForSubdivision(SubDivisions);
 	const int32 ForcedTextureWidth = FMath::CeilToInt(FMath::Sqrt(NumVerticesForLOD0));
-	TArray<FLODInfoPtr> NewLODList;
+	LODList.SetNum(MaximumLODCount);
 
 	TrackTime TotalLODTime = TrackTime("Total LOD Gen", true);
 	for (int32 LODIndex=0; LODIndex<MaximumLODCount; LODIndex++)
 	{
 		auto LODGenTime = TrackTime(" LOD Gen: " + FString::FromInt(LODIndex), true);
-		FLODInfoPtr LOD = MakeShared<FLODInfo>();
+		const FLODInfoPtr LOD = MakeShared<FLODInfo>();
 
 		const FOpenLandPolygonMeshBuildOptions BuildMeshOptions = {
 			FMath::Max(SubDivisions - LODIndex, 0),
@@ -287,25 +287,23 @@ void AOpenLandMeshActor::BuildMesh()
 		}
 		
 		LOD->MeshBuildResult = NewMeshBuildResult;
-		LOD->MeshSectionIndex = LODIndex;
 		LOD->LODIndex = LODIndex;
 		
-		NewLODList.Push(LOD);
+		LODList[LODIndex] = LOD;
 		LODGenTime.Finish();
 	}
 	TotalLODTime.Finish();
 
 	TrackTime TotalLRenderingRegTime = TrackTime("Total Render Registration", true);
-	for (const FLODInfoPtr LOD: NewLODList)
+	for (const FLODInfoPtr LOD: LODList)
 	{
 		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
-		const bool bHasSection = MeshComponent->NumMeshSections() > LOD->MeshSectionIndex;
-		if (bHasSection)
+		if (LOD->MeshSectionIndex >= 0)
 		{
 			MeshComponent->ReplaceMeshSection(LOD->MeshSectionIndex, LOD->MeshBuildResult->Target);
 		} else
 		{
-			MeshComponent->CreateMeshSection(LOD->MeshSectionIndex, LOD->MeshBuildResult->Target);
+			LOD->MeshSectionIndex = MeshComponent->CreateMeshSection(LOD->MeshBuildResult->Target);
 		}
 	}
 	TotalLRenderingRegTime.Finish();
@@ -315,9 +313,6 @@ void AOpenLandMeshActor::BuildMesh()
 	UpdateCollisionTime.Finish();
 
 	MeshComponent->InvalidateRendering();
-
-	LODList.Empty();
-	LODList = NewLODList;
 
 	if (CurrentLODIndex >= LODList.Num())
 	{
@@ -658,8 +653,14 @@ void AOpenLandMeshActor::MakeModifyReady()
 
 void AOpenLandMeshActor::FinishBuildMeshAsync()
 {
-	CurrentLOD->MeshSectionIndex = MeshComponent->NumMeshSections();
-	MeshComponent->CreateMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
+	if (CurrentLOD->MeshSectionIndex >= 0)
+	{
+		MeshComponent->ReplaceMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
+	}
+	else
+	{
+		CurrentLOD->MeshSectionIndex = MeshComponent->CreateMeshSection(CurrentLOD->MeshBuildResult->Target);
+	}
 	MeshComponent->InvalidateRendering();
 
 	CurrentLOD->MeshBuildResult->Target->bSectionVisible = true;

@@ -171,13 +171,10 @@ void UOpenLandMeshComponent::PostLoad()
 		SimpleMeshBodySetup->SetFlags(RF_Public | RF_ArchetypeObject);
 }
 
-void UOpenLandMeshComponent::CreateMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo)
+int32 UOpenLandMeshComponent::CreateMeshSection(FSimpleMeshInfoPtr MeshInfo)
 {
 	UE_LOG(LogTemp, Warning, TEXT("CreateMeshSection"))
-	if (SectionIndex < MeshSections.Num())
-	{
-		checkf(false, TEXT("It's not possible to create an already created mesh section with index: %d"), SectionIndex);
-	}
+	const int32 SectionIndex = MeshSections.Num();
 
 	MeshSections.SetNum(SectionIndex + 1);
 	MeshSections[SectionIndex] = MeshInfo;
@@ -187,6 +184,8 @@ void UOpenLandMeshComponent::CreateMeshSection(int32 SectionIndex, FSimpleMeshIn
 	MeshInfo->Freeze();
 
 	UpdateLocalBounds(); // Update overall bounds
+
+	return SectionIndex;
 }
 
 void UOpenLandMeshComponent::ReplaceMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo)

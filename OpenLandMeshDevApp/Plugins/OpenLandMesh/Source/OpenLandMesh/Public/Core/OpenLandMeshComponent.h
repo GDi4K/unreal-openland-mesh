@@ -93,7 +93,7 @@ public:
 	// --- END INTERNAL METHODS & PROPERTIES ---
 
 	// methods
-	void CreateMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo);
+	int32 CreateMeshSection(FSimpleMeshInfoPtr MeshInfo);
 	void ReplaceMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo);
 	void UpdateMeshSection(int32 SectionIndex, FOpenLandMeshComponentUpdateRange UpdateRange);
 
