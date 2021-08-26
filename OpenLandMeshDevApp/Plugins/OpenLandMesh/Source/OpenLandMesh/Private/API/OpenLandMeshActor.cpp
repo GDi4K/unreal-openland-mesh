@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 #include "API/OpenLandMeshActor.h"
+
+#include "API/OpenLandMeshComponentCache.h"
 #include "Utils/TrackTime.h"
 
 
@@ -10,9 +12,6 @@ AOpenLandMeshActor::AOpenLandMeshActor()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	RootComponent = CreateDefaultSubobject<USceneComponent>(FName("RootComponent"));
-	MeshComponent = CreateDefaultSubobject<UOpenLandMeshComponent>(TEXT("MeshComponent"));
-
-	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
 }
 
 AOpenLandMeshActor::~AOpenLandMeshActor()
@@ -101,7 +100,7 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 			return;
 		}
 		
-		MeshComponent->UpdateMeshSection(CurrentLOD->MeshSectionIndex, {0, -1});
+		AOpenLandMeshComponentCache::UpdateMeshSection(CurrentLOD->MeshSectionIndex, {0, -1});
 		if (bNeedLODVisibilityChange)
 		{
 			EnsureLODVisibility();
@@ -123,7 +122,7 @@ void AOpenLandMeshActor::RunSyncModifyMeshProcess()
 
 	MakeModifyReady();
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
-	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
+	AOpenLandMeshComponentCache::UpdateMeshSection(CurrentLODIndex, {0, -1});
 	OnAfterAnimations();
 	// When someone updated GPU parameters inside the above hook
 	// We need to update them like this
@@ -134,7 +133,8 @@ void AOpenLandMeshActor::RunSyncModifyMeshProcess()
 void AOpenLandMeshActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+
+	AOpenLandMeshComponentCache::SetTransform(0, GetActorTransform());
 	const bool bIsEditor = GetWorld()->WorldType == EWorldType::Editor;
 
 	if (bIsEditor || !bAnimate)
@@ -300,19 +300,20 @@ void AOpenLandMeshActor::BuildMesh()
 		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
 		if (LOD->MeshSectionIndex >= 0)
 		{
-			MeshComponent->ReplaceMeshSection(LOD->MeshSectionIndex, LOD->MeshBuildResult->Target);
+			AOpenLandMeshComponentCache::ReplaceMeshSection(LOD->MeshSectionIndex, LOD->MeshBuildResult->Target);
 		} else
 		{
-			LOD->MeshSectionIndex = MeshComponent->CreateMeshSection(LOD->MeshBuildResult->Target);
+			LOD->MeshSectionIndex = AOpenLandMeshComponentCache::CreateMeshSection(LOD->MeshBuildResult->Target);
 		}
 	}
 	TotalLRenderingRegTime.Finish();
 
 	TrackTime UpdateCollisionTime = TrackTime("Setup Collisions", true);
-	MeshComponent->SetupCollisions(bUseAsyncCollisionCooking);
+	// TODO: Setup Collisiosn
+	//MeshComponent->SetupCollisions(bUseAsyncCollisionCooking);
 	UpdateCollisionTime.Finish();
 
-	MeshComponent->InvalidateRendering();
+	//MeshComponent->InvalidateRendering();
 
 	if (CurrentLODIndex >= LODList.Num())
 	{
@@ -340,7 +341,7 @@ void AOpenLandMeshActor::ModifyMesh()
 
 	MakeModifyReady();
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
-	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
+	AOpenLandMeshComponentCache::UpdateMeshSection(CurrentLODIndex, {0, -1});
 }
 
 void AOpenLandMeshActor::ModifyMeshAsync()
@@ -523,11 +524,15 @@ void AOpenLandMeshActor::ResetCache()
 
 void AOpenLandMeshActor::SetMaterial(UMaterialInterface* InputMaterial)
 {
+	// TODO: Think about Material Handling
 	Material = InputMaterial;
-	for(int32 MeshSectionIndex = 0; MeshSectionIndex< MeshComponent->NumMeshSections(); MeshSectionIndex++)
-	{
-		MeshComponent->SetMaterial(MeshSectionIndex, Material);	
-	}
+	AOpenLandMeshComponentCache::SetMaterial(0, Material);
+	
+	// Material = InputMaterial;
+	// for(int32 MeshSectionIndex = 0; MeshSectionIndex< MeshComponent->NumMeshSections(); MeshSectionIndex++)
+	// {
+	// 	MeshComponent->SetMaterial(MeshSectionIndex, Material);	
+	// }
 }
 
 void AOpenLandMeshActor::OnConstruction(const FTransform& Transform)
@@ -547,7 +552,7 @@ void AOpenLandMeshActor::EnsureLODVisibility()
 		}
 
 		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
-		MeshComponent->UpdateMeshSectionVisibility(LOD->MeshSectionIndex);
+		AOpenLandMeshComponentCache::UpdateMeshSectionVisibility(LOD->MeshSectionIndex);
 	}
 }
 
@@ -647,7 +652,7 @@ void AOpenLandMeshActor::MakeModifyReady()
 	const bool bNeedMeshChange = CurrentLOD->MakeModifyReady();
 	if (bNeedMeshChange && CurrentLOD->MeshSectionIndex >= 0)
 	{
-		MeshComponent->ReplaceMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
+		AOpenLandMeshComponentCache::ReplaceMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
 	}
 }
 
@@ -655,13 +660,13 @@ void AOpenLandMeshActor::FinishBuildMeshAsync()
 {
 	if (CurrentLOD->MeshSectionIndex >= 0)
 	{
-		MeshComponent->ReplaceMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
+		AOpenLandMeshComponentCache::ReplaceMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
 	}
 	else
 	{
-		CurrentLOD->MeshSectionIndex = MeshComponent->CreateMeshSection(CurrentLOD->MeshBuildResult->Target);
+		CurrentLOD->MeshSectionIndex = AOpenLandMeshComponentCache::CreateMeshSection(CurrentLOD->MeshBuildResult->Target);
 	}
-	MeshComponent->InvalidateRendering();
+	//AOpenLandMeshComponentCache::InvalidateRendering();
 
 	CurrentLOD->MeshBuildResult->Target->bSectionVisible = true;
 	CurrentLOD->MeshBuildResult->Target->bEnableCollision = bEnableCollision;
@@ -675,7 +680,8 @@ void AOpenLandMeshActor::FinishBuildMeshAsync()
 			
 	if (CurrentLOD->MeshBuildResult->Target->bEnableCollision)
 	{
-		MeshComponent->SetupCollisions(true);
+		//TODO: Implement this
+		//MeshComponent->SetupCollisions(true);
 	}
 			
 	AsyncBuildingLODIndex = -1;

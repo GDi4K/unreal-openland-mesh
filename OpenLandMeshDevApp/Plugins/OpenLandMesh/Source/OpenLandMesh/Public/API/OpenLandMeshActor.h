@@ -107,8 +107,8 @@ public:
 #endif
 	void BuildMeshAsync(int32 LODIndex);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
-	UOpenLandMeshComponent* MeshComponent;
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
+	// UOpenLandMeshComponent* MeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	int32 SubDivisions = 0;
