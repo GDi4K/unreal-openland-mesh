@@ -141,6 +141,198 @@ int32 UOpenLandMeshPolygonMeshProxy::CalculateVerticesForSubdivision(int32 Subdi
 	return PolygonMesh->CalculateVerticesForSubdivision(Subdivision);
 }
 
+UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::AddTriFace(const FOpenLandMeshVertex A,
+	const FOpenLandMeshVertex B, const FOpenLandMeshVertex C)
+{
+	PolygonMesh->AddTriFace(A, B, C);
+	return this;
+}
+
+UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::AddQuadFace(const FOpenLandMeshVertex A,
+	const FOpenLandMeshVertex B, const FOpenLandMeshVertex C, const FOpenLandMeshVertex D)
+{
+	PolygonMesh->AddQuadFace(A, B, C, D);
+	return this;
+}
+
+FVector2D UOpenLandMeshPolygonMeshProxy::RegularPolygonPositionToUV(FVector Position, float Radius)
+{
+	const FVector2D Position2D = {Position[0], Position[1]};
+	return (Position2D / (Radius * 2)) + FVector2D(0.5, 0.5);
+}
+
+UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::MakeRegularPolygonMesh(int32 NoOfSides, float Radius)
+{
+	if (NoOfSides < 3)
+	{
+		NoOfSides = 3;
+	}
+
+	const FVector ZVector = {0.0f, 0.0f, 1.0f};
+	const FVector Center = {0.0f, 0.0f, 0.0f};
+	const float RotateAngle = 360.0f / NoOfSides;
+	TArray<FVector> EdgePoints;
+
+	for (int32 PointIndex=0; PointIndex<NoOfSides; PointIndex++)
+	{
+		FVector BasePoint = {Radius, 0.0f, 0.0f};
+		EdgePoints.Push(BasePoint.RotateAngleAxis(RotateAngle*PointIndex, ZVector));
+	}
+	
+	UOpenLandMeshPolygonMeshProxy* P = NewObject<UOpenLandMeshPolygonMeshProxy>();
+
+	for (int32 PointIndex=0; PointIndex<NoOfSides; PointIndex++)
+	{
+		if (PointIndex == NoOfSides - 1)
+		{
+			P->AddTriFace(
+				FOpenLandMeshVertex(Center, RegularPolygonPositionToUV(Center, Radius)),
+				FOpenLandMeshVertex(EdgePoints[0], RegularPolygonPositionToUV(EdgePoints[0], Radius)),
+				FOpenLandMeshVertex(EdgePoints[PointIndex], RegularPolygonPositionToUV(EdgePoints[PointIndex], Radius))
+			);
+		} else
+		{
+			P->AddTriFace(
+				FOpenLandMeshVertex(Center, RegularPolygonPositionToUV(Center, Radius)),
+				FOpenLandMeshVertex(EdgePoints[PointIndex+1], RegularPolygonPositionToUV(EdgePoints[PointIndex+1], Radius)),
+				FOpenLandMeshVertex(EdgePoints[PointIndex], RegularPolygonPositionToUV(EdgePoints[PointIndex], Radius))
+			);
+		}
+	}
+	
+	return P;
+}
+
+UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::MakeRegularPrismMesh(int32 NoOfSides, int32 NoOfRows, float Height, float RadiusTop, float RadiusBottom, bool bAddTop, bool bAddBottom)
+{
+	if (NoOfSides < 3)
+	{
+		NoOfSides = 3;
+	}
+
+	const FVector ZVector = {0.0f, 0.0f, 1.0f};
+	const FVector CenterTop = {0.0f, 0.0f, Height};
+	const FVector CenterBottom = {0.0f, 0.0f, 0.0f};
+	const float RotateAngle = 360.0f / NoOfSides;
+
+	TArray<FVector> PointsTop;
+	TArray<FVector> PointsBottom;
+
+	// Make points
+	for (int32 PointIndex=0; PointIndex<NoOfSides; PointIndex++)
+	{
+		PointsTop.Push(FVector(RadiusTop, 0.0f, Height).RotateAngleAxis(RotateAngle*PointIndex, ZVector));
+		PointsBottom.Push(FVector(RadiusBottom, 0.0f, 0.0f).RotateAngleAxis(RotateAngle*PointIndex, ZVector));
+	}
+	
+	UOpenLandMeshPolygonMeshProxy* P = NewObject<UOpenLandMeshPolygonMeshProxy>();
+
+	// Add top bottom
+	for (int32 PointIndex=0; PointIndex<NoOfSides; PointIndex++)
+	{
+		if (PointIndex == NoOfSides - 1)
+		{
+			if (bAddTop)
+			{
+				P->AddTriFace(
+					FOpenLandMeshVertex(CenterTop, RegularPolygonPositionToUV(CenterTop, RadiusTop)),
+					FOpenLandMeshVertex(PointsTop[0], RegularPolygonPositionToUV(PointsTop[0], RadiusTop)),
+					FOpenLandMeshVertex(PointsTop[PointIndex], RegularPolygonPositionToUV(PointsTop[PointIndex], RadiusTop))
+				);
+			}
+
+			if (bAddBottom)
+			{
+				P->AddTriFace(
+					FOpenLandMeshVertex(CenterBottom, RegularPolygonPositionToUV(CenterBottom, RadiusBottom)),
+					FOpenLandMeshVertex(PointsBottom[PointIndex], RegularPolygonPositionToUV(PointsBottom[PointIndex], RadiusBottom)),
+					FOpenLandMeshVertex(PointsBottom[0], RegularPolygonPositionToUV(PointsBottom[0], RadiusBottom))
+				);
+			}
+		} else
+		{
+			if (bAddTop)
+			{
+				P->AddTriFace(
+					FOpenLandMeshVertex(CenterTop, RegularPolygonPositionToUV(CenterTop, RadiusTop)),
+					FOpenLandMeshVertex(PointsTop[PointIndex+1], RegularPolygonPositionToUV(PointsTop[PointIndex+1], RadiusTop)),
+					FOpenLandMeshVertex(PointsTop[PointIndex], RegularPolygonPositionToUV(PointsTop[PointIndex], RadiusTop))
+				);
+			}
+
+			if (bAddBottom)
+			{
+				P->AddTriFace(
+					FOpenLandMeshVertex(CenterBottom, RegularPolygonPositionToUV(CenterBottom, RadiusBottom)),
+					FOpenLandMeshVertex(PointsBottom[PointIndex], RegularPolygonPositionToUV(PointsBottom[PointIndex], RadiusBottom)),
+					FOpenLandMeshVertex(PointsBottom[PointIndex+1], RegularPolygonPositionToUV(PointsBottom[PointIndex+1], RadiusBottom))
+				);
+			}
+		}
+	}
+
+	const float UVHeight = Height / 100.0f;
+	const float UVWidth = 1.0 / NoOfSides;
+	
+	
+	// Add sides
+	for (int32 PointIndex=0; PointIndex<NoOfSides; PointIndex++)
+	{
+		int32 StartIndex = PointIndex;
+		int32 EndIndex = PointIndex == NoOfSides - 1 ? 0 : PointIndex + 1;
+
+		float RowHeight = FVector::Dist(PointsBottom[StartIndex], PointsTop[StartIndex]) / NoOfRows;
+		FVector RowDirectionStart = (PointsTop[StartIndex] - PointsBottom[StartIndex]).GetSafeNormal();
+		FVector RowDirectionEnd = (PointsTop[EndIndex] - PointsBottom[EndIndex]).GetSafeNormal();
+
+		// Add rows
+		for (int32 RowIndex=0; RowIndex<NoOfRows; RowIndex++)
+		{
+			const FVector PosA = PointsBottom[EndIndex] + RowDirectionEnd * RowHeight * (RowIndex);
+			const FVector PosB = PointsBottom[StartIndex] + RowDirectionStart * RowHeight * (RowIndex);
+			const FVector PosC = PointsBottom[StartIndex] + RowDirectionStart * RowHeight * (RowIndex + 1);
+			const FVector PosD = PointsBottom[EndIndex] + RowDirectionEnd * RowHeight * (RowIndex + 1);
+			
+			P->AddQuadFace(
+				FOpenLandMeshVertex(PosA, FVector2D(1, 0)),
+				FOpenLandMeshVertex(PosB, FVector2D(0, 0)),
+				FOpenLandMeshVertex(PosC, FVector2D(0, 1)),
+				FOpenLandMeshVertex(PosD, FVector2D(1, 1))
+			);
+		}
+
+	}
+	
+	return P;
+}
+
+UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::MakeGridMesh(float CellWidth, int32 Rows, int32 Cols)
+{
+	UOpenLandMeshPolygonMeshProxy* P = NewObject<UOpenLandMeshPolygonMeshProxy>();
+	
+	for(int32 CellX=0; CellX<Rows; CellX++)
+	{
+		for(int32 CellY=0; CellY<Cols; CellY++)
+		{
+			const FVector A(CellX * CellWidth, CellY * CellWidth, 0);
+			const FVector B(CellX * CellWidth, (CellY + 1) * CellWidth, 0);
+			const FVector C((CellX + 1) * CellWidth, (CellY + 1) * CellWidth, 0);
+			const FVector D((CellX + 1) * CellWidth, CellY * CellWidth, 0);
+
+			const float UVCellWidth = CellWidth/100.0;
+			
+			P->AddQuadFace(
+				FOpenLandMeshVertex(A, FVector2D(CellX * UVCellWidth, CellY * UVCellWidth)),
+				FOpenLandMeshVertex(B, FVector2D(CellX * UVCellWidth, (CellY + 1) * UVCellWidth)),
+				FOpenLandMeshVertex(C, FVector2D((CellX + 1) * UVCellWidth, (CellY + 1) * UVCellWidth)),
+				FOpenLandMeshVertex(D, FVector2D((CellX + 1) * UVCellWidth, CellY * UVCellWidth))
+			);
+		}
+	}
+
+	return P;
+}
+
 void UOpenLandMeshPolygonMeshProxy::ClearCache()
 {
 	CachedBuildMesh.Empty();
@@ -202,7 +394,7 @@ UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::MakePlaneMesh()
 	return P;
 }
 
-UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::MakeCubeMesh()
+UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::MakeCubeMesh(bool bAddTop, bool bAddBottom, bool bInvert)
 {
 	UOpenLandMeshPolygonMeshProxy* P = NewObject<UOpenLandMeshPolygonMeshProxy>();
 
@@ -219,42 +411,81 @@ UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::MakeCubeMesh()
 	};
 
 	for (int32 Index = 0; Index < Vertices.Num(); Index++)
-		Vertices[Index] *= 100;
+	{
+		Vertices[Index] *= 100 * (bInvert? -1 : 1);
+	}
 
-	P->AddQuadFace(Vertices[4], Vertices[5], Vertices[6], Vertices[7]);
+	if (bAddTop)
+	{
+		P->AddQuadFace(Vertices[4], Vertices[5], Vertices[6], Vertices[7]);
+	}
 
 	P->AddQuadFace(Vertices[0], Vertices[1], Vertices[5], Vertices[4]);
 	P->AddQuadFace(Vertices[1], Vertices[2], Vertices[6], Vertices[5]);
 	P->AddQuadFace(Vertices[2], Vertices[3], Vertices[7], Vertices[6]);
 	P->AddQuadFace(Vertices[3], Vertices[0], Vertices[4], Vertices[7]);
 
-	P->AddQuadFace(Vertices[0], Vertices[3], Vertices[2], Vertices[1]);
+	if (bAddBottom)
+	{
+		P->AddQuadFace(Vertices[0], Vertices[3], Vertices[2], Vertices[1]);
+	}
 
 	return P;
 }
 
-UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::MakePyramidMesh()
+UOpenLandMeshPolygonMeshProxy* UOpenLandMeshPolygonMeshProxy::MakeRegularPyramidMesh(int32 NoOfSides, float Radius, float Height, bool bAddBottom)
 {
+	if (NoOfSides < 3)
+	{
+		NoOfSides = 3;
+	}
+
+	const FVector ZVector = {0.0f, 0.0f, 1.0f};
+	const FVector Center = {0.0f, 0.0f, 0.0f};
+	const FVector Top = {0.0f, 0.0f, Height};
+	const float RotateAngle = 360.0f / NoOfSides;
+	TArray<FVector> EdgePoints;
+
+	for (int32 PointIndex=0; PointIndex<NoOfSides; PointIndex++)
+	{
+		FVector BasePoint = {Radius, 0.0f, 0.0f};
+		EdgePoints.Push(BasePoint.RotateAngleAxis(RotateAngle*PointIndex, ZVector));
+	}
+	
 	UOpenLandMeshPolygonMeshProxy* P = NewObject<UOpenLandMeshPolygonMeshProxy>();
 
-	TArray<FVector> Vertices = {
-		FVector{-0.5, 0.5, 0},
-		FVector{0.5, 0.5, 0},
-		FVector{0.5, -0.5, 0},
-		FVector{-0.5, -0.5, 0},
+	for (int32 PointIndex=0; PointIndex<NoOfSides; PointIndex++)
+	{
+		if (PointIndex == NoOfSides - 1)
+		{
+			// Add bottom face
+			if (bAddBottom)
+			{
+				P->AddTriFace(
+					FOpenLandMeshVertex(Center, RegularPolygonPositionToUV(Center, Radius)),
+					FOpenLandMeshVertex(EdgePoints[PointIndex], RegularPolygonPositionToUV(EdgePoints[PointIndex], Radius)),
+					FOpenLandMeshVertex(EdgePoints[0], RegularPolygonPositionToUV(EdgePoints[0], Radius))
+				);
+			}
 
-		FVector{0, 0, 0.75},
-	};
+			// Add side face
+			P->AddTriFace(EdgePoints[0], EdgePoints[PointIndex], Top);
+		} else
+		{
+			if (bAddBottom)
+			{
+				// Add bottom face
+				P->AddTriFace(
+					FOpenLandMeshVertex(Center, RegularPolygonPositionToUV(Center, Radius)),
+					FOpenLandMeshVertex(EdgePoints[PointIndex], RegularPolygonPositionToUV(EdgePoints[PointIndex], Radius)),
+					FOpenLandMeshVertex(EdgePoints[PointIndex + 1], RegularPolygonPositionToUV(EdgePoints[PointIndex + 1], Radius))
+				);
+			}
 
-	for (int32 Index = 0; Index < Vertices.Num(); Index++)
-		Vertices[Index] *= 100;
-
-	P->AddTriFace(Vertices[0], Vertices[1], Vertices[4]);
-	P->AddTriFace(Vertices[1], Vertices[2], Vertices[4]);
-	P->AddTriFace(Vertices[2], Vertices[3], Vertices[4]);
-	P->AddTriFace(Vertices[3], Vertices[0], Vertices[4]);
-
-	P->AddQuadFace(Vertices[0], Vertices[3], Vertices[2], Vertices[1]); // bottom
-
+			// Add side face
+			P->AddTriFace(EdgePoints[PointIndex + 1], EdgePoints[PointIndex], Top);
+		}
+	}
+	
 	return P;
 }

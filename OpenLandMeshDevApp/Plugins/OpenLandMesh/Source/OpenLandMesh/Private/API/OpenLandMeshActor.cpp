@@ -1,8 +1,14 @@
 ﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
 #include "API/OpenLandMeshActor.h"
-#include "Utils/TrackTime.h"
+#include <random>
 
+#include "API/OpenLandMeshHash.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Utils/OpenLandPointsBuilder.h"
+#include "API/OpenLandInstancingController.h"
+#include "Utils/OpenLandPointUtils.h"
+#include "Utils/TrackTime.h"
 
 // Sets default values
 AOpenLandMeshActor::AOpenLandMeshActor()
@@ -13,6 +19,10 @@ AOpenLandMeshActor::AOpenLandMeshActor()
 	MeshComponent = CreateDefaultSubobject<UOpenLandMeshComponent>(TEXT("MeshComponent"));
 
 	MeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+
+	UOpenLandMeshHash* HashGen = NewObject<UOpenLandMeshHash>();
+	HashGen->AddFloat(FMath::Rand());
+	ObjectId = HashGen->Generate();
 }
 
 AOpenLandMeshActor::~AOpenLandMeshActor()
@@ -134,6 +144,7 @@ void AOpenLandMeshActor::RunSyncModifyMeshProcess()
 void AOpenLandMeshActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	AOpenLandInstancingController::UpdateTransforms(this);
 	
 	const bool bIsEditor = GetWorld()->WorldType == EWorldType::Editor;
 
@@ -295,27 +306,34 @@ void AOpenLandMeshActor::BuildMesh()
 	}
 	TotalLODTime.Finish();
 
-	TrackTime TotalLRenderingRegTime = TrackTime("Total Render Registration", true);
-	for (const FLODInfoPtr LOD: NewLODList)
+	if (CanRenderMesh())
 	{
-		LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
-		const bool bHasSection = MeshComponent->NumMeshSections() > LOD->MeshSectionIndex;
-		if (bHasSection)
+		TrackTime TotalLRenderingRegTime = TrackTime("Total Render Registration", true);
+		for (const FLODInfoPtr LOD: NewLODList)
 		{
-			MeshComponent->ReplaceMeshSection(LOD->MeshSectionIndex, LOD->MeshBuildResult->Target);
-		} else
-		{
-			MeshComponent->CreateMeshSection(LOD->MeshSectionIndex, LOD->MeshBuildResult->Target);
+			LOD->MeshBuildResult->Target->bSectionVisible = LOD->LODIndex == CurrentLODIndex;
+			const bool bHasSection = MeshComponent->NumMeshSections() > LOD->MeshSectionIndex;
+			if (bHasSection)
+			{
+				MeshComponent->ReplaceMeshSection(LOD->MeshSectionIndex, LOD->MeshBuildResult->Target);
+			} else
+			{
+				MeshComponent->CreateMeshSection(LOD->MeshSectionIndex, LOD->MeshBuildResult->Target);
+			}
 		}
+		TotalLRenderingRegTime.Finish();
+
+		TrackTime UpdateCollisionTime = TrackTime("Setup Collisions", true);
+		MeshComponent->SetupCollisions(bUseAsyncCollisionCooking);
+		UpdateCollisionTime.Finish();
+
+		MeshComponent->InvalidateRendering();
+	} else
+	{
+		MeshComponent->RemoveAllSections();
+		MeshComponent->InvalidateRendering();
 	}
-	TotalLRenderingRegTime.Finish();
-
-	TrackTime UpdateCollisionTime = TrackTime("Setup Collisions", true);
-	MeshComponent->SetupCollisions(bUseAsyncCollisionCooking);
-	UpdateCollisionTime.Finish();
-
-	MeshComponent->InvalidateRendering();
-
+	
 	LODList.Empty();
 	LODList = NewLODList;
 
@@ -327,6 +345,11 @@ void AOpenLandMeshActor::BuildMesh()
 	
 	SetMaterial(Material);
 	bMeshGenerated = true;
+
+	if (bRunInstancingAfterBuildMesh)
+	{
+		ApplyInstances();
+	}
 }
 
 void AOpenLandMeshActor::ModifyMesh()
@@ -521,9 +544,93 @@ void AOpenLandMeshActor::BuildMeshAsync(int32 LODIndex)
 	}, CacheKey);
 }
 
+void AOpenLandMeshActor::RebuildLODs()
+{
+	BuildMesh();
+}
+
 void AOpenLandMeshActor::ResetCache()
 {
 	PolygonMesh->ClearCache();
+}
+
+void AOpenLandMeshActor::ApplyInstances()
+{
+	// We cannot do instances inside the blueprint editor
+	if (GetWorld()->WorldType == EWorldType::EditorPreview)
+	{
+		return;
+	}
+
+	// Here we detect the preview actor created when dragging it from the content browser
+	// Even in that case, we should create any instance
+	if (HasAnyFlags(RF_Transient))
+	{
+		return;
+	}
+	
+	TArray<FOpenLandInstancingRequestPoint> InstancingPoints;
+	for (const FOpenLandInstancingRules InstancingRules: InstancingGroups)
+	{
+		FLODInfoPtr SelectedLOD = CurrentLOD;
+		if (InstancingRules.DesiredLODIndex >=0 && LODList.Num() > InstancingRules.DesiredLODIndex)
+		{
+			const FLODInfoPtr DesiredLOD = LODList[InstancingRules.DesiredLODIndex];
+			if (DesiredLOD != nullptr)
+			{
+				SelectedLOD = DesiredLOD;
+			}
+		}
+		
+		const FSimpleMeshInfoPtr MeshInstance = SelectedLOD->MeshBuildResult->Target->Clone();
+		TArray<FOpenLandMeshPoint> MeshPoints;
+
+		if (InstancingRules.SamplingAlgorithm == IRSA_MODIFIED_POISSON_2D)
+		{
+			MeshPoints = FOpenLandPointsBuilder::BuildPointsModifiedPoisson2D(MeshInstance, InstancingRules.Density, InstancingRules.MinimumDistance);
+		}
+		else if (InstancingRules.SamplingAlgorithm == IRSA_ORIGIN)
+		{
+			MeshPoints = FOpenLandPointsBuilder::BuildPointsUseOrigin(MeshInstance);
+		}
+		else if (InstancingRules.SamplingAlgorithm == IRSA_VERTICES)
+		{
+			MeshPoints = FOpenLandPointsBuilder::BuildPointsPickVertices(MeshInstance);
+		}
+		else if (InstancingRules.SamplingAlgorithm == IRSA_CENTROID)
+		{
+			MeshPoints = FOpenLandPointsBuilder::BuildPointsPickCentroids(MeshInstance);
+		}
+
+		for (const FOpenLandMeshPoint MeshPoint: MeshPoints)
+		{
+			FOpenLandInstancingRequestPoint RequestPoint;
+			RequestPoint.Position = MeshPoint.Position;
+			RequestPoint.Normal = MeshPoint.Normal;
+			RequestPoint.TangentX = MeshPoint.TangentX;
+			if (InstancingRules.PlacementObject == IROT_ACTOR)
+			{
+				RequestPoint.ActorClass = InstancingRules.Actor;
+				RequestPoint.StaticMesh = nullptr;
+			} else
+			{
+				RequestPoint.StaticMesh = InstancingRules.StaticMesh;
+				RequestPoint.bEnableCollisions = InstancingRules.bEnableCollisions;
+				RequestPoint.ActorClass = nullptr;
+			}
+
+			FOpenLandPointUtils::ApplyPointRandomization(RequestPoint, InstancingRules);
+			FOpenLandPointUtils::CalculateTangentX(RequestPoint, InstancingRules);
+			InstancingPoints.Push(RequestPoint);
+		}
+	}
+
+	AOpenLandInstancingController::CreateInstances(this, InstancingPoints);
+}
+
+void AOpenLandMeshActor::RemoveInstances()
+{
+	AOpenLandInstancingController::Unregister(this);
 }
 
 void AOpenLandMeshActor::SetMaterial(UMaterialInterface* InputMaterial)
@@ -658,28 +765,71 @@ void AOpenLandMeshActor::MakeModifyReady()
 
 void AOpenLandMeshActor::FinishBuildMeshAsync()
 {
-	CurrentLOD->MeshSectionIndex = MeshComponent->NumMeshSections();
-	MeshComponent->CreateMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
-	MeshComponent->InvalidateRendering();
+	if (CanRenderMesh())
+	{
+		CurrentLOD->MeshSectionIndex = MeshComponent->NumMeshSections();
+		MeshComponent->CreateMeshSection(CurrentLOD->MeshSectionIndex, CurrentLOD->MeshBuildResult->Target);
+		MeshComponent->InvalidateRendering();
 
-	CurrentLOD->MeshBuildResult->Target->bSectionVisible = true;
-	CurrentLOD->MeshBuildResult->Target->bEnableCollision = bEnableCollision;
-		
-	// With this setting, we use the given LOD as the collision mesh
-	// Otherwise, we will use all of these sections
-	if (LODIndexForCollisions >= 0 && bEnableCollision)
-	{
-		CurrentLOD->MeshBuildResult->Target->bEnableCollision = CurrentLOD->LODIndex == LODIndexForCollisions;
-	}
+		CurrentLOD->MeshBuildResult->Target->bSectionVisible = true;
+		CurrentLOD->MeshBuildResult->Target->bEnableCollision = bEnableCollision;
 			
-	if (CurrentLOD->MeshBuildResult->Target->bEnableCollision)
+		// With this setting, we use the given LOD as the collision mesh
+		// Otherwise, we will use all of these sections
+		if (LODIndexForCollisions >= 0 && bEnableCollision)
+		{
+			CurrentLOD->MeshBuildResult->Target->bEnableCollision = CurrentLOD->LODIndex == LODIndexForCollisions;
+		}
+				
+		if (CurrentLOD->MeshBuildResult->Target->bEnableCollision)
+		{
+			MeshComponent->SetupCollisions(true);
+		}
+				
+		AsyncBuildingLODIndex = -1;
+		SetMaterial(Material);
+		EnsureLODVisibility();
+	} else
 	{
-		MeshComponent->SetupCollisions(true);
+		MeshComponent->RemoveAllSections();
+		MeshComponent->InvalidateRendering();
 	}
-			
-	AsyncBuildingLODIndex = -1;
-	SetMaterial(Material);
-	EnsureLODVisibility();
+
+	if (bRunInstancingAfterBuildMesh)
+	{
+		ApplyInstances();
+	}
+}
+
+bool AOpenLandMeshActor::CanRenderMesh() const
+{
+	if (MeshVisibility == MV_SHOW_ALWAYS)
+	{
+		return true;
+	}
+
+	if (MeshVisibility == MV_HIDE_ALWAYS)
+	{
+		return false;
+	}
+
+	const UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return false;
+	}
+
+	if (World->WorldType == EWorldType::Editor && MeshVisibility == MV_HIDE_IN_EDITOR)
+	{
+		return false;
+	}
+
+	if (World->WorldType != EWorldType::Editor && MeshVisibility == MV_HIDE_IN_GAME)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 bool AOpenLandMeshActor::ShouldTickIfViewportsOnly() const
