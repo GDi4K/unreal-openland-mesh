@@ -1,5 +1,6 @@
-﻿#include "Utils/OpenLandPointTriangle.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
+#include "Utils/OpenLandPointTriangle.h"
 #include "Utils/OpenLandPointLine.h"
 
 FOpenLandPointTriangle::FOpenLandPointTriangle(FVector T0, FVector T1, FVector T2)

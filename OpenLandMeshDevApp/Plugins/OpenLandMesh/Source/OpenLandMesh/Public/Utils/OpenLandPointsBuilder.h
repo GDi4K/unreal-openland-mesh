@@ -1,6 +1,7 @@
-﻿#pragma once
-#include "Types/OpenLandMeshInfo.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
 
+#pragma once
+#include "Types/OpenLandMeshInfo.h"
 
 struct FOpenLandMeshPoint
 {

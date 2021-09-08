@@ -1,4 +1,6 @@
-﻿#include "Utils/OpenLandPointsBuilder.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#include "Utils/OpenLandPointsBuilder.h"
 #include "Utils/OpenLandMeshGrid.h"
 #include "Utils/OpenLandPointLine.h"
 #include "Utils/OpenLandPointTriangle.h"

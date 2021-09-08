@@ -1,4 +1,6 @@
-﻿#include "Utils/OpenLandPointUtils.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#include "Utils/OpenLandPointUtils.h"
 
 void FOpenLandPointUtils::ApplyPointRandomization(FOpenLandInstancingRequestPoint& RequestPoint,
                                                   FOpenLandInstancingRules Rules)

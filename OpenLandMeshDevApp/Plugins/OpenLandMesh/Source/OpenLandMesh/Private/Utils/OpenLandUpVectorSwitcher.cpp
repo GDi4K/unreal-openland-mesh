@@ -1,4 +1,6 @@
-﻿#include "Utils/OpenLandUpVectorSwitcher.h"
+﻿// Copyright (c) 2021 Arunoda Susiripala. All Rights Reserved.
+
+#include "Utils/OpenLandUpVectorSwitcher.h"
 
 FOpenLandUpVectorSwitcher::FOpenLandUpVectorSwitcher(FVector Current, FVector Desired)
 {
