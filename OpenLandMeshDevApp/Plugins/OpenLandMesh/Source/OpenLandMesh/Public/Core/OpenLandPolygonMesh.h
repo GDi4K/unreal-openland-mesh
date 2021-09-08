@@ -166,6 +166,8 @@ public:
 	FOpenLandPolygonMeshModifyStatus CheckModifyVerticesStatus(float LastFrameTime);
 	
 	void AddTriFace(const FVector A, const FVector B, const FVector C);
+	void AddTriFace(const FOpenLandMeshVertex A, const FOpenLandMeshVertex B, const FOpenLandMeshVertex C);
+	void AddQuadFace(const FOpenLandMeshVertex A, const FOpenLandMeshVertex B, const FOpenLandMeshVertex C, const FOpenLandMeshVertex D);
 	void AddQuadFace(const FVector A, const FVector B, const FVector C, const FVector D);
 	void Transform(FTransform Transformer);
 	bool IsThereAnyAsyncTask() const;

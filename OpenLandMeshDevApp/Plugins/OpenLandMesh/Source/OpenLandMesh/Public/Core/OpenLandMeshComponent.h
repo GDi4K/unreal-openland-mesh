@@ -96,6 +96,7 @@ public:
 	void CreateMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo);
 	void ReplaceMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo);
 	void UpdateMeshSection(int32 SectionIndex, FOpenLandMeshComponentUpdateRange UpdateRange);
+	void RemoveAllSections();
 
 	int32 NumMeshSections();
 	void UpdateMeshSectionVisibility(int32 SectionIndex);

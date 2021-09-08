@@ -114,7 +114,7 @@ FOpenLandPolygonMeshBuildResultPtr FOpenLandPolygonMesh::BuildMesh(UObject* Worl
 	for (size_t Index = 0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
 	{
 		FOpenLandMeshVertex& Vertex = TransformedMeshInfo.Vertices.GetRef(Index);
-		Vertex.Position = SourceTransformer.TransformVector(Vertex.Position);
+		Vertex.Position = SourceTransformer.TransformPosition(Vertex.Position);
 	}
 
 	// Build faces & tangents for the TransformedMeshInfo
@@ -191,7 +191,7 @@ void FOpenLandPolygonMesh::BuildMeshAsync(UObject* WorldContext, FOpenLandPolygo
 		for (size_t Index = 0; Index < TransformedMeshInfo.Vertices.Length(); Index++)
 		{
 			FOpenLandMeshVertex& Vertex = TransformedMeshInfo.Vertices.GetRef(Index);
-			Vertex.Position = SourceTransformer.TransformVector(Vertex.Position);
+			Vertex.Position = SourceTransformer.TransformPosition(Vertex.Position);
 		}
 
 		// Build faces & tangents for the TransformedMeshInfo
@@ -619,6 +619,23 @@ void FOpenLandPolygonMesh::AddTriFace(const FVector A, const FVector B, const FV
 		FOpenLandMeshVertex(A, FVector2D(0, 1)),
 		FOpenLandMeshVertex(B, FVector2D(1, 1)),
 		FOpenLandMeshVertex(C, FVector2D(0.5, 0))
+	};
+
+	AddFace(&SourceMeshInfo, InputVertices);
+}
+
+void FOpenLandPolygonMesh::AddTriFace(const FOpenLandMeshVertex A, const FOpenLandMeshVertex B,
+	const FOpenLandMeshVertex C)
+{
+	AddFace(&SourceMeshInfo, {A, B, C});
+}
+
+void FOpenLandPolygonMesh::AddQuadFace(const FOpenLandMeshVertex A, const FOpenLandMeshVertex B,
+	const FOpenLandMeshVertex C, const FOpenLandMeshVertex D)
+{
+	const TOpenLandArray<FOpenLandMeshVertex> InputVertices = {
+		A, B, C,
+		A, C, D
 	};
 
 	AddFace(&SourceMeshInfo, InputVertices);

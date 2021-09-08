@@ -48,11 +48,14 @@ public:
 	void RegisterVertexModifier(function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial VertexModifier);
 	int32 CalculateVerticesForSubdivision(int32 Subdivision) const;
+	UOpenLandMeshPolygonMeshProxy* AddTriFace(const FOpenLandMeshVertex A, const FOpenLandMeshVertex B, const FOpenLandMeshVertex C);
+	UOpenLandMeshPolygonMeshProxy* AddQuadFace(const FOpenLandMeshVertex A, const FOpenLandMeshVertex B, const FOpenLandMeshVertex C, const FOpenLandMeshVertex D);
+	static FVector2D RegularPolygonPositionToUV(FVector Position, float Radius);
 
 	// Blueprint Methods
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	UOpenLandMeshPolygonMeshProxy* AddTriFace(const FVector A, const FVector B, const FVector C);
-
+	
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	UOpenLandMeshPolygonMeshProxy* AddQuadFace(const FVector A, const FVector B, const FVector C, const FVector D);
 
@@ -67,11 +70,20 @@ public:
 	static UOpenLandMeshPolygonMeshProxy* MakePlaneMesh();
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
-	static UOpenLandMeshPolygonMeshProxy* MakeCubeMesh();
+	static UOpenLandMeshPolygonMeshProxy* MakeCubeMesh(bool bAddTop=true, bool bAddBottom=true, bool bInvert=false);
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
-	static UOpenLandMeshPolygonMeshProxy* MakePyramidMesh();
+	static UOpenLandMeshPolygonMeshProxy* MakeRegularPyramidMesh(int32 NoOfSides=4, float Radius=100.0f, float Height=100.0f, bool bAddBottom=true);
 
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	static UOpenLandMeshPolygonMeshProxy* MakeRegularPolygonMesh(int32 NoOfSides=3, float Radius=100.0f);
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	static UOpenLandMeshPolygonMeshProxy* MakeRegularPrismMesh(int32 NoOfSides=3, int32 NoOfRows=4, float Height=100.0f, float RadiusTop=50.0f, float RadiusBottom=50.0f, bool bAddTop=true, bool bAddBottom=true);
+
+	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
+	static UOpenLandMeshPolygonMeshProxy* MakeGridMesh(float CellWidth=10.0, int32 Rows=10, int32 Cols=10);
+	
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	static void ClearCache();
 };

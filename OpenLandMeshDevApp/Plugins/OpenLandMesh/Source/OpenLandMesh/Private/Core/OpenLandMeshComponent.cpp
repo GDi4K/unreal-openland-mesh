@@ -268,6 +268,12 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex, FOpenLandMesh
 	// MarkRenderTransformDirty(); // Need to send new bounds to render thread
 }
 
+void UOpenLandMeshComponent::RemoveAllSections()
+{
+	MeshSections.Empty();
+	UpdateLocalBounds();
+}
+
 int32 UOpenLandMeshComponent::NumMeshSections()
 {
 	return MeshSections.Num();

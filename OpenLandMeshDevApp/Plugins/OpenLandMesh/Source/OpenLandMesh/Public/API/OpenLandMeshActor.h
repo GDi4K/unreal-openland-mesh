@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "OpenLandInstancingRules.h"
 
 #include "GameFramework/Actor.h"
 #include "OpenLandMeshPolygonMeshProxy.h"
@@ -10,6 +11,15 @@
 #include "Compute/Types/ComputeMaterial.h"
 
 #include "OpenLandMeshActor.generated.h"
+
+UENUM(BlueprintType)
+enum EOpenLandMeshVisibility
+{
+	MV_SHOW_ALWAYS = 0 UMETA(DisplayName="Show Always"),
+	MV_HIDE_ALWAYS = 1 UMETA(DisplayName="Hide Always"),
+	MV_HIDE_IN_GAME = 2 UMETA(DisplayName="Hide in Game"),
+	MV_HIDE_IN_EDITOR = 3 UMETA(DisplayName="Hide in Editor"),
+};
 
 struct FLODInfo
 {
@@ -53,11 +63,14 @@ UCLASS()
 class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 {
 	GENERATED_BODY()
-
+	
 	bool bMeshGenerated = false;
 	bool bNeedToAsyncModifyMesh = false;
 	FOpenLandPolygonMeshModifyStatus ModifyStatus = {};
 
+	UPROPERTY(NonPIEDuplicateTransient);
+	FString ObjectId;
+	
 	TArray<FLODInfoPtr> LODList;
 	FLODInfoPtr CurrentLOD = nullptr;
 	bool bNeedLODVisibilityChange = false;
@@ -70,16 +83,16 @@ class OPENLANDMESH_API AOpenLandMeshActor : public AActor
 	FString MakeCacheKey(int32 CurrentSubdivisions) const;
 	void MakeModifyReady();
 	void FinishBuildMeshAsync();
+	bool CanRenderMesh() const;
 
 public:
-	// Sets default values for this actor's properties
 	AOpenLandMeshActor();
 	~AOpenLandMeshActor();
+	FString GetObjectId() const { return ObjectId; }
 
 protected:
 	UPROPERTY(Transient)
 	UOpenLandMeshPolygonMeshProxy* PolygonMesh;
-
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -102,14 +115,15 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	void SetMaterial(UMaterialInterface* Material);
 	virtual bool ShouldTickIfViewportsOnly() const override;
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	void BuildMeshAsync(int32 LODIndex);
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
 	UOpenLandMeshComponent* MeshComponent;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	int32 SubDivisions = 0;
 
@@ -125,6 +139,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bRunGpuVertexModifiers = false;;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	UMaterialInterface* Material;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	bool bAnimate = false;
 
@@ -145,33 +162,48 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
 	int32 DesiredFrameRateOnModify = 60;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	TEnumAsByte<EOpenLandMeshVisibility> MeshVisibility = MV_SHOW_ALWAYS;
 	
-	UPROPERTY(VisibleAnywhere, Category=OpenLandMesh)
+	UPROPERTY(VisibleAnywhere, Category="OpenLandMesh LODs")
 	int32 CurrentLODIndex = 0;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh LODs")
 	int32 MaximumLODCount = 1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh LODs")
 	int32 LODStepUnits = 3000;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh LODs")
 	float LODStepPower = 1.5;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh LODs")
 	int32 LODIndexForCollisions = -1;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OpenLandMesh)
-	UMaterialInterface* Material;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh Instancing")
+	TArray<FOpenLandInstancingRules> InstancingGroups;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh Instancing")
+	bool bRunInstancingAfterBuildMesh = true;
+	
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void BuildMesh();
+
+	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLandMesh LODs")
+	void RebuildLODs();
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMesh();
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category=OpenLandMesh)
 	void ResetCache();
+
+	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLandMesh Instancing")
+	void ApplyInstances();
+
+	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLandMesh Instancing")
+	void RemoveInstances();
 
 	UFUNCTION(BlueprintCallable, Category=OpenLandMesh)
 	void ModifyMeshAsync();
