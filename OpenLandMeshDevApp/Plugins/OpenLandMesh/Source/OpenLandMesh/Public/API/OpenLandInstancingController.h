@@ -105,7 +105,7 @@ class OPENLANDMESH_API AOpenLandInstancingController : public AActor
 	static TArray<FOpenLandInstancingRequestPayload> RequestsToUpdate;
 	static AOpenLandInstancingController* Singleton;
 
-	float RemainingTimeToCleanUp = InstanceCleaningInterval;
+	float RemainingTimeToCleanUp = 0.0f;
 
 	void SetPoints(FOpenLandInstancingRequest& Registration);
 	void RemovePoints(FString OwnerId);
