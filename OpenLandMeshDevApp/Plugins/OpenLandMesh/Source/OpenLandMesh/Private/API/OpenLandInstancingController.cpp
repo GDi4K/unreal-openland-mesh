@@ -230,12 +230,16 @@ void AOpenLandInstancingController::SetPoints(FOpenLandInstancingRequest &Regist
 		{
 			SpawnedActorInfo.Actor = GetWorld()->SpawnActor(NewPoint.ActorClass, &TransformedInfo.Position, &TransformedInfo.Rotator);
 			SpawnedActorInfo.Actor->SetActorRelativeScale3D(TransformedInfo.Scale);
+#if WITH_EDITOR
 			SpawnedActorInfo.Actor->SetFolderPath("OpenLandMeshInstances");
+#endif			
 		} else
 		{
 			SpawnedActorInfo.Actor = GetWorld()->SpawnActor(AOpenLandStaticMeshActor::StaticClass(), &TransformedInfo.Position, &TransformedInfo.Rotator);
 			SpawnedActorInfo.Actor->SetActorRelativeScale3D(TransformedInfo.Scale);
+#if WITH_EDITOR
 			SpawnedActorInfo.Actor->SetFolderPath("OpenLandMeshInstances");
+#endif
 			AOpenLandStaticMeshActor* StaticMeshActor = Cast<AOpenLandStaticMeshActor>(SpawnedActorInfo.Actor);
 			StaticMeshActor->StaticMesh->SetStaticMesh(NewPoint.StaticMesh);
 			if (NewPoint.bEnableCollisions)
