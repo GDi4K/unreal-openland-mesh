@@ -18,5 +18,8 @@ public:
 	static TArray<FOpenLandMeshPoint> BuildPointsUseOrigin(FSimpleMeshInfoPtr MeshInfo);
 	static TArray<FOpenLandMeshPoint> BuildPointsPickVertices(FSimpleMeshInfoPtr MeshInfo);
 	static TArray<FOpenLandMeshPoint> BuildPointsPickCentroids(FSimpleMeshInfoPtr MeshInfo);
+	static TArray<FOpenLandMeshPoint> BuildPointsMoveToZAxis(FSimpleMeshInfoPtr MeshInfo);
+	static TArray<FOpenLandMeshPoint> BuildPointsMoveToXAxis(FSimpleMeshInfoPtr MeshInfo);
+	static TArray<FOpenLandMeshPoint> BuildPointsMoveToYAxis(FSimpleMeshInfoPtr MeshInfo);
 	static TArray<FOpenLandMeshPoint> BuildPointsOnTriangle(FSimpleMeshInfoPtr MeshInfo, int32 TriangleIndex, int32 Count, float MinRadius);
 };
