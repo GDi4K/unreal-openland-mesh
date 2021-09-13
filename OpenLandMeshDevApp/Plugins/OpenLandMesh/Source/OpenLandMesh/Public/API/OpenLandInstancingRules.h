@@ -94,7 +94,7 @@ struct FOpenLandInstancingRules
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh Instancing")
-	TEnumAsByte<EOpenLandInstancingRuleObjectType> PlacementObject = IROT_ACTOR;
+	TEnumAsByte<EOpenLandInstancingRuleObjectType> PlacementObject = IROT_STATIC_MESH;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh Instancing",  meta = (EditCondition = "PlacementObject==0", AllowedClasses="Actor"))
 	UClass* Actor = nullptr;
