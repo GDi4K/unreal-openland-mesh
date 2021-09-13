@@ -601,6 +601,18 @@ void AOpenLandMeshActor::ApplyInstances()
 		{
 			MeshPoints = FOpenLandPointsBuilder::BuildPointsPickCentroids(MeshInstance);
 		}
+		else if (InstancingRules.SamplingAlgorithm == IRSA_MOVE_TO_X_AXIS)
+		{
+			MeshPoints = FOpenLandPointsBuilder::BuildPointsMoveToXAxis(MeshInstance);
+		}
+		else if (InstancingRules.SamplingAlgorithm == IRSA_MOVE_TO_Y_AXIS)
+		{
+			MeshPoints = FOpenLandPointsBuilder::BuildPointsMoveToYAxis(MeshInstance);
+		}
+		else if (InstancingRules.SamplingAlgorithm == IRSA_MOVE_TO_Z_AXIS)
+		{
+			MeshPoints = FOpenLandPointsBuilder::BuildPointsMoveToZAxis(MeshInstance);
+		}
 
 		for (const FOpenLandMeshPoint MeshPoint: MeshPoints)
 		{

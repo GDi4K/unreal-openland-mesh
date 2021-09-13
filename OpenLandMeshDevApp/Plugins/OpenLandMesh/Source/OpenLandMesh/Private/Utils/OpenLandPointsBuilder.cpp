@@ -106,6 +106,90 @@ TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsPickCentroids(FSim
 	return PointList;
 }
 
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToZAxis(FSimpleMeshInfoPtr MeshInfo)
+{
+	TSet<FVector> PointSet;
+
+	for (size_t VertexId=0; VertexId<MeshInfo->Vertices.Length(); VertexId++)
+	{
+		const FOpenLandMeshVertex Vertex = MeshInfo->Vertices.Get(VertexId);
+		FVector Point = Vertex.Position;
+		Point.X = 0;
+		Point.Y = 0;
+
+		PointSet.Add(Point);
+	}
+	
+	TArray<FOpenLandMeshPoint> PointList;
+	for (const FVector Point: PointSet)
+	{
+		FOpenLandMeshPoint MeshPoint;
+		MeshPoint.Position = Point;
+		MeshPoint.Normal = {0.0, 0.0, 1.0};
+		MeshPoint.TangentX = {1.0, 0.0, 0.0};
+
+		PointList.Push(MeshPoint);
+	}
+
+	return PointList;
+}
+
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToXAxis(FSimpleMeshInfoPtr MeshInfo)
+{
+	TSet<FVector> PointSet;
+
+	for (size_t VertexId=0; VertexId<MeshInfo->Vertices.Length(); VertexId++)
+	{
+		const FOpenLandMeshVertex Vertex = MeshInfo->Vertices.Get(VertexId);
+		FVector Point = Vertex.Position;
+		Point.Z = 0;
+		Point.Y = 0;
+
+		PointSet.Add(Point);
+	}
+	
+	TArray<FOpenLandMeshPoint> PointList;
+	for (const FVector Point: PointSet)
+	{
+		FOpenLandMeshPoint MeshPoint;
+		MeshPoint.Position = Point;
+		MeshPoint.Normal = {0.0, 0.0, 1.0};
+		MeshPoint.TangentX = {1.0, 0.0, 0.0};
+
+		PointList.Push(MeshPoint);
+	}
+
+	return PointList;
+}
+
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToYAxis(FSimpleMeshInfoPtr MeshInfo)
+{
+	TSet<FVector> PointSet;
+
+	for (size_t VertexId=0; VertexId<MeshInfo->Vertices.Length(); VertexId++)
+	{
+		const FOpenLandMeshVertex Vertex = MeshInfo->Vertices.Get(VertexId);
+		FVector Point = Vertex.Position;
+		Point.X = 0;
+		Point.Z = 0;
+
+		PointSet.Add(Point);
+	}
+	
+	TArray<FOpenLandMeshPoint> PointList;
+	for (const FVector Point: PointSet)
+	{
+		FOpenLandMeshPoint MeshPoint;
+		MeshPoint.Position = Point;
+		MeshPoint.Normal = {0.0, 0.0, 1.0};
+		MeshPoint.TangentX = {1.0, 0.0, 0.0};
+
+		PointList.Push(MeshPoint);
+	}
+
+	return PointList;
+}
+
 TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsOnTriangle(FSimpleMeshInfoPtr MeshInfo, int32 TriangleIndex, int32 Count, float MinRadius)
 {
 	const FVector ZVector = {0, 0, 1};

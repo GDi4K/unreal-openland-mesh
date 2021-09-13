@@ -17,7 +17,10 @@ enum EOpenLandInstancingRuleSamplingAlgorithm
 	IRSA_MODIFIED_POISSON_2D=0  UMETA(DisplayName="Modified Poisson 2D"),
 	IRSA_VERTICES=1 UMETA(DisplayName="Pick Vertices"),
 	IRSA_CENTROID=2 UMETA(DisplayName="Pick Centroids"),
-	IRSA_ORIGIN=3 UMETA(DisplayName="Use Origin")
+	IRSA_ORIGIN=3 UMETA(DisplayName="Use Origin"),
+	IRSA_MOVE_TO_X_AXIS=4 UMETA(DisplayName="Move to X Axis"),
+	IRSA_MOVE_TO_Y_AXIS=5 UMETA(DisplayName="Move to Y Axis"),
+	IRSA_MOVE_TO_Z_AXIS=6 UMETA(DisplayName="Move to Z Axis")
 };
 
 UENUM(BlueprintType)
