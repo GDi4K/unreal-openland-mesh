@@ -106,10 +106,10 @@ struct FOpenLandInstancingRules
 	TEnumAsByte<EOpenLandInstancingRuleSamplingAlgorithm> SamplingAlgorithm = IRSA_MODIFIED_POISSON_2D;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh Instancing", meta = (EditCondition = "SamplingAlgorithm==0"))
-	int32 Density = 10;
+	float Density = 10;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh Instancing", meta = (EditCondition = "SamplingAlgorithm==0"))
-	int32 MinimumDistance = 10;
+	float MinimumDistance = 10;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLandMesh Instancing", meta = (EditCondition = "SamplingAlgorithm!=3"))
 	int32 DesiredLODIndex = -1;
