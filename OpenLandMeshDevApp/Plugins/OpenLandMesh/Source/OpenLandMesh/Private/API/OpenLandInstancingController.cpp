@@ -432,6 +432,30 @@ void AOpenLandInstancingController::RemoveAllInstances()
 	InstancedGroupsMap.Empty();
 }
 
+void AOpenLandInstancingController::DontRunInstancingAfterBuildMesh()
+{
+	TArray<AActor*> FoundActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOpenLandMeshActor::StaticClass(), FoundActors);
+
+	for (AActor* Actor: FoundActors)
+	{
+		AOpenLandMeshActor* MeshActor = Cast<AOpenLandMeshActor>(Actor);
+		MeshActor->bRunInstancingAfterBuildMesh = false;
+	}
+}
+
+void AOpenLandInstancingController::RunInstancingAfterBuildMesh()
+{
+	TArray<AActor*> FoundActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOpenLandMeshActor::StaticClass(), FoundActors);
+
+	for (AActor* Actor: FoundActors)
+	{
+		AOpenLandMeshActor* MeshActor = Cast<AOpenLandMeshActor>(Actor);
+		MeshActor->bRunInstancingAfterBuildMesh = true;
+	}
+}
+
 TArray<AActor*> AOpenLandInstancingController::GetInstancesForOwner(AOpenLandMeshActor* OwnerMesh)
 {
 	if (Singleton == nullptr)

@@ -141,6 +141,12 @@ public:
 	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLandMesh Instancing")
 	void RemoveAllInstances();
 
+	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLandMesh Instancing")
+	void DontRunInstancingAfterBuildMesh();
+
+	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLandMesh Instancing")
+	void RunInstancingAfterBuildMesh();
+
 	UFUNCTION(BlueprintCallable, Category="OpenLandMesh Instancing")
 	static TArray<AActor*> GetInstancesForOwner(AOpenLandMeshActor* OwnerMesh);
 };
