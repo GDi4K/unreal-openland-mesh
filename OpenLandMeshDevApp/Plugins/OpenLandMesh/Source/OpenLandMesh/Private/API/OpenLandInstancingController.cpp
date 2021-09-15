@@ -226,6 +226,13 @@ void AOpenLandInstancingController::SetPoints(FOpenLandInstancingRequest &Regist
 		{
 			SpawnedActorInfo.Actor = GetWorld()->SpawnActor(NewPoint.ActorClass, &TransformedInfo.Position, &TransformedInfo.Rotator);
 			SpawnedActorInfo.Actor->SetActorRelativeScale3D(TransformedInfo.Scale);
+
+			// Register child mesh actors. This will be useful later when cleaning
+			AOpenLandMeshActor* MeshActor = Cast<AOpenLandMeshActor>(SpawnedActorInfo.Actor);
+			if (MeshActor != nullptr)
+			{
+				ChildMeshActors.Add(MeshActor->GetObjectId(), MeshActor);
+			}
 #if WITH_EDITOR
 			SpawnedActorInfo.Actor->SetFolderPath("OpenLandMeshInstances");
 #endif			
@@ -257,6 +264,11 @@ void AOpenLandInstancingController::SetPoints(FOpenLandInstancingRequest &Regist
 		{
 			if (ExistingActor.Actor != nullptr)
 			{
+				AOpenLandMeshActor* MeshActor = Cast<AOpenLandMeshActor>(ExistingActor.Actor);
+				if (MeshActor != nullptr)
+				{
+					ChildMeshActors.Remove(MeshActor->GetObjectId());
+				}
 				ExistingActor.Actor->Destroy(true);
 			}
 		}
@@ -290,6 +302,11 @@ void AOpenLandInstancingController::RemovePoints(FString OwnerId)
 	{
 		if (SpawnedActorInfo.Actor != nullptr)
 		{
+			AOpenLandMeshActor* MeshActor = Cast<AOpenLandMeshActor>(SpawnedActorInfo.Actor);
+			if (MeshActor != nullptr)
+			{
+				ChildMeshActors.Remove(MeshActor->GetObjectId());
+			}
 			SpawnedActorInfo.Actor->Destroy(true);
 		}
 	}
@@ -386,19 +403,20 @@ void AOpenLandInstancingController::CleanUnlinkedInstances()
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOpenLandMeshActor::StaticClass(), FoundActors);
 
-	TSet<FString> ObjectIds;
+	TSet<FString> ExistingMeshActorIds;
 	for (const AActor* Actor: FoundActors)
 	{
 		const AOpenLandMeshActor* MeshActor = Cast<AOpenLandMeshActor>(Actor);
-		ObjectIds.Add(MeshActor->GetObjectId());
+		ExistingMeshActorIds.Add(MeshActor->GetObjectId());
 	}
 
 	TArray<FString> ItemsToRemove;
 	for (const auto Pair: InstancedGroupsMap)
 	{
-		if (ObjectIds.Find(Pair.Key) == nullptr)
+		const FOpenLandInstancedActorGroup GroupInfo = Pair.Value;
+		if (GroupInfo.bAllowCleaning && ExistingMeshActorIds.Find(Pair.Key) == nullptr)
 		{
-			for(const auto ActorInfo: Pair.Value.SpawnedActors)
+			for(const auto ActorInfo: GroupInfo.SpawnedActors)
 			{
 				if (ActorInfo.Actor != nullptr)
 				{
@@ -453,6 +471,27 @@ void AOpenLandInstancingController::RunInstancingAfterBuildMesh()
 	{
 		AOpenLandMeshActor* MeshActor = Cast<AOpenLandMeshActor>(Actor);
 		MeshActor->bRunInstancingAfterBuildMesh = true;
+	}
+}
+
+void AOpenLandInstancingController::RemoveChildMeshActors()
+{
+	TArray<FString> IdsToDelete;
+	for (const auto Pair: ChildMeshActors)
+	{
+		AOpenLandMeshActor* MeshActor = Pair.Value;
+		if (InstancedGroupsMap.Find(MeshActor->GetObjectId()) != nullptr)
+		{
+			InstancedGroupsMap[MeshActor->GetObjectId()].bAllowCleaning = false;
+		}
+
+		IdsToDelete.Push(MeshActor->GetObjectId());
+		MeshActor->Destroy(true);
+	}
+
+	for (FString Id: IdsToDelete)
+	{
+		ChildMeshActors.Remove(Id);
 	}
 }
 

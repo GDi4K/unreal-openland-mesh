@@ -87,6 +87,9 @@ struct FOpenLandInstancedActorGroup
 
 	UPROPERTY();
 	TArray<FOpenLandInstancedActorInfo> SpawnedActors;
+
+	UPROPERTY();
+	bool bAllowCleaning = true;
 };
 
 struct AOpenLandInstancingTransformedInfo
@@ -132,6 +135,9 @@ public:
 	UPROPERTY()
 	TMap<FString, FOpenLandInstancedActorGroup> InstancedGroupsMap;
 
+	UPROPERTY()
+	TMap<FString, AOpenLandMeshActor*> ChildMeshActors;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="OpenLandMesh Instancing")
 	float InstanceCleaningInterval = 2;
 	
@@ -146,6 +152,9 @@ public:
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLandMesh Instancing")
 	void RunInstancingAfterBuildMesh();
+
+	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLandMesh Instancing")
+	void RemoveChildMeshActors();
 
 	UFUNCTION(BlueprintCallable, Category="OpenLandMesh Instancing")
 	static TArray<AActor*> GetInstancesForOwner(AOpenLandMeshActor* OwnerMesh);
