@@ -28,7 +28,7 @@ FOpenLandMeshSceneProxy::FOpenLandMeshSceneProxy(UOpenLandMeshComponent* Compone
 	// Move Game Thread MeshSections into the Render Thread
 	for (int SectionId = 0; SectionId < Component->NumMeshSections(); SectionId++)
 	{
-		FSimpleMeshInfoPtr SrcSection = Component->MeshSections[SectionId];
+		FOpenLandMeshInfoPtr SrcSection = Component->MeshSections[SectionId];
 		if (SrcSection->Triangles.Length() > 0 && SrcSection->Vertices.Length() > 0)
 		{
 			FOpenLandMeshProxySection* NewSection = new FOpenLandMeshProxySection(GetScene().GetFeatureLevel());
@@ -103,7 +103,7 @@ void FOpenLandMeshSceneProxy::SetSectionVisibility_RenderThread(int32 SectionInd
 		ProxySections[SectionIndex]->bSectionVisible = bNewVisibility;
 }
 
-void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FSimpleMeshInfoPtr const SectionData, FOpenLandMeshComponentUpdateRange UpdateRange)
+void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FOpenLandMeshInfoPtr const SectionData, FOpenLandMeshComponentUpdateRange UpdateRange)
 {
 	check(IsInRenderingThread());
 

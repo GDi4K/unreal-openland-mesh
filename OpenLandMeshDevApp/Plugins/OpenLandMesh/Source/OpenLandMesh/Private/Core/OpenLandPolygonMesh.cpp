@@ -148,7 +148,7 @@ FOpenLandPolygonMeshBuildResultPtr FOpenLandPolygonMesh::BuildMesh(UObject* Worl
 	EnsureGpuComputeEngine(WorldContext, Result);
 	TrackEnsureGpuComputeEngine.Finish();
 
-	FSimpleMeshInfoPtr Intermediate = Result->Original;
+	FOpenLandMeshInfoPtr Intermediate = Result->Original;
 	if (GpuVertexModifier.Material != nullptr)
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
@@ -455,7 +455,7 @@ void FOpenLandPolygonMesh::ModifyVertices(UObject* WorldContext, FOpenLandPolygo
 	EnsureGpuComputeEngine(WorldContext, MeshBuildResult);
 	TrackEnsureGpuComputeEngine.Finish();
 
-	FSimpleMeshInfoPtr Intermediate = MeshBuildResult->Original;
+	FOpenLandMeshInfoPtr Intermediate = MeshBuildResult->Original;
 	if (GpuVertexModifier.Material != nullptr)
 	{
 		auto TrackGpuVertexModifiers = TrackTime("GpuVertexModifiers");
@@ -530,7 +530,7 @@ FOpenLandPolygonMeshModifyStatus FOpenLandPolygonMesh::CheckModifyVerticesStatus
 
 	EnsureGpuComputeEngine(ModifyInfo.WorldContext, ModifyInfo.MeshBuildResult);
 
-	FSimpleMeshInfoPtr Intermediate = ModifyInfo.MeshBuildResult->Original;
+	FOpenLandMeshInfoPtr Intermediate = ModifyInfo.MeshBuildResult->Original;
 	if (GpuVertexModifier.Material != nullptr)
 	{
 		GpuLastFrameTime = LastFrameTime;

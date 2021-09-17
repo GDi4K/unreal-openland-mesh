@@ -6,7 +6,7 @@
 #include "Utils/OpenLandPointTriangle.h"
 #include "Utils/OpenLandUpVectorSwitcher.h"
 
-TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsModifiedPoisson2D(FSimpleMeshInfoPtr MeshInfo, float Density, float MinRadius)
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsModifiedPoisson2D(FOpenLandMeshInfoPtr MeshInfo, float Density, float MinRadius)
 {
 	TArray<FOpenLandMeshPoint> InstancingPoints;
 
@@ -48,7 +48,7 @@ TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsModifiedPoisson2D(
 	return InstancingPoints;
 }
 
-TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsUseOrigin(FSimpleMeshInfoPtr MeshInfo)
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsUseOrigin(FOpenLandMeshInfoPtr MeshInfo)
 {
 	FOpenLandMeshPoint Origin;
 	Origin.Normal = {0.0f, 0.0f, 1.0f};
@@ -58,7 +58,7 @@ TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsUseOrigin(FSimpleM
 	return {Origin};
 }
 
-TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsPickVertices(FSimpleMeshInfoPtr MeshInfo)
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsPickVertices(FOpenLandMeshInfoPtr MeshInfo)
 {
 	TArray<FOpenLandMeshPoint> PointList;
 	TMap<FVector, bool> PointsMap;
@@ -82,7 +82,7 @@ TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsPickVertices(FSimp
 	return PointList;
 }
 
-TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsPickCentroids(FSimpleMeshInfoPtr MeshInfo)
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsPickCentroids(FOpenLandMeshInfoPtr MeshInfo)
 {
 	TArray<FOpenLandMeshPoint> PointList;
 	for (size_t TriangleIndex=0; TriangleIndex<MeshInfo->Triangles.Length(); TriangleIndex++)
@@ -106,7 +106,7 @@ TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsPickCentroids(FSim
 	return PointList;
 }
 
-TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToZAxis(FSimpleMeshInfoPtr MeshInfo)
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToZAxis(FOpenLandMeshInfoPtr MeshInfo)
 {
 	TSet<FVector> PointSet;
 
@@ -134,7 +134,7 @@ TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToZAxis(FSimpl
 	return PointList;
 }
 
-TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToXAxis(FSimpleMeshInfoPtr MeshInfo)
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToXAxis(FOpenLandMeshInfoPtr MeshInfo)
 {
 	TSet<FVector> PointSet;
 
@@ -162,7 +162,7 @@ TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToXAxis(FSimpl
 	return PointList;
 }
 
-TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToYAxis(FSimpleMeshInfoPtr MeshInfo)
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToYAxis(FOpenLandMeshInfoPtr MeshInfo)
 {
 	TSet<FVector> PointSet;
 
@@ -190,7 +190,7 @@ TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsMoveToYAxis(FSimpl
 	return PointList;
 }
 
-TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsOnTriangle(FSimpleMeshInfoPtr MeshInfo, int32 TriangleIndex, int32 Count, float MinRadius)
+TArray<FOpenLandMeshPoint> FOpenLandPointsBuilder::BuildPointsOnTriangle(FOpenLandMeshInfoPtr MeshInfo, int32 TriangleIndex, int32 Count, float MinRadius)
 {
 	const FVector ZVector = {0, 0, 1};
 	const FOpenLandMeshTriangle MeshTriangle = MeshInfo->Triangles.Get(TriangleIndex);

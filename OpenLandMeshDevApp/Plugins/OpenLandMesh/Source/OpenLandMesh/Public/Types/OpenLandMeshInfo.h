@@ -7,7 +7,7 @@
 #include "Types/OpenLandArray.h"
 
 class FOpenLandMeshInfo;
-typedef TSharedPtr<FOpenLandMeshInfo, ESPMode::ThreadSafe> FSimpleMeshInfoPtr;
+typedef TSharedPtr<FOpenLandMeshInfo, ESPMode::ThreadSafe> FOpenLandMeshInfoPtr;
 
 class OPENLANDMESH_API FOpenLandMeshInfo
 {
@@ -34,7 +34,7 @@ public:
 
 	void UnLock();
 
-	FSimpleMeshInfoPtr Clone();
+	FOpenLandMeshInfoPtr Clone();
 
-	static FSimpleMeshInfoPtr New();
+	static FOpenLandMeshInfoPtr New();
 };

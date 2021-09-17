@@ -57,8 +57,8 @@ struct FOpenLandPolygonMeshModifyOptions
 
 struct FOpenLandPolygonMeshBuildResult
 {
-	FSimpleMeshInfoPtr Original = nullptr;
-	FSimpleMeshInfoPtr Target = nullptr;
+	FOpenLandMeshInfoPtr Original = nullptr;
+	FOpenLandMeshInfoPtr Target = nullptr;
 	int32 SubDivisions = 0;
 	int32 TextureWidth = 0;
 	TArray<FGpuComputeVertexDataTextureItem> DataTextures;
@@ -131,10 +131,6 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 	int32 GpuLastRowsPerFrame = 0;
 	float GpuLastFrameTime = 0;
 
-	static void ApplyNormalSmoothing(FOpenLandMeshInfo* MeshInfo, float CuspAngle);
-	static FOpenLandMeshInfo SubDivide(FOpenLandMeshInfo SourceMeshInfo, int Depth);
-	static void AddFace(FOpenLandMeshInfo* MeshInfo, TOpenLandArray<FOpenLandMeshVertex> Vertices);
-	static void BuildFaceTangents(FOpenLandMeshVertex& T0, FOpenLandMeshVertex& T1, FOpenLandMeshVertex& T2);
 	static void ApplyVertexModifiers(function<FVertexModifierResult(FVertexModifierPayload)> VertexModifier, FOpenLandMeshInfo* Original, FOpenLandMeshInfo* Target, int RangeStart, int RangeEnd,
 	                          float RealTimeSeconds);
 	static void BuildDataTextures(FOpenLandPolygonMeshBuildResultPtr Result, int32 ForcedTextureWidth);
@@ -147,6 +143,11 @@ class OPENLANDMESH_API FOpenLandPolygonMesh
 
 public:
 	~FOpenLandPolygonMesh();
+	static void AddFace(FOpenLandMeshInfo* MeshInfo, TOpenLandArray<FOpenLandMeshVertex> Vertices);
+	static void BuildFaceTangents(FOpenLandMeshVertex& T0, FOpenLandMeshVertex& T1, FOpenLandMeshVertex& T2);
+	static void ApplyNormalSmoothing(FOpenLandMeshInfo* MeshInfo, float CuspAngle);
+	static FOpenLandMeshInfo SubDivide(FOpenLandMeshInfo SourceMeshInfo, int Depth);
+	
 	void RegisterVertexModifier(std::function<FVertexModifierResult(FVertexModifierPayload)> Callback);
 	FGpuComputeMaterialStatus RegisterGpuVertexModifier(FComputeMaterial ComputeMaterial);
 	

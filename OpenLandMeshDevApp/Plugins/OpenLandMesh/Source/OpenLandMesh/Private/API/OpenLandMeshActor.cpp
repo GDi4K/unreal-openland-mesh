@@ -582,7 +582,7 @@ void AOpenLandMeshActor::ApplyInstances()
 			}
 		}
 		
-		const FSimpleMeshInfoPtr MeshInstance = SelectedLOD->MeshBuildResult->Target->Clone();
+		const FOpenLandMeshInfoPtr MeshInstance = SelectedLOD->MeshBuildResult->Target->Clone();
 		TArray<FOpenLandMeshPoint> MeshPoints;
 
 		if (InstancingRules.SamplingAlgorithm == IRSA_MODIFIED_POISSON_2D)

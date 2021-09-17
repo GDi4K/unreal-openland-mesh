@@ -40,7 +40,7 @@ private:
 public:
 
 	// properties
-	TArray<FSimpleMeshInfoPtr> MeshSections;
+	TArray<FOpenLandMeshInfoPtr> MeshSections;
 
 	// --- START INTERNAL METHODS & PROPERTIES ---
 
@@ -93,8 +93,8 @@ public:
 	// --- END INTERNAL METHODS & PROPERTIES ---
 
 	// methods
-	void CreateMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo);
-	void ReplaceMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo);
+	void CreateMeshSection(int32 SectionIndex, FOpenLandMeshInfoPtr MeshInfo);
+	void ReplaceMeshSection(int32 SectionIndex, FOpenLandMeshInfoPtr MeshInfo);
 	void UpdateMeshSection(int32 SectionIndex, FOpenLandMeshComponentUpdateRange UpdateRange);
 	void RemoveAllSections();
 

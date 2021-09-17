@@ -58,7 +58,7 @@ bool UOpenLandMeshComponent::GetPhysicsTriMeshData(FTriMeshCollisionData* Collis
 	// For each section..
 	for (int32 SectionIdx = 0; SectionIdx < MeshSections.Num(); SectionIdx++)
 	{
-		const FSimpleMeshInfoPtr Section = MeshSections[SectionIdx];
+		const FOpenLandMeshInfoPtr Section = MeshSections[SectionIdx];
 		// Do we have collision enabled?
 		if (Section->bEnableCollision)
 		{
@@ -104,7 +104,7 @@ bool UOpenLandMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) co
 {
 	for (int32 Index = 0; Index < MeshSections.Num(); Index++)
 	{
-		const FSimpleMeshInfoPtr Section = MeshSections[Index];
+		const FOpenLandMeshInfoPtr Section = MeshSections[Index];
 		if (Section->Triangles.Length() >= 0 && Section->bEnableCollision)
 			return true;
 	}
@@ -141,7 +141,7 @@ UMaterialInterface* UOpenLandMeshComponent::GetMaterialFromCollisionFaceIndex(
 		int32 TotalFaceCount = 0;
 		for (int32 SectionIdx = 0; SectionIdx < MeshSections.Num(); SectionIdx++)
 		{
-			const FSimpleMeshInfoPtr Section = MeshSections[SectionIdx];
+			const FOpenLandMeshInfoPtr Section = MeshSections[SectionIdx];
 			const int32 NumFaces = Section->Triangles.Length();
 			TotalFaceCount += NumFaces;
 
@@ -171,7 +171,7 @@ void UOpenLandMeshComponent::PostLoad()
 		SimpleMeshBodySetup->SetFlags(RF_Public | RF_ArchetypeObject);
 }
 
-void UOpenLandMeshComponent::CreateMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo)
+void UOpenLandMeshComponent::CreateMeshSection(int32 SectionIndex, FOpenLandMeshInfoPtr MeshInfo)
 {
 	UE_LOG(LogTemp, Warning, TEXT("CreateMeshSection"))
 	if (SectionIndex < MeshSections.Num())
@@ -189,7 +189,7 @@ void UOpenLandMeshComponent::CreateMeshSection(int32 SectionIndex, FSimpleMeshIn
 	UpdateLocalBounds(); // Update overall bounds
 }
 
-void UOpenLandMeshComponent::ReplaceMeshSection(int32 SectionIndex, FSimpleMeshInfoPtr MeshInfo)
+void UOpenLandMeshComponent::ReplaceMeshSection(int32 SectionIndex, FOpenLandMeshInfoPtr MeshInfo)
 {
 	UE_LOG(LogTemp, Warning, TEXT("ReplaceMeshSection"))
 	if (SectionIndex >= MeshSections.Num())
@@ -213,7 +213,7 @@ void UOpenLandMeshComponent::UpdateCollisionMesh()
 	// We have one collision mesh for all sections, so need to build array of _all_ positions
 	for (int32 Index = 0; Index < MeshSections.Num(); Index++)
 	{
-		const FSimpleMeshInfoPtr CollisionSection = MeshSections[Index];
+		const FOpenLandMeshInfoPtr CollisionSection = MeshSections[Index];
 		// If section has collision, copy it
 		if (CollisionSection->bEnableCollision )
 		{
@@ -242,7 +242,7 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex, FOpenLandMesh
 		return;
 
 	//MeshSections[SectionIndex] = MeshInfo;
-	FSimpleMeshInfoPtr MeshSection = MeshSections[SectionIndex];
+	FOpenLandMeshInfoPtr MeshSection = MeshSections[SectionIndex];
 
 	// If we have collision enabled on this section, update that too
 	if (MeshSection->bEnableCollision)
@@ -264,8 +264,8 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex, FOpenLandMesh
 	 	});
 	 }
 
-	// UpdateLocalBounds(); // Update overall bounds
-	// MarkRenderTransformDirty(); // Need to send new bounds to render thread
+	UpdateLocalBounds(); // Update overall bounds
+	MarkRenderTransformDirty(); // Need to send new bounds to render thread
 }
 
 void UOpenLandMeshComponent::RemoveAllSections()

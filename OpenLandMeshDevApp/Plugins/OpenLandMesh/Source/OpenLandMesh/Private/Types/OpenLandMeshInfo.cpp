@@ -46,9 +46,9 @@ void FOpenLandMeshInfo::UnLock()
 	Vertices.UnLock();
 }
 
-FSimpleMeshInfoPtr FOpenLandMeshInfo::Clone()
+FOpenLandMeshInfoPtr FOpenLandMeshInfo::Clone()
 {
-	FSimpleMeshInfoPtr NewMeshInfo = MakeShared<FOpenLandMeshInfo, ESPMode::ThreadSafe>();
+	FOpenLandMeshInfoPtr NewMeshInfo = MakeShared<FOpenLandMeshInfo, ESPMode::ThreadSafe>();
 	NewMeshInfo->BoundingBox = BoundingBox;
 	NewMeshInfo->bEnableCollision = bEnableCollision;
 	NewMeshInfo->bSectionVisible = bSectionVisible;
@@ -62,7 +62,7 @@ FSimpleMeshInfoPtr FOpenLandMeshInfo::Clone()
 	return NewMeshInfo;
 }
 
-FSimpleMeshInfoPtr FOpenLandMeshInfo::New()
+FOpenLandMeshInfoPtr FOpenLandMeshInfo::New()
 {
 	return MakeShared<FOpenLandMeshInfo, ESPMode::ThreadSafe>();
 }

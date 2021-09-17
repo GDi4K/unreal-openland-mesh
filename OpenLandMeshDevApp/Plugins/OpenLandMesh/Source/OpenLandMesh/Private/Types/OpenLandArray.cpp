@@ -130,4 +130,4 @@ void TOpenLandArray<T>::UnLock()
 template class TOpenLandArray<FVector>;
 template class TOpenLandArray<FOpenLandMeshTriangle>;
 template class TOpenLandArray<FOpenLandMeshVertex>;
-template class TOpenLandArray<FSimpleMeshInfoPtr>;
+template class TOpenLandArray<FOpenLandMeshInfoPtr>;
