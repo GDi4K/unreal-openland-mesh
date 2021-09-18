@@ -32,4 +32,19 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rendering", Transient)
 	UOpenLandMeshComponent* MeshComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLand Infinity Mesh")
+	float CellWidth = 20.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLand Infinity Mesh")
+	int32 CellCount = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLand Infinity Mesh")
+	float UnitUVLenght = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLand Infinity Mesh")
+	int32 MaxUVs = 10;
+
+	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLand Infinity Mesh")
+	void Rebuild();
 };

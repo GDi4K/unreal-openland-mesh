@@ -57,11 +57,16 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 	const float CellWidth = CurrentBuildOptions.CellWidth;
 	const int32 CellCount = CurrentBuildOptions.CellCount;
 
-	constexpr float UnitUVLength = 100.0f;
+	const float UnitUVLength = CurrentBuildOptions.UnitUVLenght;
 	FVector PosRoot = CenterPosition - FVector(CellWidth * CellCount /2, CellWidth * CellCount /2, 0);
 	FVector PosCell = {CellWidth, CellWidth, 0};
 	FVector2D UVRoot = { PosRoot.X/UnitUVLength, PosRoot.Y/UnitUVLength };
 	FVector2D UVCell = {CellWidth / UnitUVLength, CellWidth / UnitUVLength};
+
+	UVRoot.X -= FMath::Floor(UVRoot.X / CurrentBuildOptions.MaxUVs) * CurrentBuildOptions.MaxUVs;
+	UVRoot.Y -= FMath::Floor(UVRoot.Y / CurrentBuildOptions.MaxUVs) * CurrentBuildOptions.MaxUVs;
+
+	UE_LOG(LogTemp, Warning, TEXT("UVRoot: %s"), *UVRoot.ToString())
 
 	for (int32 CellX=0; CellX<CellCount; CellX++)
 	{

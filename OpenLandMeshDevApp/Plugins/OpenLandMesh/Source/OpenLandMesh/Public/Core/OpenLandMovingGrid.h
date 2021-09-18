@@ -6,6 +6,8 @@ struct FOpenLandMovingGridBuildOptions
 	float CuspAngle = 60.0f;
 	float CellWidth = 10.0f;
 	int32 CellCount = 10;
+	float UnitUVLenght = 100.0f;
+	int32 MaxUVs = 10;
 };
 
 class FOpenLandMovingGrid

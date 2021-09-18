@@ -22,8 +22,10 @@ AOpenLandInfinityMeshActor::AOpenLandInfinityMeshActor()
 	MovingGrid = MakeShared<FOpenLandMovingGrid>(MeshComponent);
 	FOpenLandMovingGridBuildOptions BuildOptions = {};
 	BuildOptions.CuspAngle = 0;
-	BuildOptions.CellWidth = 20.0f;
-	BuildOptions.CellCount = 20;
+	BuildOptions.CellWidth = CellWidth;
+	BuildOptions.CellCount = CellCount;
+	BuildOptions.UnitUVLenght = UnitUVLenght;
+	BuildOptions.MaxUVs = MaxUVs;
 	MovingGrid->Build(BuildOptions);
 }
 
@@ -31,7 +33,7 @@ AOpenLandInfinityMeshActor::AOpenLandInfinityMeshActor()
 void AOpenLandInfinityMeshActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	Rebuild();
 }
 
 // Called every frame
@@ -62,5 +64,16 @@ bool AOpenLandInfinityMeshActor::ShouldTickIfViewportsOnly() const
 	}
 
 	return World->WorldType == EWorldType::Editor;
+}
+
+void AOpenLandInfinityMeshActor::Rebuild()
+{
+	FOpenLandMovingGridBuildOptions BuildOptions = {};
+	BuildOptions.CuspAngle = 0;
+	BuildOptions.CellWidth = CellWidth;
+	BuildOptions.CellCount = CellCount;
+	BuildOptions.UnitUVLenght = UnitUVLenght;
+	BuildOptions.MaxUVs = MaxUVs;
+	MovingGrid->Build(BuildOptions);
 }
 
