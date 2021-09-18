@@ -2,7 +2,7 @@
 
 #include "Core/OpenLandPolygonMesh.h"
 
-void FOpenLandMovingGrid::BuildMesh(float CuspAngle) const
+void FOpenLandMovingGrid::BuildFaces(float CuspAngle) const
 {
 	MeshInfo->BoundingBox.Init();
 	for(size_t Index=0; Index < MeshInfo->Triangles.Length(); Index++)
@@ -23,41 +23,75 @@ void FOpenLandMovingGrid::BuildMesh(float CuspAngle) const
 	FOpenLandPolygonMesh::ApplyNormalSmoothing(MeshInfo.Get(), CuspAngle);
 }
 
+FVector2D FOpenLandMovingGrid::PositionToUV(FVector Position, int32 VertexPosition)
+{
+	float U = FMath::Frac(Position.X / 100.0f);
+	float V = FMath::Frac(Position.Y / 100.0f);
+
+	constexpr bool XStartByPosition[] = {true, true, false, false};
+	constexpr bool YStartByPosition[] = {true, false, false, true};
+
+	if (!XStartByPosition[VertexPosition] && U == 0.0)
+	{
+		U = 1.0f;
+	}
+
+	if (!YStartByPosition[VertexPosition] && V == 0.0)
+	{
+		V = 1.0f;
+	}
+
+	return {U, V};
+}
+
 FOpenLandMovingGrid::FOpenLandMovingGrid(UOpenLandMeshComponent* Component)
 {
 	MeshComponent = Component;
 }
 
-void FOpenLandMovingGrid::Build()
+void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 {
+	CurrentBuildOptions = BuildOptions;
 	MeshInfo = FOpenLandMeshInfo::New();
 
-	// Build Geometry
-	TArray<FVector> _Vertices = {
-		FVector{-0.5, -0.5, 0.0},
-		FVector{-0.5, 0.5, 0.0},
-		FVector{0.5, 0.5, 0.0},
-		FVector{0.5, -0.5, 0.0}
-	};
+	const float CellWidth = CurrentBuildOptions.CellWidth;
+	const int32 CellCount = CurrentBuildOptions.CellCount;
 
-	for (int32 Index = 0; Index < _Vertices.Num(); Index++)
+	constexpr float UnitUVLength = 100.0f;
+	FVector PosRoot = CenterPosition - FVector(CellWidth * CellCount /2, CellWidth * CellCount /2, 0);
+	FVector PosCell = {CellWidth, CellWidth, 0};
+	FVector2D UVRoot = { PosRoot.X/UnitUVLength, PosRoot.Y/UnitUVLength };
+	FVector2D UVCell = {CellWidth / UnitUVLength, CellWidth / UnitUVLength};
+
+	for (int32 CellX=0; CellX<CellCount; CellX++)
 	{
-		_Vertices[Index] *= 1000;
+		for (int32 CellY=0; CellY<CellCount; CellY++)
+		{
+			FVector A = PosRoot + PosCell * FVector(CellX, CellY, 0);
+			FVector B = PosRoot + PosCell * FVector(CellX, CellY + 1, 0);
+			FVector C = PosRoot + PosCell * FVector(CellX + 1, CellY + 1, 0);
+			FVector D = PosRoot + PosCell * FVector(CellX + 1, CellY, 0);
+			
+			FOpenLandMeshVertex MA = {A, UVRoot + UVCell * FVector2D(CellX, CellY)};
+			FOpenLandMeshVertex MB = {B, UVRoot + UVCell * FVector2D(CellX, CellY + 1)};
+			FOpenLandMeshVertex MC = {C, UVRoot + UVCell * FVector2D(CellX + 1, CellY + 1)};
+			FOpenLandMeshVertex MD = {D, UVRoot + UVCell * FVector2D(CellX + 1, CellY)};
+
+			const TOpenLandArray<FOpenLandMeshVertex> InputVertices = {
+				MA,
+				MB,
+				MC,
+
+				MA,
+				MC,
+				MD
+			};
+
+			FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), InputVertices);
+		}
 	}
 	
-	const TOpenLandArray<FOpenLandMeshVertex> InputVertices = {
-		FOpenLandMeshVertex(_Vertices[0], FVector2D(0, 1)),
-		FOpenLandMeshVertex(_Vertices[1], FVector2D(1, 1)),
-		FOpenLandMeshVertex(_Vertices[2], FVector2D(1, 0)),
-
-		FOpenLandMeshVertex(_Vertices[0], FVector2D(0, 1)),
-		FOpenLandMeshVertex(_Vertices[2], FVector2D(1, 0)),
-		FOpenLandMeshVertex(_Vertices[3], FVector2D(0, 0))
-	};
-
-	FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), InputVertices);
-	MeshInfo = FOpenLandPolygonMesh::SubDivide(*MeshInfo.Get(), 6).Clone();
-	BuildMesh(60.0);
+	BuildFaces(CurrentBuildOptions.CuspAngle);
 
 	// Render It
 	if (MeshSectionIndex < 0)
@@ -70,6 +104,7 @@ void FOpenLandMovingGrid::Build()
 	}
 
 	MeshComponent->SetupCollisions(false);
+	MeshComponent->InvalidateRendering();
 }
 
 void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter)
@@ -80,15 +115,7 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter)
 	}
 	
 	NewCenter.Z = 0;
-	const FVector Displacement = NewCenter - CenterPosition;
-	for (size_t VertexId = 0; VertexId<MeshInfo->Vertices.Length(); VertexId++)
-	{
-		FOpenLandMeshVertex& T0 = MeshInfo->Vertices.GetRef(VertexId);
-		T0.Position += Displacement;
-	}
-
-	BuildMesh(60);
-
 	CenterPosition = NewCenter;
-	MeshComponent->UpdateMeshSection(MeshSectionIndex, {0, -1});
+
+	Build(CurrentBuildOptions);
 }

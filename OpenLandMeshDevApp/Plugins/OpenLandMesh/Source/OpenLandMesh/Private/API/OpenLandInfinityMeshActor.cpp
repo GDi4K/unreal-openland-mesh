@@ -20,7 +20,11 @@ AOpenLandInfinityMeshActor::AOpenLandInfinityMeshActor()
 	ObjectId = HashGen->Generate();
 
 	MovingGrid = MakeShared<FOpenLandMovingGrid>(MeshComponent);
-	MovingGrid->Build();
+	FOpenLandMovingGridBuildOptions BuildOptions = {};
+	BuildOptions.CuspAngle = 0;
+	BuildOptions.CellWidth = 20.0f;
+	BuildOptions.CellCount = 20;
+	MovingGrid->Build(BuildOptions);
 }
 
 // Called when the game starts or when spawned
