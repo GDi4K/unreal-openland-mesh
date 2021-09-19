@@ -15,14 +15,14 @@ class FOpenLandMovingGrid
 	UOpenLandMeshComponent* MeshComponent = nullptr;
 	FOpenLandMeshInfoPtr MeshInfo = nullptr;
 	int32 MeshSectionIndex = -1;
-	FVector CenterPosition = {0, 0, 0};
+	FVector2D RootCell = {0, 0};
 	FOpenLandMovingGridBuildOptions CurrentBuildOptions;
 
 	void BuildFaces(float CuspAngle) const;
-	static FVector2D PositionToUV(FVector Position, int32 VertexPosition);
 	
 public:
 	FOpenLandMovingGrid(UOpenLandMeshComponent* Component);
+	void BuildGrid();
 	void Build(FOpenLandMovingGridBuildOptions BuildOptions);
 	void UpdatePosition(FVector NewCenter);
 };

@@ -23,50 +23,33 @@ void FOpenLandMovingGrid::BuildFaces(float CuspAngle) const
 	FOpenLandPolygonMesh::ApplyNormalSmoothing(MeshInfo.Get(), CuspAngle);
 }
 
-FVector2D FOpenLandMovingGrid::PositionToUV(FVector Position, int32 VertexPosition)
-{
-	float U = FMath::Frac(Position.X / 100.0f);
-	float V = FMath::Frac(Position.Y / 100.0f);
-
-	constexpr bool XStartByPosition[] = {true, true, false, false};
-	constexpr bool YStartByPosition[] = {true, false, false, true};
-
-	if (!XStartByPosition[VertexPosition] && U == 0.0)
-	{
-		U = 1.0f;
-	}
-
-	if (!YStartByPosition[VertexPosition] && V == 0.0)
-	{
-		V = 1.0f;
-	}
-
-	return {U, V};
-}
-
 FOpenLandMovingGrid::FOpenLandMovingGrid(UOpenLandMeshComponent* Component)
 {
 	MeshComponent = Component;
 }
 
-void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
+void FOpenLandMovingGrid::BuildGrid()
 {
-	CurrentBuildOptions = BuildOptions;
-	MeshInfo = FOpenLandMeshInfo::New();
-
 	const float CellWidth = CurrentBuildOptions.CellWidth;
 	const int32 CellCount = CurrentBuildOptions.CellCount;
 
-	const float UnitUVLength = CurrentBuildOptions.UnitUVLenght;
-	FVector PosRoot = CenterPosition - FVector(CellWidth * CellCount /2, CellWidth * CellCount /2, 0);
+	FVector PosRoot = FVector(RootCell.X * CellWidth, RootCell.Y * CellWidth, 0);
+	PosRoot -= FVector(CellWidth * CellCount /2, CellWidth * CellCount /2, 0);
 	FVector PosCell = {CellWidth, CellWidth, 0};
-	FVector2D UVRoot = { PosRoot.X/UnitUVLength, PosRoot.Y/UnitUVLength };
-	FVector2D UVCell = {CellWidth / UnitUVLength, CellWidth / UnitUVLength};
+	
+	const float UVCellWidth = CellWidth / CurrentBuildOptions.UnitUVLenght;
+	FVector2D UVCell = {UVCellWidth, UVCellWidth};
+	FVector2D UVRoot = UVCell * RootCell;
 
-	UVRoot.X -= FMath::Floor(UVRoot.X / CurrentBuildOptions.MaxUVs) * CurrentBuildOptions.MaxUVs;
-	UVRoot.Y -= FMath::Floor(UVRoot.Y / CurrentBuildOptions.MaxUVs) * CurrentBuildOptions.MaxUVs;
+	// float DivisionX = UVRoot.X / CurrentBuildOptions.MaxUVs;
+	// DivisionX = DivisionX - FMath::Frac(DivisionX);
+	// float DivisionY = UVRoot.Y / CurrentBuildOptions.MaxUVs;
+	// DivisionY = DivisionY - FMath::Frac(DivisionY);
+	//
+	// UVRoot.X -= DivisionX * CurrentBuildOptions.MaxUVs;
+	// UVRoot.Y -= DivisionY * CurrentBuildOptions.MaxUVs;
 
-	UE_LOG(LogTemp, Warning, TEXT("UVRoot: %s"), *UVRoot.ToString())
+	UE_LOG(LogTemp, Warning, TEXT("UVCellWidth: %f, RootCell: %s, UVRoot: %s"), UVCellWidth, *RootCell.ToString(), *UVRoot.ToString())
 
 	for (int32 CellX=0; CellX<CellCount; CellX++)
 	{
@@ -76,6 +59,11 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 			FVector B = PosRoot + PosCell * FVector(CellX, CellY + 1, 0);
 			FVector C = PosRoot + PosCell * FVector(CellX + 1, CellY + 1, 0);
 			FVector D = PosRoot + PosCell * FVector(CellX + 1, CellY, 0);
+
+			if (CellX == 0)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Final Cell: %s"), *(UVRoot + UVCell * FVector2D(CellX, CellY)).ToString())
+			}
 			
 			FOpenLandMeshVertex MA = {A, UVRoot + UVCell * FVector2D(CellX, CellY)};
 			FOpenLandMeshVertex MB = {B, UVRoot + UVCell * FVector2D(CellX, CellY + 1)};
@@ -97,6 +85,14 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 	}
 	
 	BuildFaces(CurrentBuildOptions.CuspAngle);
+}
+
+void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
+{
+	CurrentBuildOptions = BuildOptions;
+	MeshInfo = FOpenLandMeshInfo::New();
+
+	BuildGrid();
 
 	// Render It
 	if (MeshSectionIndex < 0)
@@ -114,13 +110,26 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 
 void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter)
 {
-	if (MeshInfo->IsLocked())
+	if (MeshSectionIndex < 0)
 	{
 		return;
 	}
 	
-	NewCenter.Z = 0;
-	CenterPosition = NewCenter;
+	if (MeshInfo->IsLocked())
+	{
+		return;
+	}
+
+	float RootCellX = FMath::Floor(NewCenter.X / CurrentBuildOptions.CellWidth * 100)/100;
+	float RootCellY = FMath::Floor(NewCenter.Y / CurrentBuildOptions.CellWidth * 100)/100;
+
+	if (RootCell.X == RootCellX && RootCell.Y == RootCellY)
+	{
+		return;
+	}
+
+	RootCell = {RootCellX, RootCellY};
 
 	Build(CurrentBuildOptions);
+	MeshComponent->UpdateMeshSection(MeshSectionIndex, {0, -1});
 }
