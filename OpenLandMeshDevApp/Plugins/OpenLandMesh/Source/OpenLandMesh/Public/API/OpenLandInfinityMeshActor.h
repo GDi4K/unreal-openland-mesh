@@ -43,7 +43,7 @@ public:
 	float UnitUVLenght = 100.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLand Infinity Mesh")
-	int32 MaxUVs = 10;
+	int32 MaxUVs = 5;
 
 	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLand Infinity Mesh")
 	void Rebuild();

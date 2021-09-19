@@ -41,32 +41,17 @@ void FOpenLandMovingGrid::BuildGrid()
 	FVector2D UVCell = {UVCellWidth, UVCellWidth};
 	FVector2D UVRoot = UVCell * RootCell;
 
-
-	// MaxUVs = 10
-	// LogTemp: Warning: DivisionX: -0.034680
-	// LogTemp: Warning: DivisisxonX2: -1.000000
-	// LogTemp: Warning: UVCellWidth: 0.040000, RootCell: X=-8.670 Y=1.730, UVRoot: X=9.653 Y=0.069
-
-	// MaxUVs = 200
-	// LogTemp: Warning: DivisionX: 0.000000
-	// LogTemp: Warning: DivisionX2: 0.000000
-	// LogTemp: Warning: UVCellWidth: 0.200000, RootCell: X=0.000 Y=0.000, UVRoot: X=0.000 Y=0.000
-
 	if (CurrentBuildOptions.MaxUVs > 0)
 	{
-		float DivisionX = UVRoot.X / CurrentBuildOptions.MaxUVs;
-		UE_LOG(LogTemp, Warning, TEXT("DivisionX: %f"), DivisionX);
-		DivisionX = DivisionX - FMath::Frac(DivisionX);
-		UE_LOG(LogTemp, Warning, TEXT("DivisionX2: %f"), DivisionX);
-		float DivisionY = UVRoot.Y / CurrentBuildOptions.MaxUVs;
-		DivisionY = DivisionY - FMath::Frac(DivisionY);
-		
-		UVRoot.X -= DivisionX * CurrentBuildOptions.MaxUVs;
-		UVRoot.Y -= DivisionY * CurrentBuildOptions.MaxUVs;
+		float XFrac = FMath::Frac(UVRoot.X);
+		int32 XWhole = UVRoot.X - XFrac;
+		UVRoot.X = XWhole % CurrentBuildOptions.MaxUVs + XFrac;
+
+		float YFrac = FMath::Frac(UVRoot.Y);
+		int32 YWhole = UVRoot.Y - YFrac;
+		UVRoot.Y = YWhole % CurrentBuildOptions.MaxUVs + YFrac;
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("UVCellWidth: %f, RootCell: %s, UVRoot: %s"), UVCellWidth, *RootCell.ToString(), *UVRoot.ToString())
-
 	for (int32 CellX=0; CellX<CellCount; CellX++)
 	{
 		for (int32 CellY=0; CellY<CellCount; CellY++)
@@ -75,11 +60,6 @@ void FOpenLandMovingGrid::BuildGrid()
 			FVector B = PosRoot + PosCell * FVector(CellX, CellY + 1, 0);
 			FVector C = PosRoot + PosCell * FVector(CellX + 1, CellY + 1, 0);
 			FVector D = PosRoot + PosCell * FVector(CellX + 1, CellY, 0);
-
-			if (CellX == 0)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Final Cell: %s"), *(UVRoot + UVCell * FVector2D(CellX, CellY)).ToString())
-			}
 			
 			FOpenLandMeshVertex MA = {A, UVRoot + UVCell * FVector2D(CellX, CellY)};
 			FOpenLandMeshVertex MB = {B, UVRoot + UVCell * FVector2D(CellX, CellY + 1)};
@@ -120,7 +100,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 		MeshComponent->ReplaceMeshSection(MeshSectionIndex, MeshInfo);
 	}
 
-	MeshComponent->SetupCollisions(false);
+	MeshComponent->SetupCollisions(true);
 	MeshComponent->InvalidateRendering();
 }
 
