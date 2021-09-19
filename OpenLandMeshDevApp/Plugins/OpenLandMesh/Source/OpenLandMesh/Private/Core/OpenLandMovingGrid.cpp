@@ -41,14 +41,30 @@ void FOpenLandMovingGrid::BuildGrid()
 	FVector2D UVCell = {UVCellWidth, UVCellWidth};
 	FVector2D UVRoot = UVCell * RootCell;
 
-	// float DivisionX = UVRoot.X / CurrentBuildOptions.MaxUVs;
-	// DivisionX = DivisionX - FMath::Frac(DivisionX);
-	// float DivisionY = UVRoot.Y / CurrentBuildOptions.MaxUVs;
-	// DivisionY = DivisionY - FMath::Frac(DivisionY);
-	//
-	// UVRoot.X -= DivisionX * CurrentBuildOptions.MaxUVs;
-	// UVRoot.Y -= DivisionY * CurrentBuildOptions.MaxUVs;
 
+	// MaxUVs = 10
+	// LogTemp: Warning: DivisionX: -0.034680
+	// LogTemp: Warning: DivisisxonX2: -1.000000
+	// LogTemp: Warning: UVCellWidth: 0.040000, RootCell: X=-8.670 Y=1.730, UVRoot: X=9.653 Y=0.069
+
+	// MaxUVs = 200
+	// LogTemp: Warning: DivisionX: 0.000000
+	// LogTemp: Warning: DivisionX2: 0.000000
+	// LogTemp: Warning: UVCellWidth: 0.200000, RootCell: X=0.000 Y=0.000, UVRoot: X=0.000 Y=0.000
+
+	if (CurrentBuildOptions.MaxUVs > 0)
+	{
+		float DivisionX = UVRoot.X / CurrentBuildOptions.MaxUVs;
+		UE_LOG(LogTemp, Warning, TEXT("DivisionX: %f"), DivisionX);
+		DivisionX = DivisionX - FMath::Frac(DivisionX);
+		UE_LOG(LogTemp, Warning, TEXT("DivisionX2: %f"), DivisionX);
+		float DivisionY = UVRoot.Y / CurrentBuildOptions.MaxUVs;
+		DivisionY = DivisionY - FMath::Frac(DivisionY);
+		
+		UVRoot.X -= DivisionX * CurrentBuildOptions.MaxUVs;
+		UVRoot.Y -= DivisionY * CurrentBuildOptions.MaxUVs;
+	}
+	
 	UE_LOG(LogTemp, Warning, TEXT("UVCellWidth: %f, RootCell: %s, UVRoot: %s"), UVCellWidth, *RootCell.ToString(), *UVRoot.ToString())
 
 	for (int32 CellX=0; CellX<CellCount; CellX++)
