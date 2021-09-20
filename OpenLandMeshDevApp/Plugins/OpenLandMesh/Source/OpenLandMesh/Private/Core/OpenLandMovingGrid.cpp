@@ -51,11 +51,18 @@ void FOpenLandMovingGrid::BuildGrid()
 		int32 YWhole = UVRoot.Y - YFrac;
 		UVRoot.Y = YWhole % CurrentBuildOptions.MaxUVs + YFrac;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("UV Root: %s"), *UVRoot.ToString())
 	
 	for (int32 CellX=0; CellX<CellCount; CellX++)
 	{
 		for (int32 CellY=0; CellY<CellCount; CellY++)
 		{
+			if (CellX == 0)
+			{
+				UE_LOG(LogTemp, Warning, TEXT(" UV: %s"), *(UVRoot + UVCell * FVector2D(CellX, CellY)).ToString())	
+			}
+			
 			FVector A = PosRoot + PosCell * FVector(CellX, CellY, 0);
 			FVector B = PosRoot + PosCell * FVector(CellX, CellY + 1, 0);
 			FVector C = PosRoot + PosCell * FVector(CellX + 1, CellY + 1, 0);
