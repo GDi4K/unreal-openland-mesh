@@ -116,8 +116,8 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter)
 		return;
 	}
 
-	float RootCellX = FMath::Floor(NewCenter.X / CurrentBuildOptions.CellWidth * 100)/100;
-	float RootCellY = FMath::Floor(NewCenter.Y / CurrentBuildOptions.CellWidth * 100)/100;
+	float RootCellX = FMath::Floor(NewCenter.X / CurrentBuildOptions.CellWidth);
+	float RootCellY = FMath::Floor(NewCenter.Y / CurrentBuildOptions.CellWidth);
 
 	if (RootCell.X == RootCellX && RootCell.Y == RootCellY)
 	{
