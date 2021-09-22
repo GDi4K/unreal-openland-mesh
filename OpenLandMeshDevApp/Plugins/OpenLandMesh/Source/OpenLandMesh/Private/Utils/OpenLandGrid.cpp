@@ -5,7 +5,7 @@ FVector FOpenLandGrid::ToVector3D(FVector2D Vector)
 	return { Vector.X, Vector.Y, 0};
 }
 
-FOpenLandGrid::FOpenLandGrid(FVector2D _RootCell, FVector2D _Size, int32 _CellWidth, int32 _UpperCellWidth)
+void FOpenLandGrid::Build(FVector2D _RootCell, FVector2D _Size, int32 _CellWidth, int32 _UpperCellWidth)
 {
 	RootCell = _RootCell;
 	Size = _Size;
@@ -13,8 +13,15 @@ FOpenLandGrid::FOpenLandGrid(FVector2D _RootCell, FVector2D _Size, int32 _CellWi
 	UpperCellWidth = _UpperCellWidth;
 	
 	check(UpperCellWidth % CellWidth == 0);
-	check(FMath::RoundToInt(Size.X) % UpperCellWidth == 0);
-	check(FMath::RoundToInt(Size.Y) % UpperCellWidth == 0);
+
+	UE_LOG(LogTemp, Warning, TEXT("Size.X: %d, (UpperCellWidth/CellWidth): %d"), FMath::RoundToInt(Size.X), (UpperCellWidth/CellWidth));
+	check(FMath::RoundToInt(Size.X) % (UpperCellWidth/CellWidth) == 0);
+	check(FMath::RoundToInt(Size.Y) % (UpperCellWidth/CellWidth) == 0);
+}
+
+FOpenLandGrid::FOpenLandGrid()
+{
+	
 }
 
 FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)

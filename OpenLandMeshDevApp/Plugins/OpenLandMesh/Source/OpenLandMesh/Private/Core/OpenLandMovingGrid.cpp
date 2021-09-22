@@ -2,93 +2,60 @@
 
 #include "Core/OpenLandPolygonMesh.h"
 
-void FOpenLandMovingGrid::BuildFaces(float CuspAngle) const
-{
-	MeshInfo->BoundingBox.Init();
-	for(size_t Index=0; Index < MeshInfo->Triangles.Length(); Index++)
-	{
-		const FOpenLandMeshTriangle OTriangle = MeshInfo->Triangles.Get(Index);
-		FOpenLandMeshVertex& T0 = MeshInfo->Vertices.GetRef(OTriangle.T0);
-		FOpenLandMeshVertex& T1 = MeshInfo->Vertices.GetRef(OTriangle.T1);
-		FOpenLandMeshVertex& T2 = MeshInfo->Vertices.GetRef(OTriangle.T2);
-
-		FOpenLandPolygonMesh::BuildFaceTangents(T0, T1, T2);
-
-		// Build Bounding Box
-		MeshInfo->BoundingBox += T0.Position;
-		MeshInfo->BoundingBox += T1.Position;
-		MeshInfo->BoundingBox += T2.Position;
-	}
-
-	FOpenLandPolygonMesh::ApplyNormalSmoothing(MeshInfo.Get(), CuspAngle);
-}
-
 FOpenLandMovingGrid::FOpenLandMovingGrid(UOpenLandMeshComponent* Component)
 {
 	MeshComponent = Component;
 }
 
-void FOpenLandMovingGrid::BuildGrid()
+void FOpenLandMovingGrid::RenderGrid()
 {
-	const float CellWidth = CurrentBuildOptions.CellWidth;
-	const int32 CellCount = CurrentBuildOptions.CellCount;
-
-	FVector PosRoot = FVector(RootCell.X * CellWidth, RootCell.Y * CellWidth, 0);
-	PosRoot -= FVector(CellWidth * CellCount /2, CellWidth * CellCount /2, 0);
-	FVector PosCell = {CellWidth, CellWidth, 0};
-	
-	const float UVCellWidth = CellWidth / CurrentBuildOptions.UnitUVLenght;
-	FVector2D UVCell = {UVCellWidth, UVCellWidth};
-	FVector2D UVRoot = UVCell * RootCell;
-
-	if (CurrentBuildOptions.MaxUVs > 0)
-	{
-		float XFrac = FMath::Frac(UVRoot.X);
-		int32 XWhole = UVRoot.X - XFrac;
-		UVRoot.X = XWhole % CurrentBuildOptions.MaxUVs + XFrac;
-
-		float YFrac = FMath::Frac(UVRoot.Y);
-		int32 YWhole = UVRoot.Y - YFrac;
-		UVRoot.Y = YWhole % CurrentBuildOptions.MaxUVs + YFrac;
-	}
-
-	for (int32 CellX=0; CellX<CellCount; CellX++)
-	{
-		for (int32 CellY=0; CellY<CellCount; CellY++)
-		{
-			FVector A = PosRoot + PosCell * FVector(CellX, CellY, 0);
-			FVector B = PosRoot + PosCell * FVector(CellX, CellY + 1, 0);
-			FVector C = PosRoot + PosCell * FVector(CellX + 1, CellY + 1, 0);
-			FVector D = PosRoot + PosCell * FVector(CellX + 1, CellY, 0);
-			
-			FOpenLandMeshVertex MA = {A, UVRoot + UVCell * FVector2D(CellX, CellY)};
-			FOpenLandMeshVertex MB = {B, UVRoot + UVCell * FVector2D(CellX, CellY + 1)};
-			FOpenLandMeshVertex MC = {C, UVRoot + UVCell * FVector2D(CellX + 1, CellY + 1)};
-			FOpenLandMeshVertex MD = {D, UVRoot + UVCell * FVector2D(CellX + 1, CellY)};
-
-			const TOpenLandArray<FOpenLandMeshVertex> InputVertices = {
-				MA,
-				MB,
-				MC,
-
-				MA,
-				MC,
-				MD
-			};
-
-			FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), InputVertices);
-		}
-	}
-	
-	BuildFaces(CurrentBuildOptions.CuspAngle);
-}
-
-void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
-{
-	CurrentBuildOptions = BuildOptions;
+	const float UVCellWidth = RootGrid->GetCellWidth() / CurrentBuildOptions.UnitUVLenght;
 	MeshInfo = FOpenLandMeshInfo::New();
+	MeshInfo->BoundingBox.Init();
+	for(FVector2D Cell: RootGrid->GetAllCells())
+	{
+		FVector CellPos = FVector(Cell.X, Cell.Y, 0) * RootGrid->GetCellWidth();
+		
+		FVector A = CellPos + FVector(0, 0, 0) * RootGrid->GetCellWidth();
+		FVector B = CellPos + FVector(0, 1, 0) * RootGrid->GetCellWidth();
+		FVector C = CellPos + FVector(1, 1, 0) * RootGrid->GetCellWidth();
+		FVector D = CellPos + FVector(1, 0, 0) * RootGrid->GetCellWidth();
 
-	BuildGrid();
+		FVector2D UVRoot = Cell * UVCellWidth;
+			
+		FOpenLandMeshVertex MA = {A, UVRoot + FVector2D(0, 0) * UVCellWidth};
+		FOpenLandMeshVertex MB = {B, UVRoot + FVector2D(0, 1) * UVCellWidth};
+		FOpenLandMeshVertex MC = {C, UVRoot + FVector2D(1, 1) * UVCellWidth};
+		FOpenLandMeshVertex MD = {D, UVRoot + FVector2D(1, 0) * UVCellWidth};
+
+		FOpenLandMeshVertex T0_1 = MA;
+		FOpenLandMeshVertex T0_2 = MB;
+		FOpenLandMeshVertex T0_3 = MC;
+		FOpenLandPolygonMesh::BuildFaceTangents(T0_1, T0_2, T0_3);
+		MeshInfo->BoundingBox += T0_1.Position;
+		MeshInfo->BoundingBox += T0_2.Position;
+		MeshInfo->BoundingBox += T0_3.Position;
+
+		FOpenLandMeshVertex T1_1 = MA;
+		FOpenLandMeshVertex T1_2 = MC;
+		FOpenLandMeshVertex T1_3 = MD;
+		FOpenLandPolygonMesh::BuildFaceTangents(T1_1, T1_2, T1_3);
+		MeshInfo->BoundingBox += T1_1.Position;
+		MeshInfo->BoundingBox += T1_2.Position;
+		MeshInfo->BoundingBox += T1_3.Position;
+
+		const TOpenLandArray<FOpenLandMeshVertex> InputVertices = {
+			T0_1,
+			T0_2,
+			T0_3,
+
+			T1_1,
+			T1_2,
+			T1_3
+		};
+
+		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), InputVertices);
+	}
 
 	// Render It
 	if (MeshSectionIndex < 0)
@@ -104,6 +71,17 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 	MeshComponent->InvalidateRendering();
 }
 
+void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
+{
+	CurrentBuildOptions = BuildOptions;
+	RootGrid = MakeShared<FOpenLandGrid>();
+
+	RootGrid->Build({0, 0}, { 50, 50 }, CurrentBuildOptions.CellWidth,  CurrentBuildOptions.CellWidth*2);
+	RootGrid->ReCenter({0, 0, 0});
+
+	RenderGrid();
+}
+
 void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter)
 {
 	if (MeshSectionIndex < 0)
@@ -116,16 +94,13 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter)
 		return;
 	}
 
-	float RootCellX = FMath::Floor(NewCenter.X / CurrentBuildOptions.CellWidth);
-	float RootCellY = FMath::Floor(NewCenter.Y / CurrentBuildOptions.CellWidth);
+	const FOpenLandGridChangedCells Result = RootGrid->ReCenter(NewCenter);
+	UE_LOG(LogTemp, Warning, TEXT("Result: Added: %d, Removed: %d"), Result.CellsToAdd.Num(), Result.CellsToRemove.Num())
 
-	if (RootCell.X == RootCellX && RootCell.Y == RootCellY)
+	if (Result.CellsToAdd.Num() == 0 && Result.CellsToRemove.Num() == 0)
 	{
 		return;
 	}
 
-	RootCell = {RootCellX, RootCellY};
-
-	Build(CurrentBuildOptions);
-	MeshComponent->UpdateMeshSection(MeshSectionIndex, {0, -1});
+	RenderGrid();
 }
