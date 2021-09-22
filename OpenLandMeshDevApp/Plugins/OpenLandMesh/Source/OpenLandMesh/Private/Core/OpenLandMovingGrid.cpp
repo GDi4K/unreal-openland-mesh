@@ -11,7 +11,7 @@ void FOpenLandMovingGrid::RenderGrid()
 {
 	const float UVCellWidth = RootGrid->GetCellWidth() / CurrentBuildOptions.UnitUVLenght;
 	MeshInfo = FOpenLandMeshInfo::New();
-	MeshInfo->BoundingBox.Init();
+	
 	for(FVector2D Cell: RootGrid->GetAllCells())
 	{
 		FVector CellPos = FVector(Cell.X, Cell.Y, 0) * RootGrid->GetCellWidth();
@@ -56,6 +56,8 @@ void FOpenLandMovingGrid::RenderGrid()
 
 		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), InputVertices);
 	}
+
+	MeshInfo->BoundingBox = RootGrid->GetBoundingBox();
 
 	// Render It
 	if (MeshSectionIndex < 0)

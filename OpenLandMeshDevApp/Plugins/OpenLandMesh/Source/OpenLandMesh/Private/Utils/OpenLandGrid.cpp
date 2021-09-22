@@ -24,6 +24,19 @@ FOpenLandGrid::FOpenLandGrid()
 	
 }
 
+FBox FOpenLandGrid::GetBoundingBox() const
+{
+	FBox BoundingBox;
+	BoundingBox.Init();
+
+	BoundingBox += ToVector3D((RootCell + FVector2D(0, 0)) * CellWidth);
+	BoundingBox += ToVector3D((RootCell + FVector2D(0, Size.Y)) * CellWidth);
+	BoundingBox += ToVector3D((RootCell + FVector2D(Size.X, Size.Y)) * CellWidth);
+	BoundingBox += ToVector3D((RootCell + FVector2D(Size.X, 0)) * CellWidth);
+
+	return BoundingBox;
+}
+
 FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 {
 	const FVector2D NewCenter2D = {NewCenter.X, NewCenter.Y};
