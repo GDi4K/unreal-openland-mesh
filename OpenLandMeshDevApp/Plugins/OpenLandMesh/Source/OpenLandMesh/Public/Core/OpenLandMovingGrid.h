@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "OpenLandMeshComponent.h"
 #include "Utils/OpenLandGrid.h"
+#include "Utils/OpenLandGridRenderer.h"
 
 struct FOpenLandMovingGridBuildOptions
 {
@@ -18,13 +19,14 @@ class FOpenLandMovingGrid
 	int32 MeshSectionIndex = -1;
 	FVector2D RootCell = {0, 0};
 	FOpenLandMovingGridBuildOptions CurrentBuildOptions;
+	
 	FOpenLandGridPtr RootGrid = nullptr;
+	FOpenLandGridRendererPtr GridRenderer = nullptr;
 
 public:
 	FOpenLandMovingGrid(UOpenLandMeshComponent* Component);
-	void RenderGrid();
 	void Build(FOpenLandMovingGridBuildOptions BuildOptions);
-	void UpdatePosition(FVector NewCenter);
+	void UpdatePosition(FVector NewCenter) const;
 };
 
 typedef TSharedPtr<FOpenLandMovingGrid> FOpenLandMovingGridPtr;
