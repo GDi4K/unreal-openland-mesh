@@ -4,7 +4,6 @@
 
 struct FOpenLandGridRendererChangedInfo
 {
-	bool bInvalidateRendering = false;
 	TArray<int32> ChangedTriangles;
 };
 
@@ -19,7 +18,7 @@ class FOpenLandGridRenderer
 {
 	FOpenLandGridPtr Grid = nullptr;
 	FOpenLandMeshInfoPtr MeshInfo = nullptr;
-	TArray<FOpenLandGridRendererCell> Cells;
+	TMap<FString, FOpenLandGridRendererCell> Cells;
 	bool bInitialized = false;
 
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FVector2D Cell) const;

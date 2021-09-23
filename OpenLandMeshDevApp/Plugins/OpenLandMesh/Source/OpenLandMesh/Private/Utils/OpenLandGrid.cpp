@@ -14,7 +14,6 @@ void FOpenLandGrid::Build(FVector2D _RootCell, FVector2D _Size, int32 _CellWidth
 	
 	check(UpperCellWidth % CellWidth == 0);
 
-	UE_LOG(LogTemp, Warning, TEXT("Size.X: %d, (UpperCellWidth/CellWidth): %d"), FMath::RoundToInt(Size.X), (UpperCellWidth/CellWidth));
 	check(FMath::RoundToInt(Size.X) % (UpperCellWidth/CellWidth) == 0);
 	check(FMath::RoundToInt(Size.Y) % (UpperCellWidth/CellWidth) == 0);
 }
@@ -54,7 +53,6 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 	}
 
 	const FVector2D NewRootCell = RootCell + FVector2D(XShift, YShift);
-	UE_LOG(LogTemp, Warning, TEXT("Shift: %s"), *FVector2D(XShift, YShift).ToString())
 
 	FOpenLandGridChangedCells ChangedCells;
 

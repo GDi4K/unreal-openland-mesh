@@ -16,7 +16,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 
 	GridRenderer = MakeShared<FOpenLandGridRenderer>();
 	MeshInfo = GridRenderer->Initialize(RootGrid);
-	RootGrid->ReCenter({0, 0, 0});
+	GridRenderer->ReCenter({0, 0, 0});
 
 	if (MeshSectionIndex < 0)
 	{
@@ -45,7 +45,7 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 
 	// TODO: Get a list of triangles which has changed instead. So, we can update only those
 	const FOpenLandGridRendererChangedInfo ChangedInfo = GridRenderer->ReCenter(NewCenter);
-	if (ChangedInfo.bInvalidateRendering)
+	if (ChangedInfo.ChangedTriangles.Num() > 0)
 	{
 		MeshComponent->UpdateMeshSection(MeshSectionIndex, {0, -1});
 	}
