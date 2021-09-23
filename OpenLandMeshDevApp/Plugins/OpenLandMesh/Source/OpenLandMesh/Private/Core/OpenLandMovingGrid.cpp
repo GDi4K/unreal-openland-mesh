@@ -27,7 +27,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 		MeshComponent->ReplaceMeshSection(MeshSectionIndex, MeshInfo);
 	}
 
-	MeshComponent->SetupCollisions(true);
+	MeshComponent->SetupCollisions(false);
 	MeshComponent->InvalidateRendering();
 }
 

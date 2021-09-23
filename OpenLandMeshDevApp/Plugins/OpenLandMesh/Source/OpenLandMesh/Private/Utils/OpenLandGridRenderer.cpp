@@ -74,51 +74,45 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ReCenter(FVector NewCent
 
 	FOpenLandGridRendererChangedInfo ChangedInfo;
 	ChangedInfo.bInvalidateRendering = Result.CellsToAdd.Num() > 0;
-
-	// Make an index for the removedCells.
-	TMap<FVector2D, bool> RemovedCellsMap;
-	for (const FVector2D RemovedCell: Result.CellsToRemove)
+	
+	TArray<FVector2D> AllCells = Result.CellsToAdd;
+	for (const auto NewCell: Result.ExistingCells)
 	{
-		RemovedCellsMap.Add(RemovedCell, true);
+		AllCells.Push(NewCell);
 	}
 
-	TArray<FOpenLandGridRendererCell> NewCells;
-	int32 CellsAdded = 0;
-	int32 TotalRemoved = 0;
-	for (const FOpenLandGridRendererCell Cell: Cells)
+	int32 FinishedTriangles = 0;
+	
+	for (int32 Index = 0; Index < AllCells.Num(); Index++)
 	{
-		const bool bCellRemoved = RemovedCellsMap.Find(Cell.GridCell) != nullptr;
-		if (bCellRemoved)
-		{
-			TotalRemoved ++;
-			UE_LOG(LogTemp, Warning, TEXT("NumToRemove: %d, TotalRemoved: %d"), Result.CellsToRemove.Num(), TotalRemoved)
+		auto Cell = AllCells[Index];
+		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(Cell);
 			
-			FOpenLandGridRendererCell NewCell = Cell;
-			NewCell.GridCell = Result.CellsToAdd[CellsAdded++];
-			NewCells.Push(NewCell);
-			ChangedInfo.ChangedTriangles.Push(NewCell.IndexT0);
-			ChangedInfo.ChangedTriangles.Push(NewCell.IndexT1);
+		const FOpenLandMeshTriangle T0 = MeshInfo->Triangles.Get(Index * 2);
+		
+		MeshInfo->Vertices.Set(T0.T0, CellVertices.Get(0));
+		MeshInfo->Vertices.Set(T0.T1, CellVertices.Get(1));
+		MeshInfo->Vertices.Set(T0.T2, CellVertices.Get(2));
 
-			TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(NewCell.GridCell);
-			
-			const FOpenLandMeshTriangle T0 = MeshInfo->Triangles.Get(NewCell.IndexT0);
-			MeshInfo->Vertices.Set(T0.T0, CellVertices.Get(0));
-			MeshInfo->Vertices.Set(T0.T1, CellVertices.Get(1));
-			MeshInfo->Vertices.Set(T0.T2, CellVertices.Get(2));
+		const FOpenLandMeshTriangle T1 = MeshInfo->Triangles.Get((Index * 2) + 1);
+		MeshInfo->Vertices.Set(T1.T0, CellVertices.Get(3));
+		MeshInfo->Vertices.Set(T1.T1, CellVertices.Get(4));
+		MeshInfo->Vertices.Set(T1.T2, CellVertices.Get(5));
 
-			const FOpenLandMeshTriangle T1 = MeshInfo->Triangles.Get(NewCell.IndexT1);
-			MeshInfo->Vertices.Set(T1.T0, CellVertices.Get(3));
-			MeshInfo->Vertices.Set(T1.T1, CellVertices.Get(4));
-			MeshInfo->Vertices.Set(T1.T2, CellVertices.Get(5));
-		}
-		else
-		{
-			NewCells.Push(Cell);
-		}
+		FinishedTriangles += 2;
+	}
+
+	for (int32 Index = FinishedTriangles; Index < MeshInfo->Triangles.Length(); Index++)
+	{
+		const FOpenLandMeshTriangle T0 = MeshInfo->Triangles.Get(Index);
+		FOpenLandMeshVertex EmptyVertex({0, 0, -999999});
+		
+		MeshInfo->Vertices.Set(T0.T0, EmptyVertex);
+		MeshInfo->Vertices.Set(T0.T1, EmptyVertex);
+		MeshInfo->Vertices.Set(T0.T2, EmptyVertex);
 	}
 
 	MeshInfo->BoundingBox = Grid->GetBoundingBox();
-	Cells = NewCells;
 	
 	return ChangedInfo;
 }

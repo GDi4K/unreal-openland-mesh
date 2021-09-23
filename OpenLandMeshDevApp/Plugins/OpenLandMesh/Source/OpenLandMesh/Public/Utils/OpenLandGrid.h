@@ -5,6 +5,7 @@ struct FOpenLandGridChangedCells
 {
 	TArray<FVector2D> CellsToAdd;
 	TArray<FVector2D> CellsToRemove;
+	TArray<FVector2D> ExistingCells;
 };
 
 class FOpenLandGrid

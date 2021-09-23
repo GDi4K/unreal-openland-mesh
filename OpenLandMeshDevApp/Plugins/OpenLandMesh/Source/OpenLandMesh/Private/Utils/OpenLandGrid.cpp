@@ -54,6 +54,7 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 	}
 
 	const FVector2D NewRootCell = RootCell + FVector2D(XShift, YShift);
+	UE_LOG(LogTemp, Warning, TEXT("Shift: %s"), *FVector2D(XShift, YShift).ToString())
 
 	FOpenLandGridChangedCells ChangedCells;
 
@@ -73,9 +74,11 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 
 			if (YPos < NewRootCell.Y || YPos >= NewRootCell.Y + Size.Y)
 			{
-				ChangedCells.CellsToRemove.Push(FVector2D(X, Y) + RootCell);
+				ChangedCells.CellsToRemove.Push(FVector2D(XPos, YPos));
 				continue;
 			}
+
+			ChangedCells.ExistingCells.Push(FVector2D(XPos, YPos));
 		}
 	}
 
@@ -89,15 +92,16 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 
 			if (XPos < RootCell.X || XPos >= RootCell.X + Size.X)
 			{
-				ChangedCells.CellsToAdd.Push(FVector2D(X, Y) + RootCell);
+				ChangedCells.CellsToAdd.Push(FVector2D(XPos, YPos));
 				continue;
 			}
 
 			if (YPos < RootCell.Y || YPos >= RootCell.Y + Size.Y)
 			{
-				ChangedCells.CellsToAdd.Push(FVector2D(X, Y) + RootCell);
+				ChangedCells.CellsToAdd.Push(FVector2D(XPos, YPos));
 				continue;
 			}
+			
 		}
 	}
 
