@@ -12,12 +12,6 @@
 
 #include "OpenLandMeshComponent.generated.h"
 
-struct FOpenLandMeshComponentUpdateRange
-{
-	int32 StartIndex = 0;
-	int32 Count = -1;
-};
-
 UCLASS(hidecategories = (Object, LOD), meta = (BlueprintSpawnableComponent), ClassGroup = Rendering)
 class OPENLANDMESH_API UOpenLandMeshComponent : public UMeshComponent, public IInterface_CollisionDataProvider
 {
@@ -95,7 +89,7 @@ public:
 	// methods
 	void CreateMeshSection(int32 SectionIndex, FOpenLandMeshInfoPtr MeshInfo);
 	void ReplaceMeshSection(int32 SectionIndex, FOpenLandMeshInfoPtr MeshInfo);
-	void UpdateMeshSection(int32 SectionIndex, FOpenLandMeshComponentUpdateRange UpdateRange);
+	void UpdateMeshSection(int32 SectionIndex);
 	void RemoveAllSections();
 
 	int32 NumMeshSections();

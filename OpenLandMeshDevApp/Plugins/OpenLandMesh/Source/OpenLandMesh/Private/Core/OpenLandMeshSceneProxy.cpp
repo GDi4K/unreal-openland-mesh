@@ -103,73 +103,80 @@ void FOpenLandMeshSceneProxy::SetSectionVisibility_RenderThread(int32 SectionInd
 		ProxySections[SectionIndex]->bSectionVisible = bNewVisibility;
 }
 
-void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FOpenLandMeshInfoPtr const SectionData, FOpenLandMeshComponentUpdateRange UpdateRange)
+void FOpenLandMeshSceneProxy::UpdateGpuVertex(FOpenLandMeshProxySection* Section, int32 Index, FOpenLandMeshVertex NewVertex)
+{
+	FDynamicMeshVertex Vertex;
+	ConvertProcMeshToDynMeshVertex(Vertex, NewVertex);
+			
+	Section->VertexBuffers.PositionVertexBuffer.VertexPosition(Index) = Vertex.Position;
+	Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(Index, Vertex.TangentX.ToFVector(), Vertex.GetTangentY(), Vertex.TangentZ.ToFVector());
+	Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(Index, 0, Vertex.TextureCoordinate[0]);
+	Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(Index, 1, Vertex.TextureCoordinate[1]);
+	Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(Index, 2, Vertex.TextureCoordinate[2]);
+	Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(Index, 3, Vertex.TextureCoordinate[3]);
+	Section->VertexBuffers.ColorVertexBuffer.VertexColor(Index) = Vertex.Color;
+}
+
+void FOpenLandMeshSceneProxy::UpdateGpuBuffers(FOpenLandMeshProxySection* Section) const
+{
+	{
+		auto& VertexBuffer = Section->VertexBuffers.PositionVertexBuffer;
+		void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0,
+		                                             VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(),
+		                                             RLM_WriteOnly);
+		FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(),
+		                VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
+		RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
+	}
+	
+	{
+		auto& VertexBuffer = Section->VertexBuffers.ColorVertexBuffer;
+		void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0,
+		                                             VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(),
+		                                             RLM_WriteOnly);
+		FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(),
+		                VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
+		RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
+	}
+	
+	{
+		auto& VertexBuffer = Section->VertexBuffers.StaticMeshVertexBuffer;
+		void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI, 0,
+		                                             VertexBuffer.GetTangentSize(), RLM_WriteOnly);
+		FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTangentData(), VertexBuffer.GetTangentSize());
+		RHIUnlockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI);
+	}
+	
+	{
+		auto& VertexBuffer = Section->VertexBuffers.StaticMeshVertexBuffer;
+		void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI, 0,
+		                                             VertexBuffer.GetTexCoordSize(), RLM_WriteOnly);
+		FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTexCoordData(), VertexBuffer.GetTexCoordSize());
+		RHIUnlockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI);
+	}
+}
+
+void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FOpenLandMeshInfoPtr const CpuSection)
 {
 	check(IsInRenderingThread());
 
 	// Check we have data 
-	if (SectionData != nullptr)
+	if (CpuSection != nullptr)
 		// Check it references a valid section
 		if (SectionIndex < ProxySections.Num() &&
 			ProxySections[SectionIndex] != nullptr)
 		{
 			FOpenLandMeshProxySection* Section = ProxySections[SectionIndex];
 
-			const int32 NumVerts = SectionData->Vertices.Length();
-			const int32 EndIndex = UpdateRange.StartIndex + (UpdateRange.Count == -1? NumVerts : UpdateRange.Count);
+			const int32 NumVerts = CpuSection->Vertices.Length();
 
 			// Iterate through vertex data, copying in new info
-			for (int32 i = UpdateRange.StartIndex; i < EndIndex; i++)
+			for (int32 i = 0; i < NumVerts; i++)
 			{
-				const FOpenLandMeshVertex& ProcVert = SectionData->Vertices.Get(i);
-				FDynamicMeshVertex Vertex;
-				ConvertProcMeshToDynMeshVertex(Vertex, ProcVert);
-
-				Section->VertexBuffers.PositionVertexBuffer.VertexPosition(i) = Vertex.Position;
-				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(
-					i, Vertex.TangentX.ToFVector(), Vertex.GetTangentY(), Vertex.TangentZ.ToFVector());
-				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 0, Vertex.TextureCoordinate[0]);
-				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 1, Vertex.TextureCoordinate[1]);
-				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 2, Vertex.TextureCoordinate[2]);
-				Section->VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(i, 3, Vertex.TextureCoordinate[3]);
-				Section->VertexBuffers.ColorVertexBuffer.VertexColor(i) = Vertex.Color;
+				UpdateGpuVertex(Section, i, CpuSection->Vertices.Get(i));
 			}
 
-			{
-				auto& VertexBuffer = Section->VertexBuffers.PositionVertexBuffer;
-				void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0,
-				                                             VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(),
-				                                             RLM_WriteOnly);
-				FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(),
-				                VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
-				RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
-			}
-
-			{
-				auto& VertexBuffer = Section->VertexBuffers.ColorVertexBuffer;
-				void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.VertexBufferRHI, 0,
-				                                             VertexBuffer.GetNumVertices() * VertexBuffer.GetStride(),
-				                                             RLM_WriteOnly);
-				FMemory::Memcpy(VertexBufferData, VertexBuffer.GetVertexData(),
-				                VertexBuffer.GetNumVertices() * VertexBuffer.GetStride());
-				RHIUnlockVertexBuffer(VertexBuffer.VertexBufferRHI);
-			}
-
-			{
-				auto& VertexBuffer = Section->VertexBuffers.StaticMeshVertexBuffer;
-				void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI, 0,
-				                                             VertexBuffer.GetTangentSize(), RLM_WriteOnly);
-				FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTangentData(), VertexBuffer.GetTangentSize());
-				RHIUnlockVertexBuffer(VertexBuffer.TangentsVertexBuffer.VertexBufferRHI);
-			}
-
-			{
-				auto& VertexBuffer = Section->VertexBuffers.StaticMeshVertexBuffer;
-				void* VertexBufferData = RHILockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI, 0,
-				                                             VertexBuffer.GetTexCoordSize(), RLM_WriteOnly);
-				FMemory::Memcpy(VertexBufferData, VertexBuffer.GetTexCoordData(), VertexBuffer.GetTexCoordSize());
-				RHIUnlockVertexBuffer(VertexBuffer.TexCoordVertexBuffer.VertexBufferRHI);
-			}
+			UpdateGpuBuffers(Section);
 		}
 }
 

@@ -45,6 +45,9 @@ private:
 	UBodySetup* BodySetup;
 	FMaterialRelevance MaterialRelevance;
 
+	static void UpdateGpuVertex(FOpenLandMeshProxySection* Section, int32 Index, FOpenLandMeshVertex NewVertex);
+	void UpdateGpuBuffers(FOpenLandMeshProxySection* Section) const;
+
 public:
 	FOpenLandMeshSceneProxy(UOpenLandMeshComponent* Component);
 	virtual ~FOpenLandMeshSceneProxy();
@@ -56,7 +59,7 @@ public:
 	}
 
 	void SetSectionVisibility_RenderThread(int32 SectionIndex, bool bNewVisibility);
-	void UpdateSection_RenderThread(int32 SectionIndex, FOpenLandMeshInfoPtr const SectionData, FOpenLandMeshComponentUpdateRange UpdateRange);
+	void UpdateSection_RenderThread(int32 SectionIndex, FOpenLandMeshInfoPtr const CpuSection);
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily,
 	                                    uint32 VisibilityMap, FMeshElementCollector& Collector) const override;

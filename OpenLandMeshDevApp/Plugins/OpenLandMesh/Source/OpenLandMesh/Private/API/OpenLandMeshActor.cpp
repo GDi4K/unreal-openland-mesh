@@ -111,7 +111,7 @@ void AOpenLandMeshActor::RunAsyncModifyMeshProcess(float LastFrameTime)
 			return;
 		}
 		
-		MeshComponent->UpdateMeshSection(CurrentLOD->MeshSectionIndex, {0, -1});
+		MeshComponent->UpdateMeshSection(CurrentLOD->MeshSectionIndex);
 		if (bNeedLODVisibilityChange)
 		{
 			EnsureLODVisibility();
@@ -133,7 +133,7 @@ void AOpenLandMeshActor::RunSyncModifyMeshProcess()
 
 	MakeModifyReady();
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
-	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
+	MeshComponent->UpdateMeshSection(CurrentLODIndex);
 	OnAfterAnimations();
 	// When someone updated GPU parameters inside the above hook
 	// We need to update them like this
@@ -368,7 +368,7 @@ void AOpenLandMeshActor::ModifyMesh()
 
 	MakeModifyReady();
 	PolygonMesh->ModifyVertices(this, CurrentLOD->MeshBuildResult, {GetWorld()->RealTimeSeconds, SmoothNormalAngle});
-	MeshComponent->UpdateMeshSection(CurrentLODIndex, {0, -1});
+	MeshComponent->UpdateMeshSection(CurrentLODIndex);
 }
 
 void AOpenLandMeshActor::ModifyMeshAsync()

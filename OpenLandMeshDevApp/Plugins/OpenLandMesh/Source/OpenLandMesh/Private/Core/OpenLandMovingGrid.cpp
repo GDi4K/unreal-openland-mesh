@@ -12,7 +12,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 	CurrentBuildOptions = BuildOptions;
 
 	RootGrid = MakeShared<FOpenLandGrid>();
-	RootGrid->Build({0, 0}, { 50, 50 }, CurrentBuildOptions.CellWidth,  CurrentBuildOptions.CellWidth*2);
+	RootGrid->Build({0, 0}, { 200, 200 }, CurrentBuildOptions.CellWidth,  CurrentBuildOptions.CellWidth*2);
 
 	GridRenderer = MakeShared<FOpenLandGridRenderer>();
 	MeshInfo = GridRenderer->Initialize(RootGrid);
@@ -47,6 +47,6 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 	const FOpenLandGridRendererChangedInfo ChangedInfo = GridRenderer->ReCenter(NewCenter);
 	if (ChangedInfo.ChangedTriangles.Num() > 0)
 	{
-		MeshComponent->UpdateMeshSection(MeshSectionIndex, {0, -1});
+		MeshComponent->UpdateMeshSection(MeshSectionIndex);
 	}
 }
