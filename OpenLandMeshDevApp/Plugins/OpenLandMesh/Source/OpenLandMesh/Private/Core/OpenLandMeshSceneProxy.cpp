@@ -159,25 +159,54 @@ void FOpenLandMeshSceneProxy::UpdateGpuBuffers(FOpenLandMeshProxySection* Sectio
 void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FOpenLandMeshInfoPtr const CpuSection)
 {
 	check(IsInRenderingThread());
+	check(CpuSection != nullptr);
+	check(SectionIndex < ProxySections.Num());
+	check(ProxySections[SectionIndex] != nullptr)
 
 	// Check we have data 
-	if (CpuSection != nullptr)
-		// Check it references a valid section
-		if (SectionIndex < ProxySections.Num() &&
-			ProxySections[SectionIndex] != nullptr)
-		{
-			FOpenLandMeshProxySection* Section = ProxySections[SectionIndex];
+	if (CpuSection == nullptr)
+	{
+		return;
+	}
+	
+	FOpenLandMeshProxySection* GpuSection = ProxySections[SectionIndex];
+	const int32 NumVerts = CpuSection->Vertices.Length();
 
-			const int32 NumVerts = CpuSection->Vertices.Length();
+	// Iterate through vertex data, copying in new info
+	for (int32 i = 0; i < NumVerts; i++)
+	{
+		UpdateGpuVertex(GpuSection, i, CpuSection->Vertices.Get(i));
+	}
 
-			// Iterate through vertex data, copying in new info
-			for (int32 i = 0; i < NumVerts; i++)
-			{
-				UpdateGpuVertex(Section, i, CpuSection->Vertices.Get(i));
-			}
+	UpdateGpuBuffers(GpuSection);
+}
 
-			UpdateGpuBuffers(Section);
-		}
+void FOpenLandMeshSceneProxy::UpdateSection_RenderThread(int32 SectionIndex, FOpenLandMeshInfoPtr const CpuSection,
+	TArray<int32> UpdatedTriangles)
+{
+	check(IsInRenderingThread());
+	check(CpuSection != nullptr);
+	check(SectionIndex < ProxySections.Num());
+	check(ProxySections[SectionIndex] != nullptr)
+
+	// Check we have data 
+	if (CpuSection == nullptr)
+	{
+		return;
+	}
+	
+	FOpenLandMeshProxySection* GpuSection = ProxySections[SectionIndex];
+
+	for (const int32 TriangleIndex: UpdatedTriangles)
+	{
+		const FOpenLandMeshTriangle CpuTriangle = CpuSection->Triangles.Get(TriangleIndex);
+
+		UpdateGpuVertex(GpuSection, CpuTriangle.T0, CpuSection->Vertices.Get(CpuTriangle.T0));
+		UpdateGpuVertex(GpuSection, CpuTriangle.T1, CpuSection->Vertices.Get(CpuTriangle.T1));
+		UpdateGpuVertex(GpuSection, CpuTriangle.T2, CpuSection->Vertices.Get(CpuTriangle.T2));
+	}
+
+	UpdateGpuBuffers(GpuSection);
 }
 
 void FOpenLandMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views,

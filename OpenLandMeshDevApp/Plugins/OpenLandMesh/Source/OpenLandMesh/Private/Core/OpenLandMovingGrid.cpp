@@ -47,6 +47,6 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 	const FOpenLandGridRendererChangedInfo ChangedInfo = GridRenderer->ReCenter(NewCenter);
 	if (ChangedInfo.ChangedTriangles.Num() > 0)
 	{
-		MeshComponent->UpdateMeshSection(MeshSectionIndex);
+		MeshComponent->UpdateMeshSection(MeshSectionIndex, ChangedInfo.ChangedTriangles);
 	}
 }

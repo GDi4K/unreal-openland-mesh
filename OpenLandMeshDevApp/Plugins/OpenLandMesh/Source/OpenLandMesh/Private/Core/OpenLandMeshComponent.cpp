@@ -236,12 +236,8 @@ void UOpenLandMeshComponent::UpdateCollisionMesh()
 
 void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
 {
-	// We cannot update not existing mesh section.
-	// TODO: May be we need to throw
-	if (SectionIndex >= MeshSections.Num())
-		return;
+	check(SectionIndex < MeshSections.Num())
 
-	//MeshSections[SectionIndex] = MeshInfo;
 	FOpenLandMeshInfoPtr MeshSection = MeshSections[SectionIndex];
 
 	// If we have collision enabled on this section, update that too
@@ -263,6 +259,36 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
 	 		MeshSection->UnLock();
 		});
 	 }
+
+	UpdateLocalBounds(); // Update overall bounds
+	MarkRenderTransformDirty(); // Need to send new bounds to render thread
+}
+
+void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex, TArray<int32> UpdateTriangles)
+{
+	check(SectionIndex < MeshSections.Num())
+
+	FOpenLandMeshInfoPtr MeshSection = MeshSections[SectionIndex];
+
+	// If we have collision enabled on this section, update that too
+	if (MeshSection->bEnableCollision)
+	{
+		UpdateCollisionMesh();
+	}
+
+	// If we have a valid proxy and it is not pending recreation
+	if (SceneProxy && !IsRenderStateDirty())
+	{
+		// Enqueue command to send to render thread
+		FOpenLandMeshSceneProxy* ProcMeshSceneProxy = static_cast<FOpenLandMeshSceneProxy*>(SceneProxy);
+		MeshSection->Lock();
+		ENQUEUE_RENDER_COMMAND(FProcMeshSectionUpdate)
+		([ProcMeshSceneProxy, SectionIndex, MeshSection, UpdateTriangles](FRHICommandListImmediate& RHICmdList)
+		{
+			ProcMeshSceneProxy->UpdateSection_RenderThread(SectionIndex, MeshSection, UpdateTriangles);
+			MeshSection->UnLock();
+		});
+	}
 
 	UpdateLocalBounds(); // Update overall bounds
 	MarkRenderTransformDirty(); // Need to send new bounds to render thread

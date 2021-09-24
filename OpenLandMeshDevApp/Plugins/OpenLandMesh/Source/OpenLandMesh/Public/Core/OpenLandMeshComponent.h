@@ -90,6 +90,7 @@ public:
 	void CreateMeshSection(int32 SectionIndex, FOpenLandMeshInfoPtr MeshInfo);
 	void ReplaceMeshSection(int32 SectionIndex, FOpenLandMeshInfoPtr MeshInfo);
 	void UpdateMeshSection(int32 SectionIndex);
+	void UpdateMeshSection(int32 SectionIndex, TArray<int32> UpdateTriangles);
 	void RemoveAllSections();
 
 	int32 NumMeshSections();
