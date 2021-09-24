@@ -206,10 +206,10 @@ void UOpenLandMeshComponent::ReplaceMeshSection(int32 SectionIndex, FOpenLandMes
 	UpdateLocalBounds(); // Update overall bounds
 }
 
-void UOpenLandMeshComponent::UpdateCollisionMesh()
+void UOpenLandMeshComponent::BuildCollisionMeshPositions()
 {
-	TArray<FVector> CollisionPositions;
-
+	CollisionMeshPositions = {};
+	
 	// We have one collision mesh for all sections, so need to build array of _all_ positions
 	for (int32 Index = 0; Index < MeshSections.Num(); Index++)
 	{
@@ -221,17 +221,41 @@ void UOpenLandMeshComponent::UpdateCollisionMesh()
 			{
 				if (CollisionSection->bSectionVisible)
 				{
-					CollisionPositions.Add(CollisionSection->Vertices.Get(VertIdx).Position);
+					CollisionMeshPositions.Add(CollisionSection->Vertices.Get(VertIdx).Position);
 				} else
 				{
-					CollisionPositions.Add(FVector(0, 0, -9999999));
+					CollisionMeshPositions.Add(FVector(0, 0, -9999999));
 				}
 			}
 		}
 	}
 
 	// Pass new positions to trimesh
-	BodyInstance.UpdateTriMeshVertices(CollisionPositions);
+	BodyInstance.UpdateTriMeshVertices(CollisionMeshPositions);
+}
+
+void UOpenLandMeshComponent::UpdateCollisionMeshPositions(int32 SectionIndex, TArray<int32> UpdatedTriangles)
+{
+	int32 RootIndex = 0;
+	// We have one collision mesh for all sections, so need to build array of _all_ positions
+	for (int32 Index = 0; Index < SectionIndex; Index++)
+	{
+		const FOpenLandMeshInfoPtr CollisionSection = MeshSections[Index];
+		RootIndex += MeshSections[Index]->Vertices.Length();
+	}
+
+	const FOpenLandMeshInfoPtr CurrentMeshSection = MeshSections[SectionIndex];
+	for (const int32 TriangleIndex: UpdatedTriangles)
+	{
+		const FOpenLandMeshTriangle Triangle = CurrentMeshSection->Triangles.Get(TriangleIndex);
+
+		CollisionMeshPositions[RootIndex + Triangle.T0] = CurrentMeshSection->Vertices.Get(Triangle.T0).Position;
+		CollisionMeshPositions[RootIndex + Triangle.T1] = CurrentMeshSection->Vertices.Get(Triangle.T1).Position;
+		CollisionMeshPositions[RootIndex + Triangle.T2] = CurrentMeshSection->Vertices.Get(Triangle.T2).Position;
+	}
+
+	// Pass new positions to trimesh
+	BodyInstance.UpdateTriMeshVertices(CollisionMeshPositions);
 }
 
 void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
@@ -243,7 +267,7 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
 	// If we have collision enabled on this section, update that too
 	if (MeshSection->bEnableCollision)
 	{
-		UpdateCollisionMesh();
+		BuildCollisionMeshPositions();
 	}
 
 	// If we have a valid proxy and it is not pending recreation
@@ -273,7 +297,7 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex, TArray<int32>
 	// If we have collision enabled on this section, update that too
 	if (MeshSection->bEnableCollision)
 	{
-		UpdateCollisionMesh();
+		UpdateCollisionMeshPositions(SectionIndex, UpdateTriangles);
 	}
 
 	// If we have a valid proxy and it is not pending recreation
@@ -375,6 +399,7 @@ void UOpenLandMeshComponent::CreateSimpleMeshBodySetup()
 
 void UOpenLandMeshComponent::SetupCollisions(bool bUseAsyncCollisionCooking)
 {
+	BuildCollisionMeshPositions();
 	UWorld* World = GetWorld();
 
 	if (bUseAsyncCollisionCooking)

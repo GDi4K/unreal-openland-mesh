@@ -23,13 +23,15 @@ private:
 	void UpdateLocalBounds();
 	UPROPERTY()
 	TArray<UBodySetup*> AsyncBodySetupQueue;
+	TArray<FVector> CollisionMeshPositions;
 
 	// methods
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	UBodySetup* CreateBodySetupHelper();
 	void CreateSimpleMeshBodySetup();
 	void FinishPhysicsAsyncCook(bool bSuccess, UBodySetup* FinishedBodySetup);
-	void UpdateCollisionMesh();
+	void BuildCollisionMeshPositions();
+	void UpdateCollisionMeshPositions(int32 SectionIndex, TArray<int32> UpdatedTriangles);
 
 public:
 
