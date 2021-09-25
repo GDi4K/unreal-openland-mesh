@@ -20,7 +20,7 @@ struct FOpenLandGridBuildInfo
 
 	bool HasHole() const
 	{
-		return HoleSize.X == 0 && HoleSize.Y == 0;
+		return !HoleSize.IsNearlyZero();
 	}
 };
 
@@ -29,6 +29,8 @@ class FOpenLandGrid
 	FOpenLandGridBuildInfo BuildInfo;
 
 	static FVector ToVector3D(FVector2D Vector);
+	static bool IsPointInsideRect(FVector2D RectRoot, FVector2D RectSize, FVector2D PointToCheck);
+	static bool IsRectInsideRect(FVector2D RectOuterRoot, FVector2D RectOuterSize, FVector2D RectInnerRoot, FVector2D RectInnerSize);
 
 public:
 	FOpenLandGrid();
@@ -37,7 +39,6 @@ public:
 	FBox GetBoundingBox() const;
 	
 	FOpenLandGridChangedCells ReCenter(FVector NewCenter);
-	FOpenLandGridChangedCells UpdateHoleRoot(FVector2D HoleRootCell);
 	TArray<FVector2D> GetAllCells() const;
 };
 

@@ -5,6 +5,49 @@ FVector FOpenLandGrid::ToVector3D(FVector2D Vector)
 	return { Vector.X, Vector.Y, 0};
 }
 
+bool FOpenLandGrid::IsPointInsideRect(FVector2D RectRoot, FVector2D RectSize, FVector2D PointToCheck)
+{
+	const int32 XPos = PointToCheck.X;
+	const int32 YPos = PointToCheck.Y;
+
+	if (XPos < RectRoot.X || XPos >= RectRoot.X + RectSize.X)
+	{
+		return false;
+	}
+
+	if (YPos < RectRoot.Y || YPos >= RectRoot.Y + RectSize.Y)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FOpenLandGrid::IsRectInsideRect(FVector2D RectOuterRoot, FVector2D RectOuterSize, FVector2D RectInnerRoot, FVector2D RectInnerSize)
+{
+	if (RectInnerRoot.X < RectOuterRoot.X)
+	{
+		return false;
+	}
+
+	if (RectInnerRoot.X + RectInnerSize.X > RectOuterRoot.X + RectOuterSize.X)
+	{
+		return false;
+	}
+
+	if (RectInnerRoot.Y < RectOuterRoot.Y)
+	{
+		return false;
+	}
+
+	if (RectInnerRoot.Y + RectInnerSize.Y > RectOuterRoot.Y + RectOuterSize.Y)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 void FOpenLandGrid::Build(FOpenLandGridBuildInfo InputBuildInfo)
 {
 	BuildInfo = InputBuildInfo;
@@ -16,8 +59,7 @@ void FOpenLandGrid::Build(FOpenLandGridBuildInfo InputBuildInfo)
 
 	if (BuildInfo.HasHole())
 	{
-		check(BuildInfo.HoleSize.X < BuildInfo.Size.X);
-		check(BuildInfo.HoleSize.Y < BuildInfo.Size.Y);
+		check(IsRectInsideRect(BuildInfo.RootCell, BuildInfo.Size, BuildInfo.HoleRootCell, BuildInfo.HoleSize))
 	}
 }
 
@@ -41,6 +83,8 @@ FBox FOpenLandGrid::GetBoundingBox() const
 
 FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 {
+	check(!BuildInfo.HasHole())
+	
 	const FVector2D NewCenter2D = {NewCenter.X, NewCenter.Y};
 	const FVector2D CurrentCenter = (BuildInfo.RootCell + (BuildInfo.Size * 0.5)) * BuildInfo.CellWidth;
 	const FVector2D Diff = NewCenter2D - CurrentCenter;
@@ -64,22 +108,14 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 	{
 		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
 		{
-			const int32 XPos = BuildInfo.RootCell.X + X;
-			const int32 YPos = BuildInfo.RootCell.Y + Y;
-
-			if (XPos < NewRootCell.X || XPos >= NewRootCell.X + BuildInfo.Size.X)
+			const FVector2D CellPoint = BuildInfo.RootCell + FVector2D(X, Y);
+			if (IsPointInsideRect(NewRootCell, BuildInfo.Size, CellPoint))
 			{
-				ChangedCells.CellsToRemove.Push(FVector2D(X, Y) + BuildInfo.RootCell);
-				continue;
-			}
-
-			if (YPos < NewRootCell.Y || YPos >= NewRootCell.Y + BuildInfo.Size.Y)
+				ChangedCells.ExistingCells.Push(CellPoint);
+			} else
 			{
-				ChangedCells.CellsToRemove.Push(FVector2D(XPos, YPos));
-				continue;
+				ChangedCells.CellsToRemove.Push(CellPoint);
 			}
-
-			ChangedCells.ExistingCells.Push(FVector2D(XPos, YPos));
 		}
 	}
 
@@ -88,21 +124,11 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 	{
 		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
 		{
-			const int32 XPos = NewRootCell.X + X;
-			const int32 YPos = NewRootCell.Y + Y;
-
-			if (XPos < BuildInfo.RootCell.X || XPos >= BuildInfo.RootCell.X + BuildInfo.Size.X)
+			const FVector2D NewCellPoint = NewRootCell + FVector2D(X, Y);
+			if (!IsPointInsideRect(BuildInfo.RootCell, BuildInfo.Size, NewCellPoint))
 			{
-				ChangedCells.CellsToAdd.Push(FVector2D(XPos, YPos));
-				continue;
+				ChangedCells.CellsToAdd.Push(NewCellPoint);
 			}
-
-			if (YPos < BuildInfo.RootCell.Y || YPos >= BuildInfo.RootCell.Y + BuildInfo.Size.Y)
-			{
-				ChangedCells.CellsToAdd.Push(FVector2D(XPos, YPos));
-				continue;
-			}
-			
 		}
 	}
 
