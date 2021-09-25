@@ -12,7 +12,12 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 	CurrentBuildOptions = BuildOptions;
 
 	RootGrid = MakeShared<FOpenLandGrid>();
-	RootGrid->Build({0, 0}, { 200, 200 }, CurrentBuildOptions.CellWidth,  CurrentBuildOptions.CellWidth*2);
+	FOpenLandGridBuildInfo BuildInfo;
+	BuildInfo.RootCell = {0, 0};
+	BuildInfo.Size = { 200, 200 };
+	BuildInfo.CellWidth = CurrentBuildOptions.CellWidth;
+	BuildInfo.UpperCellWidth = CurrentBuildOptions.CellWidth*2;
+	RootGrid->Build(BuildInfo);
 
 	GridRenderer = MakeShared<FOpenLandGridRenderer>();
 	MeshInfo = GridRenderer->Initialize(RootGrid);
