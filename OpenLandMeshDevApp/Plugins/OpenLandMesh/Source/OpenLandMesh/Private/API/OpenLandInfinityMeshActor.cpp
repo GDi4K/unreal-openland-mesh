@@ -33,7 +33,6 @@ AOpenLandInfinityMeshActor::AOpenLandInfinityMeshActor()
 void AOpenLandInfinityMeshActor::BeginPlay()
 {
 	Super::BeginPlay();
-	Rebuild();
 }
 
 // Called every frame
@@ -41,12 +40,29 @@ void AOpenLandInfinityMeshActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (!GetWorld())
+	{
+		return;
+	}
+
 	if (!GetWorld()->IsGameWorld())
 	{
 		return;
 	}
+
+	const auto Player = GetWorld()->GetFirstPlayerController();
+	if (!Player)
+	{
+		return;
+	}
+
+	const auto Pawn = Player->GetPawn();
+	if (!Pawn)
+	{
+		return;
+	}
 	
-	const FVector PlayerPosition = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
+	const FVector PlayerPosition = Pawn->GetActorLocation();
 	MovingGrid->UpdatePosition(PlayerPosition);
 }
 
