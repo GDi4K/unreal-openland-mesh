@@ -83,8 +83,6 @@ FBox FOpenLandGrid::GetBoundingBox() const
 
 FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 {
-	check(!BuildInfo.HasHole())
-	
 	const FVector2D NewCenter2D = {NewCenter.X, NewCenter.Y};
 	const FVector2D CurrentCenter = (BuildInfo.RootCell + (BuildInfo.Size * 0.5)) * BuildInfo.CellWidth;
 	const FVector2D Diff = NewCenter2D - CurrentCenter;
@@ -101,7 +99,16 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 
 	const FVector2D NewRootCell = BuildInfo.RootCell + FVector2D(XShift, YShift);
 
+	if (BuildInfo.HasHole())
+	{
+		if(!IsRectInsideRect(NewRootCell, BuildInfo.Size, BuildInfo.HoleRootCell, BuildInfo.HoleSize))
+		{
+			return {};
+		}	
+	}
+	
 	FOpenLandGridChangedCells ChangedCells;
+
 
 	// Loop the Old Cells to find what to remove
 	for (int32 X=0; X<BuildInfo.Size.X; X++)
@@ -109,6 +116,11 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
 		{
 			const FVector2D CellPoint = BuildInfo.RootCell + FVector2D(X, Y);
+			if (IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CellPoint))
+			{
+				continue;
+			}
+			
 			if (IsPointInsideRect(NewRootCell, BuildInfo.Size, CellPoint))
 			{
 				ChangedCells.ExistingCells.Push(CellPoint);
@@ -125,6 +137,11 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
 		{
 			const FVector2D NewCellPoint = NewRootCell + FVector2D(X, Y);
+			if (IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, NewCellPoint))
+			{
+				continue;
+			}
+			
 			if (!IsPointInsideRect(BuildInfo.RootCell, BuildInfo.Size, NewCellPoint))
 			{
 				ChangedCells.CellsToAdd.Push(NewCellPoint);
@@ -145,7 +162,17 @@ TArray<FVector2D> FOpenLandGrid::GetAllCells() const
 	{
 		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
 		{
-			Cells.Push(FVector2D(X, Y) + BuildInfo.RootCell);
+			const FVector2D CurrentCell = FVector2D(X, Y) + BuildInfo.RootCell;
+			if (BuildInfo.HasHole())
+			{
+				if (!IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CurrentCell))
+				{
+					Cells.Push(CurrentCell);
+				}
+			} else
+			{
+				Cells.Push(CurrentCell);
+			}
 		}
 	}
 

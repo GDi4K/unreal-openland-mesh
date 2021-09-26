@@ -17,11 +17,14 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 	BuildInfo.Size = { 200, 200 };
 	BuildInfo.CellWidth = CurrentBuildOptions.CellWidth;
 	BuildInfo.UpperCellWidth = CurrentBuildOptions.CellWidth*2;
+
+	BuildInfo.HoleRootCell = {50, 50};
+	BuildInfo.HoleSize = {40, 40};
 	RootGrid->Build(BuildInfo);
 
 	GridRenderer = MakeShared<FOpenLandGridRenderer>();
 	MeshInfo = GridRenderer->Initialize(RootGrid);
-	GridRenderer->ReCenter({0, 0, 0});
+	//GridRenderer->ReCenter({0, 0, 0});
 
 	if (MeshSectionIndex < 0)
 	{
