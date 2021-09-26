@@ -41,43 +41,14 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildCell(FVector2D C
 	};
 }
 
-FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGrid)
+FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLandGridChangedCells ChangedCells)
 {
-	check(bInitialized == false);
-	bInitialized = true;
-	Grid = SourceGrid;
-	MeshInfo = FOpenLandMeshInfo::New();
-	Cells = {};
-	
-	for(const FVector2D Cell: Grid->GetAllCells())
-	{
-		const TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(Cell);
-		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), CellVertices);
-		
-		const int32 TotalTriangles = MeshInfo->Triangles.Length();
-		Cells.Add(Cell.ToString(), {
-			Cell,
-			TotalTriangles - 2,
-			TotalTriangles - 1,
-		});
-	}
-
-	MeshInfo->BoundingBox = Grid->GetBoundingBox();
-	
-	return  MeshInfo;
-}
-
-FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ReCenter(FVector NewCenter)
-{
-	FOpenLandGridChangedCells Result = Grid->ReCenter(NewCenter);
-	check(Result.CellsToAdd.Num() == Result.CellsToRemove.Num());
-
 	FOpenLandGridRendererChangedInfo ChangedInfo;
 
-	for (int32 Index = 0; Index < Result.CellsToRemove.Num(); Index++)
+	for (int32 Index = 0; Index < ChangedCells.CellsToRemove.Num(); Index++)
 	{
-		const FVector2D RemovingCellPos = Result.CellsToRemove[Index];
-		const FVector2D AddingCellPos = Result.CellsToAdd[Index];
+		const FVector2D RemovingCellPos = ChangedCells.CellsToRemove[Index];
+		const FVector2D AddingCellPos = ChangedCells.CellsToAdd[Index];
 		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(AddingCellPos);
 
 		const FOpenLandGridRendererCell RenderCell = Cells[RemovingCellPos.ToString()];
@@ -106,4 +77,46 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ReCenter(FVector NewCent
 	MeshInfo->BoundingBox = Grid->GetBoundingBox();
 	
 	return ChangedInfo;
+}
+
+FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGrid)
+{
+	check(bInitialized == false);
+	bInitialized = true;
+	Grid = SourceGrid;
+	MeshInfo = FOpenLandMeshInfo::New();
+	Cells = {};
+	
+	for(const FVector2D Cell: Grid->GetAllCells())
+	{
+		const TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(Cell);
+		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), CellVertices);
+		
+		const int32 TotalTriangles = MeshInfo->Triangles.Length();
+		Cells.Add(Cell.ToString(), {
+			Cell,
+			TotalTriangles - 2,
+			TotalTriangles - 1,
+		});
+	}
+
+	MeshInfo->BoundingBox = Grid->GetBoundingBox();
+	
+	return  MeshInfo;
+}
+
+FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ReCenter(FVector NewCenter)
+{
+	const FOpenLandGridChangedCells ChangedCells = Grid->ReCenter(NewCenter);
+	check(ChangedCells.CellsToAdd.Num() == ChangedCells.CellsToRemove.Num());
+
+	return ApplyCellChanges(ChangedCells);
+}
+
+FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ChangeHoleRootCell(FVector2D NewHoleRootCell)
+{
+	const FOpenLandGridChangedCells ChangedCells = Grid->ChangeHoleRootCell(NewHoleRootCell);
+	check(ChangedCells.CellsToAdd.Num() == ChangedCells.CellsToRemove.Num());
+
+	return ApplyCellChanges(ChangedCells);
 }

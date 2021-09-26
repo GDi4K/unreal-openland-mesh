@@ -37,8 +37,10 @@ public:
 	void Build(FOpenLandGridBuildInfo InputBuildInfo);
 	int32 GetCellWidth() const { return BuildInfo.CellWidth; }
 	FBox GetBoundingBox() const;
-	
+
+	FVector2D FindClosestCellRoot(FVector Position) const;
 	FOpenLandGridChangedCells ReCenter(FVector NewCenter);
+	FOpenLandGridChangedCells ChangeHoleRootCell(FVector2D NewHoleRootCell);
 	TArray<FVector2D> GetAllCells() const;
 };
 

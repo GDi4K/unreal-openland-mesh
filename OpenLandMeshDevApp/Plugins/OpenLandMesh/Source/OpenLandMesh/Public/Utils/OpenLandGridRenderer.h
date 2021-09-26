@@ -22,11 +22,13 @@ class FOpenLandGridRenderer
 	bool bInitialized = false;
 
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FVector2D Cell) const;
+	FOpenLandGridRendererChangedInfo ApplyCellChanges(FOpenLandGridChangedCells ChangedCells);
 
 public:
 	FOpenLandGridRenderer();
 	FOpenLandMeshInfoPtr Initialize(FOpenLandGridPtr SourceGrid);
 	FOpenLandGridRendererChangedInfo ReCenter(FVector NewCenter);
+	FOpenLandGridRendererChangedInfo ChangeHoleRootCell(FVector2D NewHoleRootCell);
 };
 
 typedef TSharedPtr<FOpenLandGridRenderer> FOpenLandGridRendererPtr;

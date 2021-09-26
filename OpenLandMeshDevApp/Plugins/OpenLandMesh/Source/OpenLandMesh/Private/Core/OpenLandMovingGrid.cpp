@@ -51,10 +51,16 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 		return;
 	}
 
-	// TODO: Get a list of triangles which has changed instead. So, we can update only those
-	const FOpenLandGridRendererChangedInfo ChangedInfo = GridRenderer->ReCenter(NewCenter);
+	const FVector2D NewHoleRoot = RootGrid->FindClosestCellRoot(NewCenter - FVector(100, 100, 0));
+	const FOpenLandGridRendererChangedInfo ChangedInfo = GridRenderer->ChangeHoleRootCell(NewHoleRoot);
 	if (ChangedInfo.ChangedTriangles.Num() > 0)
 	{
 		MeshComponent->UpdateMeshSection(MeshSectionIndex, ChangedInfo.ChangedTriangles);
 	}
+	
+	// const FOpenLandGridRendererChangedInfo ChangedInfo = GridRenderer->ReCenter(NewCenter);
+	// if (ChangedInfo.ChangedTriangles.Num() > 0)
+	// {
+	// 	MeshComponent->UpdateMeshSection(MeshSectionIndex, ChangedInfo.ChangedTriangles);
+	// }
 }

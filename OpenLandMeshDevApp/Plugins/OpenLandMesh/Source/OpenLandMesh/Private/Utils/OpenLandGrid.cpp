@@ -81,6 +81,13 @@ FBox FOpenLandGrid::GetBoundingBox() const
 	return BoundingBox;
 }
 
+FVector2D FOpenLandGrid::FindClosestCellRoot(FVector Position) const
+{
+	const float XPos = FMath::Floor(Position.X / BuildInfo.CellWidth);
+	const float YPos = FMath::Floor(Position.Y / BuildInfo.CellWidth);
+	return {XPos, YPos};
+}
+
 FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 {
 	const FVector2D NewCenter2D = {NewCenter.X, NewCenter.Y};
@@ -150,6 +157,48 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 	}
 
 	BuildInfo.RootCell = NewRootCell;
+
+	return ChangedCells;
+}
+
+FOpenLandGridChangedCells FOpenLandGrid::ChangeHoleRootCell(FVector2D NewHoleRootCell)
+{
+	if(!IsRectInsideRect(BuildInfo.RootCell, BuildInfo.Size, NewHoleRootCell, BuildInfo.HoleSize))
+	{
+		return {};
+	}
+
+	FOpenLandGridChangedCells ChangedCells;
+	
+	// Loop the Old Cells to find whether it needs to add back to the mesh
+	for (int32 X=0; X<BuildInfo.HoleSize.X; X++)
+	{
+		for(int32 Y=0; Y<BuildInfo.HoleSize.Y; Y++)
+		{
+			const FVector2D CellPoint = BuildInfo.HoleRootCell + FVector2D(X, Y);
+			if (!IsPointInsideRect(NewHoleRootCell, BuildInfo.HoleSize, CellPoint))
+			{
+				ChangedCells.CellsToAdd.Push(CellPoint);
+			}
+			
+		}
+	}
+
+	// Loop the NewCells to find whether it needs to remove from the mesh
+	for (int32 X=0; X<BuildInfo.HoleSize.X; X++)
+	{
+		for(int32 Y=0; Y<BuildInfo.HoleSize.Y; Y++)
+		{
+			const FVector2D CellPoint = NewHoleRootCell + FVector2D(X, Y);
+			if (!IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CellPoint))
+			{
+				ChangedCells.CellsToRemove.Push(CellPoint);
+			}
+			
+		}
+	}
+
+	BuildInfo.HoleRootCell = NewHoleRootCell;
 
 	return ChangedCells;
 }
