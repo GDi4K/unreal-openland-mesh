@@ -27,6 +27,20 @@ struct FOpenLandMovingGridLOD
 		LOD.GridRenderer = MakeShared<FOpenLandGridRenderer>();
 		return LOD;
 	}
+
+	void InitializeMesh(UOpenLandMeshComponent* MeshComponent)
+	{
+		MeshInfo = GridRenderer->Initialize(Grid);
+
+		if (MeshSectionIndex < 0)
+		{
+			MeshSectionIndex = MeshComponent->NumMeshSections();
+			MeshComponent->CreateMeshSection(MeshSectionIndex, MeshInfo);
+		} else
+		{
+			MeshComponent->ReplaceMeshSection(MeshSectionIndex, MeshInfo);
+		}
+	}
 };
 
 class FOpenLandMovingGrid
@@ -34,8 +48,7 @@ class FOpenLandMovingGrid
 	UOpenLandMeshComponent* MeshComponent = nullptr;
 	FOpenLandMovingGridBuildOptions CurrentBuildOptions;
 	
-	FOpenLandMovingGridLOD LOD0 = FOpenLandMovingGridLOD::New();
-	FOpenLandMovingGridLOD LOD1 = FOpenLandMovingGridLOD::New();
+	TArray<FOpenLandMovingGridLOD> LODs = {};
 
 public:
 	FOpenLandMovingGrid(UOpenLandMeshComponent* Component);
