@@ -15,13 +15,16 @@ struct FOpenLandMovingGridBuildOptions
 class FOpenLandMovingGrid
 {
 	UOpenLandMeshComponent* MeshComponent = nullptr;
-	FOpenLandMeshInfoPtr MeshInfo = nullptr;
-	int32 MeshSectionIndex = -1;
-	FVector2D RootCell = {0, 0};
+	FOpenLandMeshInfoPtr MeshInfoInner = nullptr;
+	FOpenLandMeshInfoPtr MeshInfoOuter = nullptr;
+	int32 MeshSectionIndexInner = -1;
+	int32 MeshSectionIndexOuter = -1;
 	FOpenLandMovingGridBuildOptions CurrentBuildOptions;
 	
-	FOpenLandGridPtr RootGrid = nullptr;
-	FOpenLandGridRendererPtr GridRenderer = nullptr;
+	FOpenLandGridPtr GridInner = nullptr;
+	FOpenLandGridPtr GridOuter = nullptr;
+	FOpenLandGridRendererPtr GridRendererInner = nullptr;
+	FOpenLandGridRendererPtr GridRendererOuter = nullptr;
 
 public:
 	FOpenLandMovingGrid(UOpenLandMeshComponent* Component);

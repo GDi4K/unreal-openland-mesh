@@ -11,29 +11,55 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 {
 	CurrentBuildOptions = BuildOptions;
 
-	RootGrid = MakeShared<FOpenLandGrid>();
+	// Inner Cell Creation
+	GridInner = MakeShared<FOpenLandGrid>();
 	FOpenLandGridBuildInfo BuildInfo;
 	BuildInfo.RootCell = {0, 0};
-	BuildInfo.Size = { 200, 200 };
+	BuildInfo.Size = { 100, 100 };
 	BuildInfo.CellWidth = CurrentBuildOptions.CellWidth;
 	BuildInfo.UpperCellWidth = CurrentBuildOptions.CellWidth*2;
+	
+	GridInner->Build(BuildInfo);
 
-	BuildInfo.HoleRootCell = {50, 50};
-	BuildInfo.HoleSize = {40, 40};
-	RootGrid->Build(BuildInfo);
+	GridRendererInner = MakeShared<FOpenLandGridRenderer>();
+	MeshInfoInner = GridRendererInner->Initialize(GridInner);
 
-	GridRenderer = MakeShared<FOpenLandGridRenderer>();
-	MeshInfo = GridRenderer->Initialize(RootGrid);
-	//GridRenderer->ReCenter({0, 0, 0});
-
-	if (MeshSectionIndex < 0)
+	if (MeshSectionIndexInner < 0)
 	{
-		MeshSectionIndex = MeshComponent->NumMeshSections();
-		MeshComponent->CreateMeshSection(MeshSectionIndex, MeshInfo);
+		MeshSectionIndexInner = MeshComponent->NumMeshSections();
+		MeshComponent->CreateMeshSection(MeshSectionIndexInner, MeshInfoInner);
 	} else
 	{
-		MeshComponent->ReplaceMeshSection(MeshSectionIndex, MeshInfo);
+		MeshComponent->ReplaceMeshSection(MeshSectionIndexInner, MeshInfoInner);
 	}
+	
+	// Outer Cell Creation
+	GridOuter = MakeShared<FOpenLandGrid>();
+	FOpenLandGridBuildInfo BuildInfoOuter;
+	BuildInfoOuter.RootCell = {0, 0};
+	BuildInfoOuter.Size = { 100, 100 };
+	BuildInfoOuter.CellWidth = CurrentBuildOptions.CellWidth *2;
+	BuildInfoOuter.UpperCellWidth = CurrentBuildOptions.CellWidth*4;
+
+	BuildInfoOuter.HoleRootCell = GridInner->GetRootCell();
+	BuildInfoOuter.HoleSize = GridInner->GetSize() / 2;
+	GridOuter->Build(BuildInfoOuter);
+
+	GridRendererOuter = MakeShared<FOpenLandGridRenderer>();
+	MeshInfoOuter = GridRendererOuter->Initialize(GridOuter);
+
+	if (MeshSectionIndexOuter < 0)
+	{
+		MeshSectionIndexOuter = MeshComponent->NumMeshSections();
+		MeshComponent->CreateMeshSection(MeshSectionIndexOuter, MeshInfoOuter);
+	} else
+	{
+		MeshComponent->ReplaceMeshSection(MeshSectionIndexOuter, MeshInfoOuter);
+	}
+
+	// Mesh Updates
+	MeshComponent->SetupCollisions(false);
+	MeshComponent->InvalidateRendering();
 
 	MeshComponent->SetupCollisions(false);
 	MeshComponent->InvalidateRendering();
@@ -41,26 +67,41 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 
 void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 {
-	if (MeshSectionIndex < 0)
+	if (MeshSectionIndexInner < 0)
 	{
 		return;
 	}
 	
-	if (MeshInfo->IsLocked())
+	if (MeshInfoInner->IsLocked())
 	{
 		return;
 	}
 
-	const FVector2D NewHoleRoot = RootGrid->FindClosestCellRoot(NewCenter - FVector(100, 100, 0));
-	const FOpenLandGridRendererChangedInfo ChangedInfo = GridRenderer->ChangeHoleRootCell(NewHoleRoot);
-	if (ChangedInfo.ChangedTriangles.Num() > 0)
+	if (MeshInfoOuter->IsLocked())
 	{
-		MeshComponent->UpdateMeshSection(MeshSectionIndex, ChangedInfo.ChangedTriangles);
+		return;
+	}
+
+	// Update Outer
+	const FOpenLandGridRendererChangedInfo ChangedInfoOuter = GridRendererOuter->ReCenter(NewCenter);
+	if (ChangedInfoOuter.ChangedTriangles.Num() > 0)
+	{
+		MeshComponent->UpdateMeshSection(MeshSectionIndexOuter, ChangedInfoOuter.ChangedTriangles);
+		return;
 	}
 	
-	// const FOpenLandGridRendererChangedInfo ChangedInfo = GridRenderer->ReCenter(NewCenter);
-	// if (ChangedInfo.ChangedTriangles.Num() > 0)
-	// {
-	// 	MeshComponent->UpdateMeshSection(MeshSectionIndex, ChangedInfo.ChangedTriangles);
-	// }
+	// Update Inner
+	const FOpenLandGridRendererChangedInfo ChangedInfoInner = GridRendererInner->ReCenter(NewCenter);
+	if (ChangedInfoInner.ChangedTriangles.Num() > 0)
+	{
+		MeshComponent->UpdateMeshSection(MeshSectionIndexInner, ChangedInfoInner.ChangedTriangles);
+	}
+
+	// Update Outer Hole
+	const FOpenLandGridRendererChangedInfo ChangedInfoOuterHole = GridRendererOuter->ChangeHoleRootCell(GridInner->GetRootCell()/2);
+	if (ChangedInfoOuterHole.ChangedTriangles.Num() > 0)
+	{
+		MeshComponent->UpdateMeshSection(MeshSectionIndexOuter, ChangedInfoOuterHole.ChangedTriangles);
+	}
+	
 }
