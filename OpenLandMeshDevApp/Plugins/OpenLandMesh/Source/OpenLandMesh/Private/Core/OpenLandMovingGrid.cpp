@@ -58,26 +58,45 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 			return;
 		}
 	}
-	
-	// Update Outer
-	const FOpenLandGridRendererChangedInfo ChangedInfoOuter = LODs[1].GridRenderer->ReCenter(NewCenter, LODs[0].Grid->GetRootCell()/2);
-	if (ChangedInfoOuter.ChangedTriangles.Num() > 0)
-	{
-		MeshComponent->UpdateMeshSection(LODs[1].MeshSectionIndex, ChangedInfoOuter.ChangedTriangles);
-		return;
-	}
-	
-	// Update Inner
-	const FOpenLandGridRendererChangedInfo ChangedInfoInner = LODs[0].GridRenderer->ReCenter(NewCenter);
-	if (ChangedInfoInner.ChangedTriangles.Num() > 0)
-	{
-		MeshComponent->UpdateMeshSection(LODs[0].MeshSectionIndex, ChangedInfoInner.ChangedTriangles);
-	}
 
-	// Update Outer Hole
-	const FOpenLandGridRendererChangedInfo ChangedInfoOuterHole = LODs[1].GridRenderer->ChangeHoleRootCell(LODs[0].Grid->GetRootCell()/2);
-	if (ChangedInfoOuterHole.ChangedTriangles.Num() > 0)
+	for (int32 LODIndex=LODs.Num() -1; LODIndex >= 0; LODIndex --)
 	{
-		MeshComponent->UpdateMeshSection(LODs[1].MeshSectionIndex, ChangedInfoOuterHole.ChangedTriangles);
+		FOpenLandMovingGridLOD CurrentLOD = LODs[LODIndex];
+		const FOpenLandMovingGridLOD* InnerLOD = LODIndex == 0? nullptr : &(LODs[LODIndex - 1]);
+		const FOpenLandMovingGridLOD* OuterLOD = LODIndex == LODs.Num() -1 ? nullptr : &(LODs[LODIndex + 1]);
+
+		FOpenLandGridRendererChangedInfo ChangedInfo;
+
+		// Apply Recenter Logic
+		if (InnerLOD)
+		{
+			ChangedInfo = CurrentLOD.GridRenderer->ReCenter(NewCenter, InnerLOD->Grid->GetRootCell()/2);
+		}
+		else
+		{
+			ChangedInfo = CurrentLOD.GridRenderer->ReCenter(NewCenter);
+		}
+
+		const bool bMeshUpdated = ChangedInfo.ChangedTriangles.Num() > 0;
+		if (bMeshUpdated)
+		{
+			MeshComponent->UpdateMeshSection(CurrentLOD.MeshSectionIndex, ChangedInfo.ChangedTriangles);
+		}
+
+		// Update Outer Grid Hole
+		if (OuterLOD)
+		{
+			const FOpenLandGridRendererChangedInfo ChangedInfoHole = OuterLOD->GridRenderer->ChangeHoleRootCell(CurrentLOD.Grid->GetRootCell()/2);
+			if (ChangedInfoHole.ChangedTriangles.Num() > 0)
+			{
+				MeshComponent->UpdateMeshSection(OuterLOD->MeshSectionIndex, ChangedInfoHole.ChangedTriangles);
+			}
+		}
+
+		if (bMeshUpdated)
+		{
+			// We need to return the tick & let it render
+			return;
+		}
 	}
 }
