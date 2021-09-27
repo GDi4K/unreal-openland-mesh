@@ -12,19 +12,30 @@ struct FOpenLandMovingGridBuildOptions
 	int32 MaxUVs = 10;
 };
 
+struct FOpenLandMovingGridLOD
+{
+	int32 Index = 0;
+	FOpenLandMeshInfoPtr MeshInfo = nullptr;
+	int32 MeshSectionIndex = -1;
+	FOpenLandGridPtr Grid = nullptr;
+	FOpenLandGridRendererPtr GridRenderer = nullptr;
+
+	static FOpenLandMovingGridLOD New()
+	{
+		FOpenLandMovingGridLOD LOD;
+		LOD.Grid = MakeShared<FOpenLandGrid>();
+		LOD.GridRenderer = MakeShared<FOpenLandGridRenderer>();
+		return LOD;
+	}
+};
+
 class FOpenLandMovingGrid
 {
 	UOpenLandMeshComponent* MeshComponent = nullptr;
-	FOpenLandMeshInfoPtr MeshInfoInner = nullptr;
-	FOpenLandMeshInfoPtr MeshInfoOuter = nullptr;
-	int32 MeshSectionIndexInner = -1;
-	int32 MeshSectionIndexOuter = -1;
 	FOpenLandMovingGridBuildOptions CurrentBuildOptions;
 	
-	FOpenLandGridPtr GridInner = nullptr;
-	FOpenLandGridPtr GridOuter = nullptr;
-	FOpenLandGridRendererPtr GridRendererInner = nullptr;
-	FOpenLandGridRendererPtr GridRendererOuter = nullptr;
+	FOpenLandMovingGridLOD LOD0 = FOpenLandMovingGridLOD::New();
+	FOpenLandMovingGridLOD LOD1 = FOpenLandMovingGridLOD::New();
 
 public:
 	FOpenLandMovingGrid(UOpenLandMeshComponent* Component);

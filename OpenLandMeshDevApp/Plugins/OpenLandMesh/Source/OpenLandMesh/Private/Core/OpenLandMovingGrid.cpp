@@ -12,49 +12,45 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 	CurrentBuildOptions = BuildOptions;
 
 	// Inner Cell Creation
-	GridInner = MakeShared<FOpenLandGrid>();
 	FOpenLandGridBuildInfo BuildInfo;
 	BuildInfo.RootCell = {0, 0};
 	BuildInfo.Size = { 100, 100 };
 	BuildInfo.CellWidth = CurrentBuildOptions.CellWidth;
 	BuildInfo.UpperCellWidth = CurrentBuildOptions.CellWidth*2;
 	
-	GridInner->Build(BuildInfo);
+	LOD0.Grid->Build(BuildInfo);
 
-	GridRendererInner = MakeShared<FOpenLandGridRenderer>();
-	MeshInfoInner = GridRendererInner->Initialize(GridInner);
+	LOD0.MeshInfo = LOD0.GridRenderer->Initialize(LOD0.Grid);
 
-	if (MeshSectionIndexInner < 0)
+	if (LOD0.MeshSectionIndex < 0)
 	{
-		MeshSectionIndexInner = MeshComponent->NumMeshSections();
-		MeshComponent->CreateMeshSection(MeshSectionIndexInner, MeshInfoInner);
+		LOD0.MeshSectionIndex = MeshComponent->NumMeshSections();
+		MeshComponent->CreateMeshSection(LOD0.MeshSectionIndex, LOD0.MeshInfo);
 	} else
 	{
-		MeshComponent->ReplaceMeshSection(MeshSectionIndexInner, MeshInfoInner);
+		MeshComponent->ReplaceMeshSection(LOD0.MeshSectionIndex, LOD0.MeshInfo);
 	}
 	
 	// Outer Cell Creation
-	GridOuter = MakeShared<FOpenLandGrid>();
 	FOpenLandGridBuildInfo BuildInfoOuter;
 	BuildInfoOuter.RootCell = {0, 0};
 	BuildInfoOuter.Size = { 100, 100 };
 	BuildInfoOuter.CellWidth = CurrentBuildOptions.CellWidth *2;
 	BuildInfoOuter.UpperCellWidth = CurrentBuildOptions.CellWidth*4;
 
-	BuildInfoOuter.HoleRootCell = GridInner->GetRootCell();
-	BuildInfoOuter.HoleSize = GridInner->GetSize() / 2;
-	GridOuter->Build(BuildInfoOuter);
+	BuildInfoOuter.HoleRootCell = LOD0.Grid->GetRootCell();
+	BuildInfoOuter.HoleSize = LOD0.Grid->GetSize() / 2;
+	LOD1.Grid->Build(BuildInfoOuter);
 
-	GridRendererOuter = MakeShared<FOpenLandGridRenderer>();
-	MeshInfoOuter = GridRendererOuter->Initialize(GridOuter);
+	LOD1.MeshInfo = LOD1.GridRenderer->Initialize(LOD1.Grid);
 
-	if (MeshSectionIndexOuter < 0)
+	if (LOD1.MeshSectionIndex < 0)
 	{
-		MeshSectionIndexOuter = MeshComponent->NumMeshSections();
-		MeshComponent->CreateMeshSection(MeshSectionIndexOuter, MeshInfoOuter);
+		LOD1.MeshSectionIndex = MeshComponent->NumMeshSections();
+		MeshComponent->CreateMeshSection(LOD1.MeshSectionIndex, LOD1.MeshInfo);
 	} else
 	{
-		MeshComponent->ReplaceMeshSection(MeshSectionIndexOuter, MeshInfoOuter);
+		MeshComponent->ReplaceMeshSection(LOD1.MeshSectionIndex, LOD1.MeshInfo);
 	}
 
 	// Mesh Updates
@@ -67,41 +63,40 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 
 void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 {
-	if (MeshSectionIndexInner < 0)
+	if (LOD0.MeshSectionIndex < 0)
 	{
 		return;
 	}
 	
-	if (MeshInfoInner->IsLocked())
+	if (LOD0.MeshInfo->IsLocked())
 	{
 		return;
 	}
 
-	if (MeshInfoOuter->IsLocked())
+	if (LOD1.MeshInfo->IsLocked())
 	{
 		return;
 	}
 
 	// Update Outer
-	const FOpenLandGridRendererChangedInfo ChangedInfoOuter = GridRendererOuter->ReCenter(NewCenter, GridInner->GetRootCell()/2);
+	const FOpenLandGridRendererChangedInfo ChangedInfoOuter = LOD1.GridRenderer->ReCenter(NewCenter, LOD0.Grid->GetRootCell()/2);
 	if (ChangedInfoOuter.ChangedTriangles.Num() > 0)
 	{
-		MeshComponent->UpdateMeshSection(MeshSectionIndexOuter, ChangedInfoOuter.ChangedTriangles);
+		MeshComponent->UpdateMeshSection(LOD1.MeshSectionIndex, ChangedInfoOuter.ChangedTriangles);
 		return;
 	}
 	
 	// Update Inner
-	const FOpenLandGridRendererChangedInfo ChangedInfoInner = GridRendererInner->ReCenter(NewCenter);
+	const FOpenLandGridRendererChangedInfo ChangedInfoInner = LOD0.GridRenderer->ReCenter(NewCenter);
 	if (ChangedInfoInner.ChangedTriangles.Num() > 0)
 	{
-		MeshComponent->UpdateMeshSection(MeshSectionIndexInner, ChangedInfoInner.ChangedTriangles);
+		MeshComponent->UpdateMeshSection(LOD0.MeshSectionIndex, ChangedInfoInner.ChangedTriangles);
 	}
 
 	// Update Outer Hole
-	const FOpenLandGridRendererChangedInfo ChangedInfoOuterHole = GridRendererOuter->ChangeHoleRootCell(GridInner->GetRootCell()/2);
+	const FOpenLandGridRendererChangedInfo ChangedInfoOuterHole = LOD1.GridRenderer->ChangeHoleRootCell(LOD0.Grid->GetRootCell()/2);
 	if (ChangedInfoOuterHole.ChangedTriangles.Num() > 0)
 	{
-		MeshComponent->UpdateMeshSection(MeshSectionIndexOuter, ChangedInfoOuterHole.ChangedTriangles);
+		MeshComponent->UpdateMeshSection(LOD1.MeshSectionIndex, ChangedInfoOuterHole.ChangedTriangles);
 	}
-	
 }
