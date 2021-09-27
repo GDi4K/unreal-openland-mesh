@@ -44,7 +44,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLand Infinity Mesh")
 	int32 MaxUVs = 5;
-
+	
 	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLand Infinity Mesh")
 	void Rebuild();
 };

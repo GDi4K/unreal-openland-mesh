@@ -28,6 +28,7 @@ public:
 	FOpenLandGridRenderer();
 	FOpenLandMeshInfoPtr Initialize(FOpenLandGridPtr SourceGrid);
 	FOpenLandGridRendererChangedInfo ReCenter(FVector NewCenter);
+	FOpenLandGridRendererChangedInfo ReCenter(FVector NewCenter, FVector2D NewHoleRootCell);
 	FOpenLandGridRendererChangedInfo ChangeHoleRootCell(FVector2D NewHoleRootCell);
 };
 

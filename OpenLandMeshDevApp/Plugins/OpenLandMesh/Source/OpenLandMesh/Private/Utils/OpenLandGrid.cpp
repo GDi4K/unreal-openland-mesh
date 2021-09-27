@@ -48,6 +48,31 @@ bool FOpenLandGrid::IsRectInsideRect(FVector2D RectOuterRoot, FVector2D RectOute
 	return true;
 }
 
+TSet<FVector2D> FOpenLandGrid::GetAllCellsSet() const
+{
+	TSet<FVector2D> Cells;
+	
+	for (int32 X=0; X<BuildInfo.Size.X; X++)
+	{
+		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
+		{
+			const FVector2D CurrentCell = FVector2D(X, Y) + BuildInfo.RootCell;
+			if (BuildInfo.HasHole())
+			{
+				if (!IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CurrentCell))
+				{
+					Cells.Add(CurrentCell);
+				}
+			} else
+			{
+				Cells.Add(CurrentCell);
+			}
+		}
+	}
+
+	return Cells;
+}
+
 void FOpenLandGrid::Build(FOpenLandGridBuildInfo InputBuildInfo)
 {
 	BuildInfo = InputBuildInfo;
@@ -116,47 +141,103 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 	
 	FOpenLandGridChangedCells ChangedCells;
 
-
-	// Loop the Old Cells to find what to remove
+	TSet<FVector2D> OldCells = GetAllCellsSet();
+	
+	// Loop Over New Cells
 	for (int32 X=0; X<BuildInfo.Size.X; X++)
 	{
 		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
 		{
-			const FVector2D CellPoint = BuildInfo.RootCell + FVector2D(X, Y);
-			if (IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CellPoint))
+			const FVector2D CurrentCell = FVector2D(X, Y) + NewRootCell;
+			if (BuildInfo.HasHole())
 			{
+				if (IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CurrentCell))
+				{
+					// There's no such cell
+					continue;
+				}
+			}
+
+			// Existing cell
+			if (OldCells.Find(CurrentCell) != nullptr)
+			{
+				OldCells.Remove(CurrentCell);
 				continue;
 			}
-			
-			if (IsPointInsideRect(NewRootCell, BuildInfo.Size, CellPoint))
-			{
-				ChangedCells.ExistingCells.Push(CellPoint);
-			} else
-			{
-				ChangedCells.CellsToRemove.Push(CellPoint);
-			}
+
+			// This is a new cell
+			ChangedCells.CellsToAdd.Push(CurrentCell);
 		}
 	}
 
-	// Loop the NewCells to find out what to add
-	for (int32 X=0; X<BuildInfo.Size.X; X++)
-	{
-		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
-		{
-			const FVector2D NewCellPoint = NewRootCell + FVector2D(X, Y);
-			if (IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, NewCellPoint))
-			{
-				continue;
-			}
-			
-			if (!IsPointInsideRect(BuildInfo.RootCell, BuildInfo.Size, NewCellPoint))
-			{
-				ChangedCells.CellsToAdd.Push(NewCellPoint);
-			}
-		}
-	}
+	ChangedCells.CellsToRemove = OldCells.Array();
 
 	BuildInfo.RootCell = NewRootCell;
+
+	return ChangedCells;
+}
+
+FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter, FVector2D NewHoleRootCell)
+{
+	const FVector2D NewCenter2D = {NewCenter.X, NewCenter.Y};
+	const FVector2D CurrentCenter = (BuildInfo.RootCell + (BuildInfo.Size * 0.5)) * BuildInfo.CellWidth;
+	const FVector2D Diff = NewCenter2D - CurrentCenter;
+
+	const int32 CellFactor = BuildInfo.UpperCellWidth/BuildInfo.CellWidth;
+
+	const int32 XShift = FMath::RoundToInt(Diff.X / BuildInfo.UpperCellWidth) * CellFactor;
+	const int32 YShift = FMath::RoundToInt(Diff.Y / BuildInfo.UpperCellWidth) * CellFactor;
+
+	if (XShift == 0 && YShift == 0)
+	{
+		return {};
+	}
+
+	const FVector2D NewRootCell = BuildInfo.RootCell + FVector2D(XShift, YShift);
+
+	if (BuildInfo.HasHole())
+	{
+		if(!IsRectInsideRect(NewRootCell, BuildInfo.Size, NewHoleRootCell, BuildInfo.HoleSize))
+		{
+			return {};
+		}	
+	}
+	
+	FOpenLandGridChangedCells ChangedCells;
+
+	TSet<FVector2D> OldCells = GetAllCellsSet();
+	
+	// Loop Over New Cells
+	for (int32 X=0; X<BuildInfo.Size.X; X++)
+	{
+		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
+		{
+			const FVector2D CurrentCell = FVector2D(X, Y) + NewRootCell;
+			if (BuildInfo.HasHole())
+			{
+				if (IsPointInsideRect(NewHoleRootCell, BuildInfo.HoleSize, CurrentCell))
+				{
+					// There's no such cell
+					continue;
+				}
+			}
+
+			// Existing cell
+			if (OldCells.Find(CurrentCell) != nullptr)
+			{
+				OldCells.Remove(CurrentCell);
+				continue;
+			}
+
+			// This is a new cell
+			ChangedCells.CellsToAdd.Push(CurrentCell);
+		}
+	}
+
+	ChangedCells.CellsToRemove = OldCells.Array();
+
+	BuildInfo.RootCell = NewRootCell;
+	BuildInfo.HoleRootCell = NewHoleRootCell;
 
 	return ChangedCells;
 }
@@ -205,25 +286,5 @@ FOpenLandGridChangedCells FOpenLandGrid::ChangeHoleRootCell(FVector2D NewHoleRoo
 
 TArray<FVector2D> FOpenLandGrid::GetAllCells() const
 {
-	TArray<FVector2D> Cells;
-	
-	for (int32 X=0; X<BuildInfo.Size.X; X++)
-	{
-		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
-		{
-			const FVector2D CurrentCell = FVector2D(X, Y) + BuildInfo.RootCell;
-			if (BuildInfo.HasHole())
-			{
-				if (!IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CurrentCell))
-				{
-					Cells.Push(CurrentCell);
-				}
-			} else
-			{
-				Cells.Push(CurrentCell);
-			}
-		}
-	}
-
-	return Cells;
+	return GetAllCellsSet().Array();
 }

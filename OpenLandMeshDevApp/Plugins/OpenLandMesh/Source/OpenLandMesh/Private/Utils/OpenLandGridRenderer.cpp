@@ -113,6 +113,14 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ReCenter(FVector NewCent
 	return ApplyCellChanges(ChangedCells);
 }
 
+FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ReCenter(FVector NewCenter, FVector2D NewHoleRootCell)
+{
+	const FOpenLandGridChangedCells ChangedCells = Grid->ReCenter(NewCenter, NewHoleRootCell);
+	check(ChangedCells.CellsToAdd.Num() == ChangedCells.CellsToRemove.Num());
+
+	return ApplyCellChanges(ChangedCells);
+}
+
 FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ChangeHoleRootCell(FVector2D NewHoleRootCell)
 {
 	const FOpenLandGridChangedCells ChangedCells = Grid->ChangeHoleRootCell(NewHoleRootCell);

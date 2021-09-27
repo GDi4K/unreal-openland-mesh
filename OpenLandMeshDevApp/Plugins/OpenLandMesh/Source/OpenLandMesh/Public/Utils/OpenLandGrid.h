@@ -31,6 +31,7 @@ class FOpenLandGrid
 	static FVector ToVector3D(FVector2D Vector);
 	static bool IsPointInsideRect(FVector2D RectRoot, FVector2D RectSize, FVector2D PointToCheck);
 	static bool IsRectInsideRect(FVector2D RectOuterRoot, FVector2D RectOuterSize, FVector2D RectInnerRoot, FVector2D RectInnerSize);
+	TSet<FVector2D> GetAllCellsSet() const;
 
 public:
 	FOpenLandGrid();
@@ -42,6 +43,7 @@ public:
 	FBox GetBoundingBox() const;
 	FVector2D FindClosestCellRoot(FVector Position) const;
 	FOpenLandGridChangedCells ReCenter(FVector NewCenter);
+	FOpenLandGridChangedCells ReCenter(FVector NewCenter, FVector2D NewHoleRootCell);
 	FOpenLandGridChangedCells ChangeHoleRootCell(FVector2D NewHoleRootCell);
 	TArray<FVector2D> GetAllCells() const;
 };
