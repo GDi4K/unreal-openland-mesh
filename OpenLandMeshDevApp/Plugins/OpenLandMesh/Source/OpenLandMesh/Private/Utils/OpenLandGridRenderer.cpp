@@ -82,7 +82,7 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLa
 FVector FOpenLandGridRenderer::ApplyVertexModifier(FVector Source)
 {
 	const float Distance = FVector::Distance(Source, FVector(0, 0, 0));
-	constexpr float Divider = 5000.0f;
+	constexpr float Divider = 2000.0f;
 	constexpr float Height = 1000.0f;
 
 	const float SinInput = (FMath::CeilToInt( Distance/Divider* 100) % 314 * 2) / 100.0f;

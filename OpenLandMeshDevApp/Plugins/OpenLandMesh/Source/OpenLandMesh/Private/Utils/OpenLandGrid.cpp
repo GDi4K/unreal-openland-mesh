@@ -48,6 +48,11 @@ bool FOpenLandGrid::IsRectInsideRect(FVector2D RectOuterRoot, FVector2D RectOute
 	return true;
 }
 
+bool FOpenLandGrid::IsHoleInsideRect(FVector2D RectRoot, FVector2D RectSize, FVector2D HoleRoot, FVector2D HoleSize)
+{
+	return IsRectInsideRect(RectRoot + FVector2D(1, 1), RectSize - FVector2D(2, 2), HoleRoot, HoleSize);
+}
+
 TSet<FVector2D> FOpenLandGrid::GetAllCellsSet() const
 {
 	TSet<FVector2D> Cells;
@@ -61,6 +66,10 @@ TSet<FVector2D> FOpenLandGrid::GetAllCellsSet() const
 			{
 				if (!IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CurrentCell))
 				{
+					if(IsPointInsideRect(BuildInfo.HoleRootCell-FVector2D(1, 1), BuildInfo.HoleSize + FVector2D(2, 2), CurrentCell))
+					{
+						// Okay, this is the Edge of the hole.
+					}
 					Cells.Add(CurrentCell);
 				}
 			} else
@@ -84,7 +93,7 @@ void FOpenLandGrid::Build(FOpenLandGridBuildInfo InputBuildInfo)
 
 	if (BuildInfo.HasHole())
 	{
-		check(IsRectInsideRect(BuildInfo.RootCell, BuildInfo.Size, BuildInfo.HoleRootCell, BuildInfo.HoleSize))
+		check(IsHoleInsideRect(BuildInfo.RootCell, BuildInfo.Size, BuildInfo.HoleRootCell, BuildInfo.HoleSize))
 	}
 }
 
@@ -133,7 +142,7 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 
 	if (BuildInfo.HasHole())
 	{
-		if(!IsRectInsideRect(NewRootCell, BuildInfo.Size, BuildInfo.HoleRootCell, BuildInfo.HoleSize))
+		if(!IsHoleInsideRect(NewRootCell, BuildInfo.Size, BuildInfo.HoleRootCell, BuildInfo.HoleSize))
 		{
 			return {};
 		}	
@@ -197,7 +206,7 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter, FVector2D N
 
 	if (BuildInfo.HasHole())
 	{
-		if(!IsRectInsideRect(NewRootCell, BuildInfo.Size, NewHoleRootCell, BuildInfo.HoleSize))
+		if(!IsHoleInsideRect(NewRootCell, BuildInfo.Size, NewHoleRootCell, BuildInfo.HoleSize))
 		{
 			return {};
 		}	
@@ -244,7 +253,7 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter, FVector2D N
 
 FOpenLandGridChangedCells FOpenLandGrid::ChangeHoleRootCell(FVector2D NewHoleRootCell)
 {
-	if(!IsRectInsideRect(BuildInfo.RootCell, BuildInfo.Size, NewHoleRootCell, BuildInfo.HoleSize))
+	if(!IsHoleInsideRect(BuildInfo.RootCell, BuildInfo.Size, NewHoleRootCell, BuildInfo.HoleSize))
 	{
 		return {};
 	}

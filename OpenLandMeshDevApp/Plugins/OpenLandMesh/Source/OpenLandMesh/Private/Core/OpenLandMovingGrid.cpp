@@ -16,7 +16,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 		FOpenLandMovingGridLOD CurrentLOD = FOpenLandMovingGridLOD::New();
 		CurrentLOD.Index = LODIndex;
 		FOpenLandGridBuildInfo BuildInfo;
-		BuildInfo.RootCell = {0, 0};
+		BuildInfo.RootCell = {-50, -50};
 		BuildInfo.Size = { 100, 100 };
 		BuildInfo.CellWidth = CurrentBuildOptions.CellWidth * FMath::Pow(2, LODIndex);
 		BuildInfo.UpperCellWidth = CurrentBuildOptions.CellWidth * FMath::Pow(2, LODIndex + 1);
@@ -24,7 +24,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 		FOpenLandMovingGridLOD* InnerLOD = LODIndex == 0? nullptr : &(LODs[LODIndex-1]);
 		if (InnerLOD)
 		{
-			BuildInfo.HoleRootCell = InnerLOD->Grid->GetRootCell();
+			BuildInfo.HoleRootCell = InnerLOD->Grid->GetRootCell() / 2;
 			BuildInfo.HoleSize = InnerLOD->Grid->GetSize() / 2;
 		}
 
