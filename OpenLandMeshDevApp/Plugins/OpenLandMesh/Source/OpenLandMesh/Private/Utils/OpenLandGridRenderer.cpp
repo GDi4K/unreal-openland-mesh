@@ -20,10 +20,10 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildCell(FVector2D C
 
 	FVector2D UVRoot = Cell * UVCellWidth;
 			
-	FOpenLandMeshVertex MA = {A, UVRoot + FVector2D(0, 0) * UVCellWidth};
-	FOpenLandMeshVertex MB = {B, UVRoot + FVector2D(0, 1) * UVCellWidth};
-	FOpenLandMeshVertex MC = {C, UVRoot + FVector2D(1, 1) * UVCellWidth};
-	FOpenLandMeshVertex MD = {D, UVRoot + FVector2D(1, 0) * UVCellWidth};
+	FOpenLandMeshVertex MA = {ApplyVertexModifier(A), UVRoot + FVector2D(0, 0) * UVCellWidth};
+	FOpenLandMeshVertex MB = {ApplyVertexModifier(B), UVRoot + FVector2D(0, 1) * UVCellWidth};
+	FOpenLandMeshVertex MC = {ApplyVertexModifier(C), UVRoot + FVector2D(1, 1) * UVCellWidth};
+	FOpenLandMeshVertex MD = {ApplyVertexModifier(D), UVRoot + FVector2D(1, 0) * UVCellWidth};
 
 	FOpenLandMeshVertex T0_1 = MA;
 	FOpenLandMeshVertex T0_2 = MB;
@@ -77,6 +77,18 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLa
 	MeshInfo->BoundingBox = Grid->GetBoundingBox();
 	
 	return ChangedInfo;
+}
+
+FVector FOpenLandGridRenderer::ApplyVertexModifier(FVector Source)
+{
+	const float Distance = FVector::Distance(Source, FVector(0, 0, 0));
+	constexpr float Divider = 5000.0f;
+	constexpr float Height = 1000.0f;
+
+	const float SinInput = (FMath::CeilToInt( Distance/Divider* 100) % 314 * 2) / 100.0f;
+	
+	const float NewHeight = FMath::Sin(Distance/Divider) * Height;
+	return Source + FVector(0, 0, NewHeight);
 }
 
 FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGrid)
