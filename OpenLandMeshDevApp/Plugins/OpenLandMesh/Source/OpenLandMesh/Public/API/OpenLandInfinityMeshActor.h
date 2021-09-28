@@ -16,6 +16,8 @@ class OPENLANDMESH_API AOpenLandInfinityMeshActor : public AActor
 
 	FString ObjectId;
 	FOpenLandMovingGridPtr MovingGrid;
+	TSharedPtr<FVector> GetPlayerPosition() const;
+	TSharedPtr<FVector> GetCameraPosition() const;
 
 	protected:
 	// Called when the game starts or when spawned

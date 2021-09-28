@@ -29,6 +29,41 @@ AOpenLandInfinityMeshActor::AOpenLandInfinityMeshActor()
 	MovingGrid->Build(BuildOptions);
 }
 
+TSharedPtr<FVector> AOpenLandInfinityMeshActor::GetPlayerPosition() const
+{
+	if (!GetWorld()->IsGameWorld())
+	{
+		return nullptr;
+	}
+	
+	const auto Player = GetWorld()->GetFirstPlayerController();
+	if (!Player)
+	{
+		return nullptr;
+	}
+	
+	const auto Pawn = Player->GetPawn();
+	if (!Pawn)
+	{
+		return nullptr;
+	}
+	
+	const FVector PlayerPosition = Pawn->GetActorLocation();
+	return MakeShared<FVector>(PlayerPosition);
+}
+
+TSharedPtr<FVector> AOpenLandInfinityMeshActor::GetCameraPosition() const
+{
+	const TArray<FVector> ViewLocations = GetWorld()->ViewLocationsRenderedLastFrame;
+	if(ViewLocations.Num() == 0)
+	{
+		return nullptr;
+	}
+	
+	const FVector CameraLocation = ViewLocations[0];
+	return MakeShared<FVector>(CameraLocation);
+}
+
 // Called when the game starts or when spawned
 void AOpenLandInfinityMeshActor::BeginPlay()
 {
@@ -45,25 +80,19 @@ void AOpenLandInfinityMeshActor::Tick(float DeltaTime)
 		return;
 	}
 
-	if (!GetWorld()->IsGameWorld())
+	const TSharedPtr<FVector> PlayerPosition = GetPlayerPosition();
+	if (PlayerPosition)
 	{
+		MovingGrid->UpdatePosition(*PlayerPosition.Get());
 		return;
 	}
 
-	const auto Player = GetWorld()->GetFirstPlayerController();
-	if (!Player)
+	const TSharedPtr<FVector> CameraPosition = GetCameraPosition();
+	if (CameraPosition)
 	{
+		MovingGrid->UpdatePosition(*CameraPosition.Get());
 		return;
 	}
-
-	const auto Pawn = Player->GetPawn();
-	if (!Pawn)
-	{
-		return;
-	}
-	
-	const FVector PlayerPosition = Pawn->GetActorLocation();
-	MovingGrid->UpdatePosition(PlayerPosition);
 }
 
 void AOpenLandInfinityMeshActor::OnConstruction(const FTransform& Transform)
