@@ -11,30 +11,28 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 {
 	CurrentBuildOptions = BuildOptions;
 
-	LODs.Push(FOpenLandMovingGridLOD::New());
-	LODs.Push(FOpenLandMovingGridLOD::New());
+	for (int32 LODIndex=0; LODIndex<3; LODIndex++)
+	{
+		FOpenLandMovingGridLOD CurrentLOD = FOpenLandMovingGridLOD::New();
+		CurrentLOD.Index = LODIndex;
+		FOpenLandGridBuildInfo BuildInfo;
+		BuildInfo.RootCell = {0, 0};
+		BuildInfo.Size = { 100, 100 };
+		BuildInfo.CellWidth = CurrentBuildOptions.CellWidth * FMath::Pow(2, LODIndex);
+		BuildInfo.UpperCellWidth = CurrentBuildOptions.CellWidth * FMath::Pow(2, LODIndex + 1);
 
-	// Inner Cell Creation
-	FOpenLandGridBuildInfo BuildInfo;
-	BuildInfo.RootCell = {0, 0};
-	BuildInfo.Size = { 100, 100 };
-	BuildInfo.CellWidth = CurrentBuildOptions.CellWidth;
-	BuildInfo.UpperCellWidth = CurrentBuildOptions.CellWidth*2;
-	
-	LODs[0].Grid->Build(BuildInfo);
-	LODs[0].InitializeMesh(MeshComponent);
-	
-	// Outer Cell Creation
-	FOpenLandGridBuildInfo BuildInfoOuter;
-	BuildInfoOuter.RootCell = {0, 0};
-	BuildInfoOuter.Size = { 100, 100 };
-	BuildInfoOuter.CellWidth = CurrentBuildOptions.CellWidth *2;
-	BuildInfoOuter.UpperCellWidth = CurrentBuildOptions.CellWidth*4;
+		FOpenLandMovingGridLOD* InnerLOD = LODIndex == 0? nullptr : &(LODs[LODIndex-1]);
+		if (InnerLOD)
+		{
+			BuildInfo.HoleRootCell = InnerLOD->Grid->GetRootCell();
+			BuildInfo.HoleSize = InnerLOD->Grid->GetSize() / 2;
+		}
 
-	BuildInfoOuter.HoleRootCell = LODs[0].Grid->GetRootCell();
-	BuildInfoOuter.HoleSize = LODs[0].Grid->GetSize() / 2;
-	LODs[1].Grid->Build(BuildInfoOuter);
-	LODs[1].InitializeMesh(MeshComponent);
+		CurrentLOD.Grid->Build(BuildInfo);
+		CurrentLOD.InitializeMesh(MeshComponent);
+
+		LODs.Push(CurrentLOD);
+	}
 
 	// Mesh Updates
 	MeshComponent->SetupCollisions(false);

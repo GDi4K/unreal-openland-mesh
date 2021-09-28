@@ -31,6 +31,7 @@ struct FOpenLandMovingGridLOD
 	void InitializeMesh(UOpenLandMeshComponent* MeshComponent)
 	{
 		MeshInfo = GridRenderer->Initialize(Grid);
+		MeshInfo->bEnableCollision = Index == 0;
 
 		if (MeshSectionIndex < 0)
 		{
