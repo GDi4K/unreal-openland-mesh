@@ -8,6 +8,7 @@ class FOpenLandGridCell
 public:
 	int32 X = 0;
 	int32 Y = 0;
+	bool bHoleEdge = false;
 
 	FOpenLandGridCell(): FOpenLandGridCell(0, 0) {}
 	FOpenLandGridCell(int32 X, int32 Y): X(X), Y(Y) {}
@@ -60,6 +61,7 @@ uint32 GetTypeHash(const FOpenLandGridCell& Thing);
 #else // optimize by inlining in shipping and development builds
 FORCEINLINE uint32 GetTypeHash(const FOpenLandGridCell& Thing)
 {
-	return FCrc::MemCrc32(&Thing, sizeof(FOpenLandGridCell));
+	const FVector2D Pos = Thing.ToVector2D();
+	return FCrc::MemCrc32(&Pos, sizeof(FVector2D));
 }
 #endif
