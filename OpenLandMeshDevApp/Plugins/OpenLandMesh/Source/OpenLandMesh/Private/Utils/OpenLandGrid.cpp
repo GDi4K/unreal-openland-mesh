@@ -115,11 +115,11 @@ FBox FOpenLandGrid::GetBoundingBox() const
 	return BoundingBox;
 }
 
-FVector2D FOpenLandGrid::FindClosestCellRoot(FVector Position) const
+FOpenLandGridCell FOpenLandGrid::FindClosestCellRoot(FVector Position) const
 {
 	const float XPos = FMath::Floor(Position.X / BuildInfo.CellWidth);
 	const float YPos = FMath::Floor(Position.Y / BuildInfo.CellWidth);
-	return {XPos, YPos};
+	return {static_cast<int32>(XPos), static_cast<int32>(YPos)};
 }
 
 FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)

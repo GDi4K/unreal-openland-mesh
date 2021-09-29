@@ -43,7 +43,7 @@ public:
 	FOpenLandGridCell GetSize() const { return BuildInfo.Size; }
 	
 	FBox GetBoundingBox() const;
-	FVector2D FindClosestCellRoot(FVector Position) const;
+	FOpenLandGridCell FindClosestCellRoot(FVector Position) const;
 	FOpenLandGridChangedCells ReCenter(FVector NewCenter);
 	FOpenLandGridChangedCells ReCenter(FVector NewCenter, FVector2D NewHoleRootCell);
 	FOpenLandGridChangedCells ChangeHoleRootCell(FVector2D NewHoleRootCell);
