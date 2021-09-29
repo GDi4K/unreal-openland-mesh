@@ -370,6 +370,11 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter, FOpenLandGr
 
 FOpenLandGridChangedCells FOpenLandGrid::ChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell)
 {
+	if (BuildInfo.HoleRootCell == NewHoleRootCell)
+	{
+		return {};
+	}
+	
 	if(!IsHoleInsideRect(BuildInfo.RootCell, BuildInfo.Size, NewHoleRootCell, BuildInfo.HoleSize))
 	{
 		return {};
