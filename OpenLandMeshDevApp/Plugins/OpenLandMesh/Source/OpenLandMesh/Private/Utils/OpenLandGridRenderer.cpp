@@ -47,8 +47,8 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLa
 
 	for (int32 Index = 0; Index < ChangedCells.CellsToRemove.Num(); Index++)
 	{
-		const FVector2D RemovingCellPos = ChangedCells.CellsToRemove[Index];
-		const FVector2D AddingCellPos = ChangedCells.CellsToAdd[Index];
+		const FVector2D RemovingCellPos = ChangedCells.CellsToRemove[Index].ToVector2D();
+		const FVector2D AddingCellPos = ChangedCells.CellsToAdd[Index].ToVector2D();
 		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(AddingCellPos);
 
 		const FOpenLandGridRendererCell RenderCell = Cells[RemovingCellPos.ToString()];

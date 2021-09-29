@@ -53,9 +53,9 @@ bool FOpenLandGrid::IsHoleInsideRect(FVector2D RectRoot, FVector2D RectSize, FVe
 	return IsRectInsideRect(RectRoot + FVector2D(1, 1), RectSize - FVector2D(2, 2), HoleRoot, HoleSize);
 }
 
-TSet<FVector2D> FOpenLandGrid::GetAllCellsSet() const
+TSet<FOpenLandGridCell> FOpenLandGrid::GetAllCellsSet() const
 {
-	TSet<FVector2D> Cells;
+	TSet<FOpenLandGridCell> Cells;
 	
 	for (int32 X=0; X<BuildInfo.Size.X; X++)
 	{
@@ -150,7 +150,7 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 	
 	FOpenLandGridChangedCells ChangedCells;
 
-	TSet<FVector2D> OldCells = GetAllCellsSet();
+	TSet<FOpenLandGridCell> OldCells = GetAllCellsSet();
 	
 	// Loop Over New Cells
 	for (int32 X=0; X<BuildInfo.Size.X; X++)
@@ -214,7 +214,7 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter, FVector2D N
 	
 	FOpenLandGridChangedCells ChangedCells;
 
-	TSet<FVector2D> OldCells = GetAllCellsSet();
+	TSet<FOpenLandGridCell> OldCells = GetAllCellsSet();
 	
 	// Loop Over New Cells
 	for (int32 X=0; X<BuildInfo.Size.X; X++)
@@ -295,5 +295,10 @@ FOpenLandGridChangedCells FOpenLandGrid::ChangeHoleRootCell(FVector2D NewHoleRoo
 
 TArray<FVector2D> FOpenLandGrid::GetAllCells() const
 {
-	return GetAllCellsSet().Array();
+	TArray<FVector2D> Cells = {};
+	for (const FOpenLandGridCell Cell: GetAllCellsSet().Array())
+	{
+		Cells.Add(Cell.ToVector2D());
+	}
+	return Cells;
 }

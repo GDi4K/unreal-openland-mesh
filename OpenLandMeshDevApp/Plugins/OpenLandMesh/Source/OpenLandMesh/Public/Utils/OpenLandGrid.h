@@ -1,11 +1,12 @@
 ﻿#pragma once
+#include "OpenLandGridCell.h"
 #include "Math/Box.h"
 
 struct FOpenLandGridChangedCells
 {
-	TArray<FVector2D> CellsToAdd;
-	TArray<FVector2D> CellsToRemove;
-	TArray<FVector2D> ExistingCells;
+	TArray<FOpenLandGridCell> CellsToAdd;
+	TArray<FOpenLandGridCell> CellsToRemove;
+	TArray<FOpenLandGridCell> ExistingCells;
 };
 
 struct FOpenLandGridBuildInfo
@@ -32,7 +33,7 @@ class FOpenLandGrid
 	static bool IsPointInsideRect(FVector2D RectRoot, FVector2D RectSize, FVector2D PointToCheck);
 	static bool IsRectInsideRect(FVector2D RectOuterRoot, FVector2D RectOuterSize, FVector2D RectInnerRoot, FVector2D RectInnerSize);
 	static bool IsHoleInsideRect(FVector2D RectRoot, FVector2D RectSize, FVector2D HoleRoot, FVector2D HoleSize);
-	TSet<FVector2D> GetAllCellsSet() const;
+	TSet<FOpenLandGridCell> GetAllCellsSet() const;
 
 public:
 	FOpenLandGrid();
