@@ -45,8 +45,8 @@ public:
 	FBox GetBoundingBox() const;
 	FOpenLandGridCell FindClosestCellRoot(FVector Position) const;
 	FOpenLandGridChangedCells ReCenter(FVector NewCenter);
-	FOpenLandGridChangedCells ReCenter(FVector NewCenter, FVector2D NewHoleRootCell);
-	FOpenLandGridChangedCells ChangeHoleRootCell(FVector2D NewHoleRootCell);
+	FOpenLandGridChangedCells ReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell);
+	FOpenLandGridChangedCells ChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell);
 	TArray<FOpenLandGridCell> GetAllCells() const;
 };
 
