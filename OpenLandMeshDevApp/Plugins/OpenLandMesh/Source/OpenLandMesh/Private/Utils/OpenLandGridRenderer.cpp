@@ -51,7 +51,7 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLa
 		const FOpenLandGridCell AddingCellPos = ChangedCells.CellsToAdd[Index];
 		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(AddingCellPos);
 
-		const FOpenLandGridRendererCell RenderCell = Cells[RemovingCellPos.ToString()];
+		const FOpenLandGridRendererCell RenderCell = Cells[GetTypeHash(RemovingCellPos)];
 		const FOpenLandMeshTriangle T0 = MeshInfo->Triangles.Get(RenderCell.IndexT0);
 		
 		MeshInfo->Vertices.Set(T0.T0, CellVertices.Get(0));
@@ -63,8 +63,8 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLa
 		MeshInfo->Vertices.Set(T1.T1, CellVertices.Get(4));
 		MeshInfo->Vertices.Set(T1.T2, CellVertices.Get(5));
 
-		Cells.Remove(RemovingCellPos.ToString());
-		Cells.Add(AddingCellPos.ToString(), {
+		Cells.Remove(GetTypeHash(RemovingCellPos));
+		Cells.Add(GetTypeHash(AddingCellPos), {
 			AddingCellPos,
 			RenderCell.IndexT0,
 			RenderCell.IndexT1
@@ -105,7 +105,7 @@ FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGr
 		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), CellVertices);
 		
 		const int32 TotalTriangles = MeshInfo->Triangles.Length();
-		Cells.Add(Cell.ToString(), {
+		Cells.Add(GetTypeHash(Cell), {
 			Cell,
 			TotalTriangles - 2,
 			TotalTriangles - 1,

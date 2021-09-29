@@ -18,7 +18,7 @@ class FOpenLandGridRenderer
 {
 	FOpenLandGridPtr Grid = nullptr;
 	FOpenLandMeshInfoPtr MeshInfo = nullptr;
-	TMap<FString, FOpenLandGridRendererCell> Cells;
+	TMap<uint32, FOpenLandGridRendererCell> Cells;
 	bool bInitialized = false;
 
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
