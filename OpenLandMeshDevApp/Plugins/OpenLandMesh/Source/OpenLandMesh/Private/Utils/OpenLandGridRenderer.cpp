@@ -99,8 +99,9 @@ FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGr
 	MeshInfo = FOpenLandMeshInfo::New();
 	Cells = {};
 	
-	for(const FVector2D Cell: Grid->GetAllCells())
+	for(const FOpenLandGridCell GridCell: Grid->GetAllCells())
 	{
+		FVector2D Cell = GridCell.ToVector2D();
 		const TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(Cell);
 		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), CellVertices);
 		

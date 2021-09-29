@@ -68,7 +68,7 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 		// Apply Recenter Logic
 		if (InnerLOD)
 		{
-			ChangedInfo = CurrentLOD.GridRenderer->ReCenter(NewCenter, InnerLOD->Grid->GetRootCell()/2);
+			ChangedInfo = CurrentLOD.GridRenderer->ReCenter(NewCenter, InnerLOD->Grid->GetRootCell().ToVector2D()/2);
 		}
 		else
 		{
@@ -84,7 +84,7 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 		// Update Outer Grid Hole
 		if (OuterLOD)
 		{
-			const FOpenLandGridRendererChangedInfo ChangedInfoHole = OuterLOD->GridRenderer->ChangeHoleRootCell(CurrentLOD.Grid->GetRootCell()/2);
+			const FOpenLandGridRendererChangedInfo ChangedInfoHole = OuterLOD->GridRenderer->ChangeHoleRootCell(CurrentLOD.Grid->GetRootCell().ToVector2D()/2);
 			if (ChangedInfoHole.ChangedTriangles.Num() > 0)
 			{
 				MeshComponent->UpdateMeshSection(OuterLOD->MeshSectionIndex, ChangedInfoHole.ChangedTriangles);
