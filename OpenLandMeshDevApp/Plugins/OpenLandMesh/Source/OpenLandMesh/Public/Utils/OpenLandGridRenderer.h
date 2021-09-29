@@ -9,7 +9,7 @@ struct FOpenLandGridRendererChangedInfo
 
 struct FOpenLandGridRendererCell
 {
-	FVector2D GridCell;
+	FOpenLandGridCell GridCell;
 	int32 IndexT0;
 	int32 IndexT1;
 };
@@ -21,7 +21,7 @@ class FOpenLandGridRenderer
 	TMap<FString, FOpenLandGridRendererCell> Cells;
 	bool bInitialized = false;
 
-	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FVector2D Cell) const;
+	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
 	FOpenLandGridRendererChangedInfo ApplyCellChanges(FOpenLandGridChangedCells ChangedCells);
 	static FVector ApplyVertexModifier(FVector Source);
 
@@ -29,8 +29,8 @@ public:
 	FOpenLandGridRenderer();
 	FOpenLandMeshInfoPtr Initialize(FOpenLandGridPtr SourceGrid);
 	FOpenLandGridRendererChangedInfo ReCenter(FVector NewCenter);
-	FOpenLandGridRendererChangedInfo ReCenter(FVector NewCenter, FVector2D NewHoleRootCell);
-	FOpenLandGridRendererChangedInfo ChangeHoleRootCell(FVector2D NewHoleRootCell);
+	FOpenLandGridRendererChangedInfo ReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell);
+	FOpenLandGridRendererChangedInfo ChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell);
 };
 
 typedef TSharedPtr<FOpenLandGridRenderer> FOpenLandGridRendererPtr;
