@@ -61,15 +61,12 @@ TSet<FOpenLandGridCell> FOpenLandGrid::GetAllCellsSet() const
 	{
 		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
 		{
-			const FOpenLandGridCell CurrentCell = FOpenLandGridCell(X, Y) + BuildInfo.RootCell;
+			FOpenLandGridCell CurrentCell = FOpenLandGridCell(X, Y) + BuildInfo.RootCell;
 			if (BuildInfo.HasHole())
 			{
 				if (!IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CurrentCell))
 				{
-					if(IsPointInsideRect(BuildInfo.HoleRootCell-FVector2D(1, 1), BuildInfo.HoleSize + FVector2D(2, 2), CurrentCell))
-					{
-						// Okay, this is the Edge of the hole.
-					}
+					CurrentCell.bHoleEdge = IsHoleEdge(BuildInfo.HoleRootCell, CurrentCell);
 					Cells.Add(CurrentCell);
 				}
 			} else
@@ -80,6 +77,116 @@ TSet<FOpenLandGridCell> FOpenLandGrid::GetAllCellsSet() const
 	}
 
 	return Cells;
+}
+
+
+TArray<FOpenLandGridCell> FOpenLandGrid::ApplyEdgeModifications(FOpenLandGridEdgeModificationOptions Options) const
+{
+	TSet<FOpenLandGridCell> EdgeCells;
+	const auto AddCell = [&EdgeCells](FOpenLandGridCell Cell)
+	{
+		if (EdgeCells.Find(Cell))
+		{
+			EdgeCells.Remove(Cell);
+		}
+		EdgeCells.Add(Cell);
+	};
+
+	const auto IsPointRemoved = [Options, this](FOpenLandGridCell Cell)
+	{
+		if (IsPointInsideRect(Options.NewRootCell, BuildInfo.Size, Cell))
+		{
+			if (!IsPointInsideRect(Options.NewHoleRootCell, BuildInfo.HoleSize, Cell))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	};
+
+	const auto IsPointAdded = [Options, this](FOpenLandGridCell Cell)
+	{
+		if (IsPointInsideRect(Options.OldRootCell, BuildInfo.Size, Cell))
+		{
+			if (!IsPointInsideRect(Options.OldHoleRootCell, BuildInfo.HoleSize, Cell))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	};
+
+	// Look at the OLD Edge & remove the edge hole modification
+	const FOpenLandGridCell OldHoleEdgeRoot = Options.OldHoleRootCell - FOpenLandGridCell(1, 1);
+	for (int32 X=0; X<BuildInfo.HoleSize.X + 2; X++)
+	{
+		for (int32 Y=0; Y<BuildInfo.HoleSize.Y + 2; Y++)
+		{
+			FOpenLandGridCell EdgeCell = OldHoleEdgeRoot + FOpenLandGridCell(X, Y);
+			if (IsPointRemoved(EdgeCell))
+			{
+				continue;
+			}
+			
+			EdgeCell.bHoleEdge = false;
+			AddCell(EdgeCell);
+		}
+		X += BuildInfo.HoleSize.X;
+	}
+
+	for (int32 Y=0; Y<BuildInfo.HoleSize.Y + 2; Y++)
+	{
+		for (int32 X=1; X<BuildInfo.HoleSize.X + 1; X++)
+		{
+			FOpenLandGridCell EdgeCell = OldHoleEdgeRoot + FOpenLandGridCell(X, Y);
+			if (IsPointRemoved(EdgeCell))
+			{
+				continue;
+			}
+			
+			EdgeCell.bHoleEdge = false;
+			AddCell(EdgeCell);
+		}
+		Y += BuildInfo.HoleSize.Y;
+	}
+
+	// Look at the New Edge & add the edge hole modification
+	const FOpenLandGridCell NewHoleEdgeRoot = Options.NewHoleRootCell - FOpenLandGridCell(1, 1);
+	for (int32 X=0; X<BuildInfo.HoleSize.X + 2; X++)
+	{
+		for (int32 Y=0; Y<BuildInfo.HoleSize.Y + 2; Y++)
+		{
+			FOpenLandGridCell EdgeCell = NewHoleEdgeRoot + FOpenLandGridCell(X, Y);
+			if (IsPointAdded(EdgeCell))
+			{
+				continue;
+			}
+			
+			EdgeCell.bHoleEdge = true;
+			AddCell(EdgeCell);
+		}
+		X += BuildInfo.HoleSize.X;
+	}
+
+	for (int32 Y=0; Y<BuildInfo.HoleSize.Y + 2; Y++)
+	{
+		for (int32 X=1; X<BuildInfo.HoleSize.X + 1; X++)
+		{
+			FOpenLandGridCell EdgeCell = NewHoleEdgeRoot + FOpenLandGridCell(X, Y);
+			if (IsPointAdded(EdgeCell))
+			{
+				continue;
+			}
+			
+			EdgeCell.bHoleEdge = true;
+			AddCell(EdgeCell);
+		}
+		Y += BuildInfo.HoleSize.Y;
+	}
+
+	return EdgeCells.Array();
 }
 
 void FOpenLandGrid::Build(FOpenLandGridBuildInfo InputBuildInfo)
@@ -157,7 +264,7 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 	{
 		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
 		{
-			const FOpenLandGridCell CurrentCell = FOpenLandGridCell(X, Y) + NewRootCell;
+			FOpenLandGridCell CurrentCell = FOpenLandGridCell(X, Y) + NewRootCell;
 			if (BuildInfo.HasHole())
 			{
 				if (IsPointInsideRect(BuildInfo.HoleRootCell, BuildInfo.HoleSize, CurrentCell))
@@ -175,6 +282,7 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter)
 			}
 
 			// This is a new cell
+			CurrentCell.bHoleEdge = IsHoleEdge(BuildInfo.HoleRootCell, CurrentCell);
 			ChangedCells.CellsToAdd.Push(CurrentCell);
 		}
 	}
@@ -221,7 +329,7 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter, FOpenLandGr
 	{
 		for(int32 Y=0; Y<BuildInfo.Size.Y; Y++)
 		{
-			const FOpenLandGridCell CurrentCell = FOpenLandGridCell(X, Y) + NewRootCell;
+			FOpenLandGridCell CurrentCell = FOpenLandGridCell(X, Y) + NewRootCell;
 			if (BuildInfo.HasHole())
 			{
 				if (IsPointInsideRect(NewHoleRootCell, BuildInfo.HoleSize, CurrentCell))
@@ -239,12 +347,21 @@ FOpenLandGridChangedCells FOpenLandGrid::ReCenter(FVector NewCenter, FOpenLandGr
 			}
 
 			// This is a new cell
+			CurrentCell.bHoleEdge = IsHoleEdge(NewHoleRootCell, CurrentCell);
 			ChangedCells.CellsToAdd.Push(CurrentCell);
 		}
 	}
 
-	ChangedCells.CellsToRemove = OldCells.Array();
+	FOpenLandGridEdgeModificationOptions EdgeModificationOptions;
+	EdgeModificationOptions.OldHoleRootCell = BuildInfo.HoleRootCell;
+	EdgeModificationOptions.NewHoleRootCell = NewHoleRootCell;
+	EdgeModificationOptions.OldRootCell = BuildInfo.RootCell;
+	EdgeModificationOptions.NewRootCell = NewRootCell;
+	
+	ChangedCells.ModifiedCells = ApplyEdgeModifications(EdgeModificationOptions);
 
+	ChangedCells.CellsToRemove = OldCells.Array();
+	
 	BuildInfo.RootCell = NewRootCell;
 	BuildInfo.HoleRootCell = NewHoleRootCell;
 
@@ -265,9 +382,10 @@ FOpenLandGridChangedCells FOpenLandGrid::ChangeHoleRootCell(FOpenLandGridCell Ne
 	{
 		for(int32 Y=0; Y<BuildInfo.HoleSize.Y; Y++)
 		{
-			const FOpenLandGridCell CellPoint = BuildInfo.HoleRootCell + FOpenLandGridCell(X, Y);
+			FOpenLandGridCell CellPoint = BuildInfo.HoleRootCell + FOpenLandGridCell(X, Y);
 			if (!IsPointInsideRect(NewHoleRootCell, BuildInfo.HoleSize, CellPoint))
 			{
+				CellPoint.bHoleEdge = IsHoleEdge(NewHoleRootCell, CellPoint);
 				ChangedCells.CellsToAdd.Push(CellPoint);
 			}
 			
@@ -288,6 +406,14 @@ FOpenLandGridChangedCells FOpenLandGrid::ChangeHoleRootCell(FOpenLandGridCell Ne
 		}
 	}
 
+	FOpenLandGridEdgeModificationOptions EdgeModificationOptions;
+	EdgeModificationOptions.OldHoleRootCell = BuildInfo.HoleRootCell;
+	EdgeModificationOptions.NewHoleRootCell = NewHoleRootCell;
+	EdgeModificationOptions.OldRootCell = BuildInfo.RootCell;
+	EdgeModificationOptions.NewRootCell = BuildInfo.RootCell;
+	
+	ChangedCells.ModifiedCells = ApplyEdgeModifications(EdgeModificationOptions);
+	
 	BuildInfo.HoleRootCell = NewHoleRootCell;
 
 	return ChangedCells;
@@ -296,4 +422,19 @@ FOpenLandGridChangedCells FOpenLandGrid::ChangeHoleRootCell(FOpenLandGridCell Ne
 TArray<FOpenLandGridCell> FOpenLandGrid::GetAllCells() const
 {
 	return GetAllCellsSet().Array();
+}
+
+bool FOpenLandGrid::IsHoleEdge(FOpenLandGridCell HoleCell, FOpenLandGridCell Cell) const
+{
+	if (!BuildInfo.HasHole())
+	{
+		return false;
+	}
+	
+	if(IsPointInsideRect(HoleCell - FOpenLandGridCell(1, 1), BuildInfo.HoleSize + FOpenLandGridCell(2, 2), Cell))
+	{
+		return true;
+	}
+
+	return false;
 }

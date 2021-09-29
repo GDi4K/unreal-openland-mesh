@@ -23,7 +23,7 @@ class FOpenLandGridRenderer
 
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
 	FOpenLandGridRendererChangedInfo ApplyCellChanges(FOpenLandGridChangedCells ChangedCells);
-	static FVector ApplyVertexModifier(FVector Source);
+	static FVector ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source);
 
 public:
 	FOpenLandGridRenderer();

@@ -20,10 +20,10 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildCell(FOpenLandGr
 
 	FVector2D UVRoot = Cell.ToVector2D() * UVCellWidth;
 			
-	FOpenLandMeshVertex MA = {ApplyVertexModifier(A), UVRoot + FVector2D(0, 0) * UVCellWidth};
-	FOpenLandMeshVertex MB = {ApplyVertexModifier(B), UVRoot + FVector2D(0, 1) * UVCellWidth};
-	FOpenLandMeshVertex MC = {ApplyVertexModifier(C), UVRoot + FVector2D(1, 1) * UVCellWidth};
-	FOpenLandMeshVertex MD = {ApplyVertexModifier(D), UVRoot + FVector2D(1, 0) * UVCellWidth};
+	FOpenLandMeshVertex MA = {ApplyVertexModifier(Cell, A), UVRoot + FVector2D(0, 0) * UVCellWidth};
+	FOpenLandMeshVertex MB = {ApplyVertexModifier(Cell, B), UVRoot + FVector2D(0, 1) * UVCellWidth};
+	FOpenLandMeshVertex MC = {ApplyVertexModifier(Cell, C), UVRoot + FVector2D(1, 1) * UVCellWidth};
+	FOpenLandMeshVertex MD = {ApplyVertexModifier(Cell, D), UVRoot + FVector2D(1, 0) * UVCellWidth};
 
 	FOpenLandMeshVertex T0_1 = MA;
 	FOpenLandMeshVertex T0_2 = MB;
@@ -74,21 +74,52 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLa
 		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT0);
 	}
 
+	for (const FOpenLandGridCell ModifiedCell: ChangedCells.ModifiedCells)
+	{
+		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(ModifiedCell);
+		const FOpenLandGridRendererCell RenderCell = Cells[GetTypeHash(ModifiedCell)];
+		const FOpenLandMeshTriangle T0 = MeshInfo->Triangles.Get(RenderCell.IndexT0);
+
+		MeshInfo->Vertices.Set(T0.T0, CellVertices.Get(0));
+		MeshInfo->Vertices.Set(T0.T1, CellVertices.Get(1));
+		MeshInfo->Vertices.Set(T0.T2, CellVertices.Get(2));
+
+		const FOpenLandMeshTriangle T1 = MeshInfo->Triangles.Get(RenderCell.IndexT1);
+		MeshInfo->Vertices.Set(T1.T0, CellVertices.Get(3));
+		MeshInfo->Vertices.Set(T1.T1, CellVertices.Get(4));
+		MeshInfo->Vertices.Set(T1.T2, CellVertices.Get(5));
+
+		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT1);
+		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT0);
+	}
+
 	MeshInfo->BoundingBox = Grid->GetBoundingBox();
 	
 	return ChangedInfo;
 }
 
-FVector FOpenLandGridRenderer::ApplyVertexModifier(FVector Source)
+FVector FOpenLandGridRenderer::ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source)
 {
-	const float Distance = FVector::Distance(Source, FVector(0, 0, 0));
-	constexpr float Divider = 2000.0f;
-	constexpr float Height = 300.0f;
-
-	const float SinInput = (FMath::CeilToInt( Distance/Divider* 100) % 314 * 2) / 100.0f;
 	
-	const float NewHeight = FMath::Sin(Distance/Divider) * Height;
-	return Source + FVector(0, 0, NewHeight);
+	if (Cell.bHoleEdge)
+	{
+		return Source + FVector(0, 0, 200);
+	} else
+	{
+		return  Source;
+	}
+	// const float Distance = FVector::Distance(Source, FVector(0, 0, 0));
+	// constexpr float Divider = 2000.0f;
+	// constexpr float Height = 300.0f;
+	//
+	// const float SinInput = (FMath::CeilToInt( Distance/Divider* 100) % 314 * 2) / 100.0f;
+	//
+	// float NewHeight = FMath::Sin(Distance/Divider) * Height;
+	// if (Cell.bHoleEdge)
+	// {
+	// 	NewHeight += 50.0;
+	// }
+	// return Source + FVector(0, 0, NewHeight);
 }
 
 FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGrid)

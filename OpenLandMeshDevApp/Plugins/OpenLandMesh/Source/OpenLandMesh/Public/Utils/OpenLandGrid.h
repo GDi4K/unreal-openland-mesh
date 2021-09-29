@@ -6,7 +6,7 @@ struct FOpenLandGridChangedCells
 {
 	TArray<FOpenLandGridCell> CellsToAdd;
 	TArray<FOpenLandGridCell> CellsToRemove;
-	TArray<FOpenLandGridCell> ExistingCells;
+	TArray<FOpenLandGridCell> ModifiedCells;
 };
 
 struct FOpenLandGridBuildInfo
@@ -25,6 +25,14 @@ struct FOpenLandGridBuildInfo
 	}
 };
 
+struct FOpenLandGridEdgeModificationOptions
+{
+	FOpenLandGridCell OldHoleRootCell;
+	FOpenLandGridCell NewHoleRootCell;
+	FOpenLandGridCell OldRootCell;
+	FOpenLandGridCell NewRootCell;
+};
+
 class FOpenLandGrid
 {
 	FOpenLandGridBuildInfo BuildInfo;
@@ -34,6 +42,7 @@ class FOpenLandGrid
 	static bool IsRectInsideRect(FOpenLandGridCell RectOuterRoot, FOpenLandGridCell RectOuterSize, FOpenLandGridCell RectInnerRoot, FOpenLandGridCell RectInnerSize);
 	static bool IsHoleInsideRect(FOpenLandGridCell RectRoot, FOpenLandGridCell RectSize, FOpenLandGridCell HoleRoot, FOpenLandGridCell HoleSize);
 	TSet<FOpenLandGridCell> GetAllCellsSet() const;
+	TArray<FOpenLandGridCell> ApplyEdgeModifications(FOpenLandGridEdgeModificationOptions Options) const;
 
 public:
 	FOpenLandGrid();
@@ -48,6 +57,7 @@ public:
 	FOpenLandGridChangedCells ReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell);
 	FOpenLandGridChangedCells ChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell);
 	TArray<FOpenLandGridCell> GetAllCells() const;
+	bool IsHoleEdge(FOpenLandGridCell HoleRoot, FOpenLandGridCell Cell) const;
 };
 
 typedef TSharedPtr<FOpenLandGrid> FOpenLandGridPtr;

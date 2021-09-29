@@ -12,7 +12,7 @@ public:
 
 	FOpenLandGridCell(): FOpenLandGridCell(0, 0) {}
 	FOpenLandGridCell(int32 X, int32 Y): X(X), Y(Y) {}
-	FOpenLandGridCell(const FOpenLandGridCell& Other): FOpenLandGridCell(Other.X, Other.Y) {}
+	FOpenLandGridCell(const FOpenLandGridCell& Other): X(Other.X), Y(Other.Y), bHoleEdge(Other.bHoleEdge) {}
 	FOpenLandGridCell(const FVector2D Vector): FOpenLandGridCell(Vector.IntPoint().X, Vector.IntPoint().Y) {}
 
 	FOpenLandGridCell operator+(const FOpenLandGridCell& Other) const
