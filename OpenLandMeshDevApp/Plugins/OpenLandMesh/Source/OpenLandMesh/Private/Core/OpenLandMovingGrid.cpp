@@ -44,6 +44,8 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 
 void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 {
+	return;
+	
 	for (const FOpenLandMovingGridLOD LOD: LODs)
 	{
 		if (LOD.MeshSectionIndex < 0)

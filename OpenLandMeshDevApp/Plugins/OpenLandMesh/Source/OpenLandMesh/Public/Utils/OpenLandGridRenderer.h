@@ -22,6 +22,7 @@ class FOpenLandGridRenderer
 	bool bInitialized = false;
 
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
+	TOpenLandArray<FOpenLandMeshVertex> BuildEdgeCell(FOpenLandGridCell Cell) const;
 	FOpenLandGridRendererChangedInfo ApplyCellChanges(FOpenLandGridChangedCells ChangedCells);
 	static FVector ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source);
 

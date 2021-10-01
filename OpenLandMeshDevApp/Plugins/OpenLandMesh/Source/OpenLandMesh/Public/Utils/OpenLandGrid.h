@@ -49,7 +49,9 @@ public:
 	void Build(FOpenLandGridBuildInfo InputBuildInfo);
 	int32 GetCellWidth() const { return BuildInfo.CellWidth; }
 	FOpenLandGridCell GetRootCell() const { return BuildInfo.RootCell; }
+	FOpenLandGridCell GetHoleRootCell() const { return BuildInfo.HoleRootCell; }
 	FOpenLandGridCell GetSize() const { return BuildInfo.Size; }
+	FOpenLandGridCell GetHoleSize() const { return BuildInfo.HoleSize; }
 	
 	FBox GetBoundingBox() const;
 	FOpenLandGridCell FindClosestCellRoot(FVector Position) const;

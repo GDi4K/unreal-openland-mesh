@@ -8,6 +8,11 @@ FOpenLandGridRenderer::FOpenLandGridRenderer()
 
 TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildCell(FOpenLandGridCell Cell) const
 {
+	if (Cell.bHoleEdge)
+	{
+		return BuildEdgeCell(Cell);
+	}
+	
 	// TODO: Get UVWidth from outside
 	const float UVCellWidth = Grid->GetCellWidth() / 100.0;
 	
@@ -39,6 +44,90 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildCell(FOpenLandGr
 		T0_1, T0_2, T0_3,
 		T1_1, T1_2, T1_3
 	};
+}
+
+TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildEdgeCell(FOpenLandGridCell Cell) const
+{
+	// TODO: Get UVWidth from outside
+	const float UVCellWidth = Grid->GetCellWidth() / 100.0;
+	const float angle = FMath::Atan2(Cell.Y, Cell.X) + PI;
+	UE_LOG(LogTemp, Warning, TEXT("Angle: %f"), angle)
+
+	TOpenLandArray<FOpenLandMeshVertex> Vertices;
+
+	const auto AddTri = [&Vertices](FOpenLandMeshVertex A, FOpenLandMeshVertex B, FOpenLandMeshVertex C)
+	{
+		FOpenLandPolygonMesh::BuildFaceTangents(A, B, C);
+		Vertices.Push(A);
+		Vertices.Push(B);
+		Vertices.Push(C);
+	};
+	
+	FVector CellPos = FVector(Cell.X, Cell.Y, 0) * Grid->GetCellWidth();
+		
+	FVector A = CellPos + FVector(0, 0, 0) * Grid->GetCellWidth();
+	FVector B = CellPos + FVector(0, 1, 0) * Grid->GetCellWidth();
+	FVector C = CellPos + FVector(1, 1, 0) * Grid->GetCellWidth();
+	FVector D = CellPos + FVector(1, 0, 0) * Grid->GetCellWidth();
+	
+
+	FVector2D UVRoot = Cell.ToVector2D() * UVCellWidth;
+			
+	FOpenLandMeshVertex MA = {ApplyVertexModifier(Cell, A), UVRoot + FVector2D(0, 0) * UVCellWidth};
+	FOpenLandMeshVertex MB = {ApplyVertexModifier(Cell, B), UVRoot + FVector2D(0, 1) * UVCellWidth};
+	FOpenLandMeshVertex MC = {ApplyVertexModifier(Cell, C), UVRoot + FVector2D(1, 1) * UVCellWidth};
+	FOpenLandMeshVertex MD = {ApplyVertexModifier(Cell, D), UVRoot + FVector2D(1, 0) * UVCellWidth};
+
+	const FOpenLandGridCell EdgeRoot = Grid->GetHoleRootCell() - FOpenLandGridCell(1, 1);
+	const FOpenLandGridCell EdgeRoot2 = EdgeRoot + FOpenLandGridCell(0, Grid->GetHoleSize().Y + 1);
+	const FOpenLandGridCell EdgeRoot3 = EdgeRoot + FOpenLandGridCell(Grid->GetHoleSize().X + 1, Grid->GetHoleSize().Y + 1);
+	const FOpenLandGridCell EdgeRoot4 = EdgeRoot + FOpenLandGridCell(Grid->GetHoleSize().X + 1, 0);
+	
+	if (Cell == EdgeRoot || Cell == EdgeRoot2 || Cell == EdgeRoot3 || Cell == EdgeRoot4)
+	{
+		AddTri(MA, MB, MC);
+		AddTri(MA, MC, MD);
+		// This is just to make the computing easier
+		AddTri(MA, MC, MD);
+		return Vertices;
+	}
+
+	if (angle > PI + PI/4 && angle <= 2*PI - PI/4)
+	{
+		FVector E = CellPos + FVector(0.5, 0, 0) * Grid->GetCellWidth();
+		FOpenLandMeshVertex ME = {ApplyVertexModifier(Cell, E), UVRoot + FVector2D(0.5, 0) * UVCellWidth};
+
+		AddTri(MA, MB, ME);
+		AddTri(ME, MB, MC);
+		AddTri(ME, MC, MD);
+	}
+	else if(angle > 2*PI - PI/4 || angle <= + PI/4)
+	{
+		FVector E = CellPos + FVector(1, 0.5, 0) * Grid->GetCellWidth();
+		FOpenLandMeshVertex ME = {ApplyVertexModifier(Cell, E), UVRoot + FVector2D(1, 0.5) * UVCellWidth};
+
+		AddTri(MA, MB, ME);
+		AddTri(ME, MB, MC);
+		AddTri(ME, MD, MA);
+	} else if (angle > PI/4 && angle < PI - PI/4)
+	{
+		FVector E = CellPos + FVector(0.5, 1, 0) * Grid->GetCellWidth();
+		FOpenLandMeshVertex ME = {ApplyVertexModifier(Cell, E), UVRoot + FVector2D(0.5, 1) * UVCellWidth};
+
+		AddTri(MA, MB, ME);
+		AddTri(ME, MD, MA);
+		AddTri(ME, MC, MD);
+	} else
+	{
+		FVector E = CellPos + FVector(0, 0.5, 0) * Grid->GetCellWidth();
+		FOpenLandMeshVertex ME = {ApplyVertexModifier(Cell, E), UVRoot + FVector2D(0, 0.5) * UVCellWidth};
+
+		AddTri(MA, ME, MD);
+		AddTri(ME, MB, MC);
+		AddTri(ME, MC, MD);
+	}
+	
+	return Vertices;
 }
 
 FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLandGridChangedCells ChangedCells)
@@ -100,26 +189,22 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLa
 
 FVector FOpenLandGridRenderer::ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source)
 {
-	
-	if (Cell.bHoleEdge)
-	{
-		return Source + FVector(0, 0, 200);
-	} else
-	{
-		return  Source;
-	}
-	// const float Distance = FVector::Distance(Source, FVector(0, 0, 0));
-	// constexpr float Divider = 2000.0f;
-	// constexpr float Height = 300.0f;
-	//
-	// const float SinInput = (FMath::CeilToInt( Distance/Divider* 100) % 314 * 2) / 100.0f;
-	//
-	// float NewHeight = FMath::Sin(Distance/Divider) * Height;
+	//return Source;	
 	// if (Cell.bHoleEdge)
 	// {
-	// 	NewHeight += 50.0;
+	// 	return Source + FVector(0, 0, 200);
+	// } else
+	// {
+	// 	return  Source;
 	// }
-	// return Source + FVector(0, 0, NewHeight);
+	const float Distance = FVector::Distance(Source, FVector(0, 0, 0));
+	constexpr float Divider = 2000.0f;
+	constexpr float Height = 300.0f;
+	
+	const float SinInput = (FMath::CeilToInt( Distance/Divider* 100) % 314 * 2) / 100.0f;
+	
+	float NewHeight = FMath::Sin(Distance/Divider) * Height;
+	return Source + FVector(0, 0, NewHeight);
 }
 
 FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGrid)
