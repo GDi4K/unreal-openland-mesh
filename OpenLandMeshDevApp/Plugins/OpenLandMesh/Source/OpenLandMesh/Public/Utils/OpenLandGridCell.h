@@ -8,11 +8,10 @@ class FOpenLandGridCell
 public:
 	int32 X = 0;
 	int32 Y = 0;
-	bool bHoleEdge = false;
 
 	FOpenLandGridCell(): FOpenLandGridCell(0, 0) {}
 	FOpenLandGridCell(int32 X, int32 Y): X(X), Y(Y) {}
-	FOpenLandGridCell(const FOpenLandGridCell& Other): X(Other.X), Y(Other.Y), bHoleEdge(Other.bHoleEdge) {}
+	FOpenLandGridCell(const FOpenLandGridCell& Other): X(Other.X), Y(Other.Y) {}
 	FOpenLandGridCell(const FVector2D Vector): FOpenLandGridCell(Vector.IntPoint().X, Vector.IntPoint().Y) {}
 
 	FOpenLandGridCell operator+(const FOpenLandGridCell& Other) const

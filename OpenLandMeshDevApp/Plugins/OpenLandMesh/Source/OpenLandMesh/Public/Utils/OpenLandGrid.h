@@ -60,7 +60,7 @@ public:
 	FOpenLandGridChangedCells ReCenter(FVector NewCenter);
 	FOpenLandGridChangedCells ReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell);
 	FOpenLandGridChangedCells ChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell);
-	TArray<FOpenLandGridCell> GetAllCells() const;
+	FOpenLandGridChangedCells GetAllCells() const;
 	bool IsHoleEdge(FOpenLandGridCell HoleRoot, FOpenLandGridCell Cell) const;
 };
 

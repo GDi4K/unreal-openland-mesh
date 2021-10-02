@@ -205,21 +205,11 @@ FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLa
 
 FVector FOpenLandGridRenderer::ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source)
 {
-	//return Source;	
-	// if (Cell.bHoleEdge)
-	// {
-	// 	return Source + FVector(0, 0, 200);
-	// } else
-	// {
-	// 	return  Source;
-	// }
 	const float Distance = FVector::Distance(Source, FVector(0, 0, 0));
 	constexpr float Divider = 2000.0f;
 	constexpr float Height = 300.0f;
 	
-	const float SinInput = (FMath::CeilToInt( Distance/Divider* 100) % 314 * 2) / 100.0f;
-	
-	float NewHeight = FMath::Sin(Distance/Divider) * Height;
+	const float NewHeight = FMath::Sin(Distance/Divider) * Height;
 	return Source + FVector(0, 0, NewHeight);
 }
 
@@ -230,29 +220,34 @@ FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGr
 	Grid = SourceGrid;
 	MeshInfo = FOpenLandMeshInfo::New();
 	Cells = {};
+
+	FOpenLandGridChangedCells InitialCells = Grid->GetAllCells();
 	
-	for(const FOpenLandGridCell Cell: Grid->GetAllCells())
+	for(const FOpenLandGridCell Cell: InitialCells.CellsToAdd)
 	{
 		const TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(Cell);
 		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), CellVertices);
 		
 		const int32 TotalTriangles = MeshInfo->Triangles.Length();
-		if (Cell.bHoleEdge)
-		{
-			EdgeCells.Add(GetTypeHash(Cell), {
-				Cell,
-				TotalTriangles - 3,
-				TotalTriangles - 2,
-				TotalTriangles - 1,
-			});
-		} else
-		{
-			Cells.Add(GetTypeHash(Cell), {
-				Cell,
-				TotalTriangles - 2,
-				TotalTriangles - 1,
-			});
-		}
+		Cells.Add(GetTypeHash(Cell), {
+			Cell,
+			TotalTriangles - 2,
+			TotalTriangles - 1,
+		});
+	}
+
+	for(const FOpenLandGridCell Cell: InitialCells.EdgeCellsToAdd)
+	{
+		const TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildEdgeCell(Cell);
+		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), CellVertices);
+		
+		const int32 TotalTriangles = MeshInfo->Triangles.Length();
+		EdgeCells.Add(GetTypeHash(Cell), {
+			Cell,
+			TotalTriangles - 3,
+			TotalTriangles - 2,
+			TotalTriangles - 1,
+		});
 	}
 
 	MeshInfo->BoundingBox = Grid->GetBoundingBox();
