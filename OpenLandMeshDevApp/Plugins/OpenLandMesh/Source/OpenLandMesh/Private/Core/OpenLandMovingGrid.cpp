@@ -11,7 +11,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 {
 	CurrentBuildOptions = BuildOptions;
 
-	for (int32 LODIndex=0; LODIndex<2; LODIndex++)
+	for (int32 LODIndex=0; LODIndex<10; LODIndex++)
 	{
 		FOpenLandMovingGridLOD CurrentLOD = FOpenLandMovingGridLOD::New();
 		CurrentLOD.Index = LODIndex;

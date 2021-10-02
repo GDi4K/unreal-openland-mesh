@@ -5,10 +5,10 @@
 struct FOpenLandGridChangedCells
 {
 	TArray<FOpenLandGridCell> CellsToAdd;
-	TArray<FOpenLandGridCell> EdgeCellsToAdd;
 	TArray<FOpenLandGridCell> CellsToRemove;
+	TArray<FOpenLandGridCell> EdgeCellsToAdd;
 	TArray<FOpenLandGridCell> EdgeCellsToRemove;
-	TArray<FOpenLandGridCell> ModifiedCells;
+	TArray<FOpenLandGridCell> ExistingEdgeCells;
 };
 
 struct FOpenLandGridBuildInfo

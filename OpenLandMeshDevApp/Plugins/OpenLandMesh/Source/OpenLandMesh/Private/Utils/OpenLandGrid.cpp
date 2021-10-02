@@ -107,9 +107,10 @@ void FOpenLandGrid::ApplyEdgeModifications(FOpenLandGridChangedCells &ChangedCel
 		const bool bInInsideOldEdge = IsHoleEdge(Options.OldHoleRootCell, Cell);
 		if (bInInsideOldEdge)
 		{
+			ChangedCells.ExistingEdgeCells.Push(Cell);
 			return;
 		}
-
+		
 		ChangedCells.EdgeCellsToAdd.Push(Cell);
 		ChangedCells.CellsToRemove.Push(Cell);
 	};
@@ -488,7 +489,7 @@ FOpenLandGridChangedCells FOpenLandGrid::GetAllCells() const
 	
 	for (const FOpenLandGridCell Cell: GetAllCellsSet())
 	{
-		if (BuildInfo.HasHole() && IsHoleEdge(BuildInfo.HoleRootCell, Cell))
+		if (IsHoleEdge(BuildInfo.HoleRootCell, Cell))
 		{
 			ChangedCells.EdgeCellsToAdd.Push(Cell);
 			continue;
