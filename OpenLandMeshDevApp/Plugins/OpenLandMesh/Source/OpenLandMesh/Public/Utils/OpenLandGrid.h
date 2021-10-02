@@ -5,7 +5,9 @@
 struct FOpenLandGridChangedCells
 {
 	TArray<FOpenLandGridCell> CellsToAdd;
+	TArray<FOpenLandGridCell> EdgeCellsToAdd;
 	TArray<FOpenLandGridCell> CellsToRemove;
+	TArray<FOpenLandGridCell> EdgeCellsToRemove;
 	TArray<FOpenLandGridCell> ModifiedCells;
 };
 
@@ -42,7 +44,7 @@ class FOpenLandGrid
 	static bool IsRectInsideRect(FOpenLandGridCell RectOuterRoot, FOpenLandGridCell RectOuterSize, FOpenLandGridCell RectInnerRoot, FOpenLandGridCell RectInnerSize);
 	static bool IsHoleInsideRect(FOpenLandGridCell RectRoot, FOpenLandGridCell RectSize, FOpenLandGridCell HoleRoot, FOpenLandGridCell HoleSize);
 	TSet<FOpenLandGridCell> GetAllCellsSet() const;
-	TArray<FOpenLandGridCell> ApplyEdgeModifications(FOpenLandGridEdgeModificationOptions Options) const;
+	void ApplyEdgeModifications(FOpenLandGridChangedCells &ChangedCells, FOpenLandGridEdgeModificationOptions Options) const;
 
 public:
 	FOpenLandGrid();

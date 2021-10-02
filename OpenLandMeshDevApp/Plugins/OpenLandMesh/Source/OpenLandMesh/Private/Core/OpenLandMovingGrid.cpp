@@ -11,7 +11,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 {
 	CurrentBuildOptions = BuildOptions;
 
-	for (int32 LODIndex=0; LODIndex<5; LODIndex++)
+	for (int32 LODIndex=0; LODIndex<2; LODIndex++)
 	{
 		FOpenLandMovingGridLOD CurrentLOD = FOpenLandMovingGridLOD::New();
 		CurrentLOD.Index = LODIndex;
@@ -44,8 +44,6 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 
 void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 {
-	return;
-	
 	for (const FOpenLandMovingGridLOD LOD: LODs)
 	{
 		if (LOD.MeshSectionIndex < 0)

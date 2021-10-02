@@ -14,11 +14,20 @@ struct FOpenLandGridRendererCell
 	int32 IndexT1;
 };
 
+struct FOpenLandGridRendererEdgeCell
+{
+	FOpenLandGridCell GridCell;
+	int32 IndexT0;
+	int32 IndexT1;
+	int32 IndexT2;
+};
+
 class FOpenLandGridRenderer
 {
 	FOpenLandGridPtr Grid = nullptr;
 	FOpenLandMeshInfoPtr MeshInfo = nullptr;
 	TMap<uint32, FOpenLandGridRendererCell> Cells;
+	TMap<uint32, FOpenLandGridRendererEdgeCell> EdgeCells;
 	bool bInitialized = false;
 
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
