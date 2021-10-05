@@ -7,6 +7,12 @@ struct FOpenLandGridRendererChangedInfo
 	TArray<int32> ChangedTriangles;
 };
 
+struct FOpenLandGridRendererChangedInfoStatus
+{
+	bool bCompleted = false;
+	FOpenLandGridRendererChangedInfo ChangedInfo;
+};
+
 struct FOpenLandGridRendererCell
 {
 	FOpenLandGridCell GridCell;
@@ -29,6 +35,7 @@ class FOpenLandGridRenderer
 	TMap<uint32, FOpenLandGridRendererCell> Cells;
 	TMap<uint32, FOpenLandGridRendererEdgeCell> EdgeCells;
 	bool bInitialized = false;
+	TSharedPtr<FOpenLandGridRendererChangedInfoStatus> CurrentOperation = nullptr;
 
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
 	TOpenLandArray<FOpenLandMeshVertex> BuildEdgeCell(FOpenLandGridCell Cell) const;
@@ -38,9 +45,10 @@ class FOpenLandGridRenderer
 public:
 	FOpenLandGridRenderer();
 	FOpenLandMeshInfoPtr Initialize(FOpenLandGridPtr SourceGrid);
-	FOpenLandGridRendererChangedInfo ReCenter(FVector NewCenter);
-	FOpenLandGridRendererChangedInfo ReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell);
-	FOpenLandGridRendererChangedInfo ChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell);
+	bool StartReCenter(FVector NewCenter);
+	bool StartReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell);
+	bool StartChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell);
+	TSharedPtr<FOpenLandGridRendererChangedInfo> CheckStatus();
 };
 
 typedef TSharedPtr<FOpenLandGridRenderer> FOpenLandGridRendererPtr;

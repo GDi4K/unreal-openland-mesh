@@ -3,6 +3,12 @@
 #include "Utils/OpenLandGrid.h"
 #include "Utils/OpenLandGridRenderer.h"
 
+struct FOpenLandMovingGridUpdatingLOD
+{
+	int32 LODIndex = 0;
+	TSharedPtr<FOpenLandGridRendererChangedInfo> ChangedInfo = nullptr;
+};
+
 struct FOpenLandMovingGridBuildOptions
 {
 	float CuspAngle = 60.0f;
@@ -50,11 +56,12 @@ class FOpenLandMovingGrid
 	FOpenLandMovingGridBuildOptions CurrentBuildOptions;
 	
 	TArray<FOpenLandMovingGridLOD> LODs = {};
+	TArray<FOpenLandMovingGridUpdatingLOD> UpdatingLODs = {};
 
 public:
 	FOpenLandMovingGrid(UOpenLandMeshComponent* Component);
 	void Build(FOpenLandMovingGridBuildOptions BuildOptions);
-	void UpdatePosition(FVector NewCenter) const;
+	void UpdatePositionAsync(FVector NewCenter);
 };
 
 typedef TSharedPtr<FOpenLandMovingGrid> FOpenLandMovingGridPtr;

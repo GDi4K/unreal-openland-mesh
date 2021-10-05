@@ -282,30 +282,79 @@ FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGr
 	return  MeshInfo;
 }
 
-FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ReCenter(FVector NewCenter)
+bool FOpenLandGridRenderer::StartReCenter(FVector NewCenter)
 {
+	check(CurrentOperation == nullptr);
+	
 	const FOpenLandGridChangedCells ChangedCells = Grid->ReCenter(NewCenter);
 	//UE_LOG(LogTemp, Warning, TEXT("CellsToAdd: %d, CellsToRemove: %d, EdgeCellsToAdd: %d, EdgeCellsToRemove: %d"), ChangedCells.CellsToAdd.Num(), ChangedCells.CellsToRemove.Num(), ChangedCells.EdgeCellsToAdd.Num(), ChangedCells.EdgeCellsToRemove.Num())
 	check(ChangedCells.CellsToAdd.Num() == ChangedCells.CellsToRemove.Num());
 	check(ChangedCells.EdgeCellsToAdd.Num() == ChangedCells.EdgeCellsToRemove.Num());
 
-	return ApplyCellChanges(ChangedCells);
+	if (ChangedCells.CellsToAdd.Num() == 0 && ChangedCells.EdgeCellsToAdd.Num() == 0)
+	{
+		return false;
+	}
+
+	CurrentOperation = MakeShared<FOpenLandGridRendererChangedInfoStatus>();
+	CurrentOperation->bCompleted = false;
+	CurrentOperation->ChangedInfo = ApplyCellChanges(ChangedCells);
+
+	return true;
 }
 
-FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell)
+bool FOpenLandGridRenderer::StartReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell)
 {
+	check(CurrentOperation == nullptr);
+
 	const FOpenLandGridChangedCells ChangedCells = Grid->ReCenter(NewCenter, NewHoleRootCell);
 	//UE_LOG(LogTemp, Warning, TEXT("CellsToAdd: %d, CellsToRemove: %d, EdgeCellsToAdd: %d, EdgeCellsToRemove: %d"), ChangedCells.CellsToAdd.Num(), ChangedCells.CellsToRemove.Num(), ChangedCells.EdgeCellsToAdd.Num(), ChangedCells.EdgeCellsToRemove.Num())
 	check(ChangedCells.CellsToAdd.Num() == ChangedCells.CellsToRemove.Num());
 	check(ChangedCells.EdgeCellsToAdd.Num() == ChangedCells.EdgeCellsToRemove.Num());
 
-	return ApplyCellChanges(ChangedCells);
+	if (ChangedCells.CellsToAdd.Num() == 0 && ChangedCells.EdgeCellsToAdd.Num() == 0)
+	{
+		return false;
+	}
+	
+	CurrentOperation = MakeShared<FOpenLandGridRendererChangedInfoStatus>();
+	CurrentOperation->bCompleted = false;
+	CurrentOperation->ChangedInfo = ApplyCellChanges(ChangedCells);
+
+	return true;
 }
 
-FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell)
+bool FOpenLandGridRenderer::StartChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell)
 {
+	check(CurrentOperation == nullptr);
+
 	const FOpenLandGridChangedCells ChangedCells = Grid->ChangeHoleRootCell(NewHoleRootCell);
 	check(ChangedCells.CellsToAdd.Num() == ChangedCells.CellsToRemove.Num());
 
-	return ApplyCellChanges(ChangedCells);
+	if (ChangedCells.CellsToAdd.Num() == 0 && ChangedCells.EdgeCellsToAdd.Num() == 0)
+	{
+		return false;
+	}
+
+	CurrentOperation = MakeShared<FOpenLandGridRendererChangedInfoStatus>();
+	CurrentOperation->bCompleted = false;
+	CurrentOperation->ChangedInfo = ApplyCellChanges(ChangedCells);
+
+	return true;
+}
+
+TSharedPtr<FOpenLandGridRendererChangedInfo> FOpenLandGridRenderer::CheckStatus()
+{
+	if (!CurrentOperation)
+	{
+		return nullptr;
+	}
+
+	CurrentOperation->bCompleted = true;
+	const TSharedPtr<FOpenLandGridRendererChangedInfo> ChangedInfo = MakeShared<FOpenLandGridRendererChangedInfo>();
+	ChangedInfo->ChangedTriangles = CurrentOperation->ChangedInfo.ChangedTriangles;
+	
+	CurrentOperation = nullptr;
+
+	return ChangedInfo;
 }

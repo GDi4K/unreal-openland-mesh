@@ -42,7 +42,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 	MeshComponent->InvalidateRendering();
 }
 
-void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
+void FOpenLandMovingGrid::UpdatePositionAsync(FVector NewCenter)
 {
 	for (const FOpenLandMovingGridLOD LOD: LODs)
 	{
@@ -57,44 +57,77 @@ void FOpenLandMovingGrid::UpdatePosition(FVector NewCenter) const
 		}
 	}
 
+	if (UpdatingLODs.Num() > 0)
+	{
+		bool bAllCompleted = true;
+		
+		for (FOpenLandMovingGridUpdatingLOD& UpdatingLOD: UpdatingLODs)
+		{
+			if (UpdatingLOD.ChangedInfo != nullptr)
+			{
+				continue;
+			}
+			
+			const FOpenLandMovingGridLOD LOD = LODs[UpdatingLOD.LODIndex];
+			UpdatingLOD.ChangedInfo = LOD.GridRenderer->CheckStatus();
+			bAllCompleted = bAllCompleted && UpdatingLOD.ChangedInfo != nullptr;
+		}
+
+		if (!bAllCompleted)
+		{
+			return;
+		}
+		
+		for (const FOpenLandMovingGridUpdatingLOD UpdatingLOD: UpdatingLODs)
+        {
+        	const FOpenLandMovingGridLOD LOD = LODs[UpdatingLOD.LODIndex];
+        	MeshComponent->UpdateMeshSection(LOD.MeshSectionIndex, UpdatingLOD.ChangedInfo->ChangedTriangles);
+        }
+
+		UpdatingLODs = {};
+		return;
+	}
+
 	for (int32 LODIndex=LODs.Num() -1; LODIndex >= 0; LODIndex --)
 	{
-		FOpenLandMovingGridLOD CurrentLOD = LODs[LODIndex];
+		const FOpenLandMovingGridLOD CurrentLOD = LODs[LODIndex];
 		const FOpenLandMovingGridLOD* InnerLOD = LODIndex == 0? nullptr : &(LODs[LODIndex - 1]);
 		const FOpenLandMovingGridLOD* OuterLOD = LODIndex == LODs.Num() -1 ? nullptr : &(LODs[LODIndex + 1]);
 
-		FOpenLandGridRendererChangedInfo ChangedInfo;
-
 		// Apply Recenter Logic
+		bool bHasChanges = false;
 		if (InnerLOD)
 		{
-			ChangedInfo = CurrentLOD.GridRenderer->ReCenter(NewCenter, InnerLOD->Grid->GetRootCell().ToVector2D()/2);
+			bHasChanges = CurrentLOD.GridRenderer->StartReCenter(NewCenter, InnerLOD->Grid->GetRootCell().ToVector2D()/2);
 		}
 		else
 		{
-			ChangedInfo = CurrentLOD.GridRenderer->ReCenter(NewCenter);
+			bHasChanges = CurrentLOD.GridRenderer->StartReCenter(NewCenter);
 		}
 
-		const bool bMeshUpdated = ChangedInfo.ChangedTriangles.Num() > 0;
-		if (bMeshUpdated)
+		if (!bHasChanges)
 		{
-			MeshComponent->UpdateMeshSection(CurrentLOD.MeshSectionIndex, ChangedInfo.ChangedTriangles);
+			continue;
 		}
+
+		UpdatingLODs.Push({
+			LODIndex,
+			nullptr
+		});
 
 		// Update Outer Grid Hole
 		if (OuterLOD)
 		{
-			const FOpenLandGridRendererChangedInfo ChangedInfoHole = OuterLOD->GridRenderer->ChangeHoleRootCell(CurrentLOD.Grid->GetRootCell().ToVector2D()/2);
-			if (ChangedInfoHole.ChangedTriangles.Num() > 0)
+			const bool bHasOuterChanges = OuterLOD->GridRenderer->StartChangeHoleRootCell(CurrentLOD.Grid->GetRootCell().ToVector2D()/2);
+			if (bHasOuterChanges)
 			{
-				MeshComponent->UpdateMeshSection(OuterLOD->MeshSectionIndex, ChangedInfoHole.ChangedTriangles);
+				UpdatingLODs.Push({
+					OuterLOD->Index,
+					nullptr
+				});
 			}
 		}
 
-		if (bMeshUpdated)
-		{
-			// We need to return the tick & let it render
-			return;
-		}
+		return;
 	}
 }

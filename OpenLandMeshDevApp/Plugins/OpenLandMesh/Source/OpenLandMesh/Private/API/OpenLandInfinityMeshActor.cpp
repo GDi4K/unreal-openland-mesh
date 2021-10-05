@@ -83,14 +83,14 @@ void AOpenLandInfinityMeshActor::Tick(float DeltaTime)
 	const TSharedPtr<FVector> PlayerPosition = GetPlayerPosition();
 	if (PlayerPosition)
 	{
-		MovingGrid->UpdatePosition(*PlayerPosition.Get());
+		MovingGrid->UpdatePositionAsync(*PlayerPosition.Get());
 		return;
 	}
 
 	const TSharedPtr<FVector> CameraPosition = GetCameraPosition();
 	if (CameraPosition)
 	{
-		MovingGrid->UpdatePosition(*CameraPosition.Get());
+		MovingGrid->UpdatePositionAsync(*CameraPosition.Get());
 		return;
 	}
 }
