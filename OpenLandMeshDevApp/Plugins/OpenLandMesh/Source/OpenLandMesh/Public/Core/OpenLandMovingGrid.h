@@ -58,6 +58,8 @@ class FOpenLandMovingGrid
 	TArray<FOpenLandMovingGridLOD> LODs = {};
 	TArray<FOpenLandMovingGridUpdatingLOD> UpdatingLODs = {};
 
+	int32 times = 0;
+
 public:
 	FOpenLandMovingGrid(UOpenLandMeshComponent* Component);
 	void Build(FOpenLandMovingGridBuildOptions BuildOptions);

@@ -91,7 +91,6 @@ void AOpenLandInfinityMeshActor::Tick(float DeltaTime)
 	if (CameraPosition)
 	{
 		MovingGrid->UpdatePositionAsync(*CameraPosition.Get());
-		return;
 	}
 }
 

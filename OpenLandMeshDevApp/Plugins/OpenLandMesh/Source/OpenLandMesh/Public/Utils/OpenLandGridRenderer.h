@@ -35,17 +35,21 @@ class FOpenLandGridRenderer
 	TMap<uint32, FOpenLandGridRendererCell> Cells;
 	TMap<uint32, FOpenLandGridRendererEdgeCell> EdgeCells;
 	bool bInitialized = false;
+	
 	TSharedPtr<FOpenLandGridRendererChangedInfoStatus> CurrentOperation = nullptr;
+	TSharedPtr<FOpenLandGridChangedCells> CurrentGridChangedCells = nullptr;
+	FThreadSafeCounter CompletedCells = 0;
 
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
 	TOpenLandArray<FOpenLandMeshVertex> BuildEdgeCell(FOpenLandGridCell Cell) const;
-	FOpenLandGridRendererChangedInfo ApplyCellChanges(FOpenLandGridChangedCells ChangedCells);
 	void ApplyCellChangesAsync(FOpenLandGridChangedCells ChangedCells);
 	static FVector ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source);
 
-	void SwapCell(FOpenLandGridChangedCells* ChangedCells, int32 Index);
-	void SwapEdgeCell(FOpenLandGridChangedCells* ChangedCells, int32 Index);
-	void RegenerateEdgeCell(FOpenLandGridChangedCells* ChangedCells, int32 Index);
+	void SwapCell(int32 Index);
+	void SwapEdgeCell(int32 Index);
+	void RegenerateEdgeCell(int32 Index);
+
+	void StartSwapCell();
 
 public:
 	FOpenLandGridRenderer();

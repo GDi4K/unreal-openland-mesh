@@ -1,5 +1,6 @@
 ﻿#include "Utils/OpenLandGridRenderer.h"
 
+#include "Compute/OpenLandThreading.h"
 #include "Core/OpenLandPolygonMesh.h"
 
 FOpenLandGridRenderer::FOpenLandGridRenderer()
@@ -126,138 +127,79 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildEdgeCell(FOpenLa
 	return Vertices;
 }
 
-FOpenLandGridRendererChangedInfo FOpenLandGridRenderer::ApplyCellChanges(FOpenLandGridChangedCells ChangedCells)
-{
-	FOpenLandGridRendererChangedInfo ChangedInfo;
-
-	// Apply Cell Changes
-	for (int32 Index = 0; Index < ChangedCells.CellsToRemove.Num(); Index++)
-	{
-		const FOpenLandGridCell RemovingCellPos = ChangedCells.CellsToRemove[Index];
-		const FOpenLandGridCell AddingCellPos = ChangedCells.CellsToAdd[Index];
-		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(AddingCellPos);
-
-		const FOpenLandGridRendererCell RenderCell = Cells[GetTypeHash(RemovingCellPos)];
-		
-		const FOpenLandMeshTriangle T0 = MeshInfo->Triangles.Get(RenderCell.IndexT0);
-		MeshInfo->Vertices.Set(T0.T0, CellVertices.Get(0));
-		MeshInfo->Vertices.Set(T0.T1, CellVertices.Get(1));
-		MeshInfo->Vertices.Set(T0.T2, CellVertices.Get(2));
-
-		const FOpenLandMeshTriangle T1 = MeshInfo->Triangles.Get(RenderCell.IndexT1);
-		MeshInfo->Vertices.Set(T1.T0, CellVertices.Get(3));
-		MeshInfo->Vertices.Set(T1.T1, CellVertices.Get(4));
-		MeshInfo->Vertices.Set(T1.T2, CellVertices.Get(5));
-
-		Cells.Remove(GetTypeHash(RemovingCellPos));
-		Cells.Add(GetTypeHash(AddingCellPos), {
-			AddingCellPos,
-			RenderCell.IndexT0,
-			RenderCell.IndexT1
-		});
-
-		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT1);
-		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT0);
-	}
-
-	// Edge Cell Changes
-	for (int32 Index = 0; Index < ChangedCells.EdgeCellsToRemove.Num(); Index++)
-	{
-		const FOpenLandGridCell RemovingCellPos = ChangedCells.EdgeCellsToRemove[Index];
-		const FOpenLandGridCell AddingCellPos = ChangedCells.EdgeCellsToAdd[Index];
-		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildEdgeCell(AddingCellPos);
-	
-		const FOpenLandGridRendererEdgeCell RenderCell = EdgeCells[GetTypeHash(RemovingCellPos)];
-		
-		const FOpenLandMeshTriangle T0 = MeshInfo->Triangles.Get(RenderCell.IndexT0);
-		MeshInfo->Vertices.Set(T0.T0, CellVertices.Get(0));
-		MeshInfo->Vertices.Set(T0.T1, CellVertices.Get(1));
-		MeshInfo->Vertices.Set(T0.T2, CellVertices.Get(2));
-	
-		const FOpenLandMeshTriangle T1 = MeshInfo->Triangles.Get(RenderCell.IndexT1);
-		MeshInfo->Vertices.Set(T1.T0, CellVertices.Get(3));
-		MeshInfo->Vertices.Set(T1.T1, CellVertices.Get(4));
-		MeshInfo->Vertices.Set(T1.T2, CellVertices.Get(5));
-	
-		const FOpenLandMeshTriangle T2 = MeshInfo->Triangles.Get(RenderCell.IndexT2);
-		MeshInfo->Vertices.Set(T2.T0, CellVertices.Get(6));
-		MeshInfo->Vertices.Set(T2.T1, CellVertices.Get(7));
-		MeshInfo->Vertices.Set(T2.T2, CellVertices.Get(8));
-	
-		EdgeCells.Remove(GetTypeHash(RemovingCellPos));
-		EdgeCells.Add(GetTypeHash(AddingCellPos), {
-			AddingCellPos,
-			RenderCell.IndexT0,
-			RenderCell.IndexT1,
-			RenderCell.IndexT2
-		});
-	
-		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT2);
-		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT1);
-		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT0);
-	}
-
-	// Go through existing edge cells & regenerate cells
-	for (int32 Index = 0; Index < ChangedCells.ExistingEdgeCells.Num(); Index++)
-	{
-		const FOpenLandGridCell Cell = ChangedCells.ExistingEdgeCells[Index];
-		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildEdgeCell(Cell);
-	
-		const FOpenLandGridRendererEdgeCell RenderCell = EdgeCells[GetTypeHash(Cell)];
-		
-		const FOpenLandMeshTriangle T0 = MeshInfo->Triangles.Get(RenderCell.IndexT0);
-		MeshInfo->Vertices.Set(T0.T0, CellVertices.Get(0));
-		MeshInfo->Vertices.Set(T0.T1, CellVertices.Get(1));
-		MeshInfo->Vertices.Set(T0.T2, CellVertices.Get(2));
-	
-		const FOpenLandMeshTriangle T1 = MeshInfo->Triangles.Get(RenderCell.IndexT1);
-		MeshInfo->Vertices.Set(T1.T0, CellVertices.Get(3));
-		MeshInfo->Vertices.Set(T1.T1, CellVertices.Get(4));
-		MeshInfo->Vertices.Set(T1.T2, CellVertices.Get(5));
-	
-		const FOpenLandMeshTriangle T2 = MeshInfo->Triangles.Get(RenderCell.IndexT2);
-		MeshInfo->Vertices.Set(T2.T0, CellVertices.Get(6));
-		MeshInfo->Vertices.Set(T2.T1, CellVertices.Get(7));
-		MeshInfo->Vertices.Set(T2.T2, CellVertices.Get(8));
-		
-		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT2);
-		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT1);
-		ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT0);
-	}
-
-	MeshInfo->BoundingBox = Grid->GetBoundingBox();
-	
-	return ChangedInfo;
-}
-
 void FOpenLandGridRenderer::ApplyCellChangesAsync(FOpenLandGridChangedCells ChangedCells)
 {
 	// Apply Cell Changes
-	for (int32 Index = 0; Index < ChangedCells.CellsToRemove.Num(); Index++)
-	{
-		SwapCell(&ChangedCells, Index);
-	}
+	
+	CurrentGridChangedCells = ChangedCells.Clone();
+	CompletedCells.Set(0);
 
-	// Apply Edge Cell Changes
-	for (int32 Index = 0; Index < ChangedCells.EdgeCellsToRemove.Num(); Index++)
+	// if (ChangedCells.CellsToRemove.Num() > 0)
+	// {
+	// 	StartSwapCell();
+	// }
+	
+	FOpenLandThreading::RunOnAnyBackgroundThread([this]()
 	{
-		SwapEdgeCell(&ChangedCells, Index);
-	}
+		for (int32 Index = 0; Index < CurrentGridChangedCells->CellsToRemove.Num(); Index++)
+		{
+			SwapCell(Index);
+		}
 
-	// Go through existing edge cells & regenerate cells
-	for (int32 Index = 0; Index < ChangedCells.ExistingEdgeCells.Num(); Index++)
-	{
-		RegenerateEdgeCell(&ChangedCells, Index);
-	}
+		// Apply Edge Cell Changes
+		for (int32 Index = 0; Index < CurrentGridChangedCells->EdgeCellsToRemove.Num(); Index++)
+		{
+			SwapEdgeCell(Index);
+		}
+		
+		// Go through existing edge cells & regenerate cells
+		for (int32 Index = 0; Index < CurrentGridChangedCells->ExistingEdgeCells.Num(); Index++)
+		{
+			RegenerateEdgeCell(Index);
+		}
+		
+		CurrentOperation->bCompleted = true;
+	});
+
+	
 
 	MeshInfo->BoundingBox = Grid->GetBoundingBox();
-	CurrentOperation->bCompleted = true;
 }
 
-void FOpenLandGridRenderer::SwapCell(FOpenLandGridChangedCells* ChangedCells, int32 Index)
+void FOpenLandGridRenderer::StartSwapCell()
 {
-	const FOpenLandGridCell RemovingCellPos = ChangedCells->CellsToRemove[Index];
-	const FOpenLandGridCell AddingCellPos = ChangedCells->CellsToAdd[Index];
+	FOpenLandThreading::RunOnAnyBackgroundThread([this]()
+		{
+			const int32 TotalCells = CurrentGridChangedCells->CellsToRemove.Num();
+			const int32 NewCompletedCount = CompletedCells.Increment();
+			const int32 CurrentIndex = NewCompletedCount - 1;
+
+			if (CurrentIndex >= TotalCells)
+			{
+				return;
+			}
+
+			SwapCell(CurrentIndex);
+
+			const bool bLastIndex = CurrentIndex == TotalCells -1;
+			if (bLastIndex)
+			{
+				FOpenLandThreading::RunOnGameThread([this]()
+				{
+					CurrentOperation->bCompleted = true;
+				});
+			}
+			else
+			{
+				StartSwapCell();
+			}
+		});
+}
+
+void FOpenLandGridRenderer::SwapCell(int32 Index)
+{
+	const FOpenLandGridCell RemovingCellPos = CurrentGridChangedCells->CellsToRemove[Index];
+	const FOpenLandGridCell AddingCellPos = CurrentGridChangedCells->CellsToAdd[Index];
 	TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(AddingCellPos);
 
 	const FOpenLandGridRendererCell RenderCell = Cells[GetTypeHash(RemovingCellPos)];
@@ -283,10 +225,10 @@ void FOpenLandGridRenderer::SwapCell(FOpenLandGridChangedCells* ChangedCells, in
 	CurrentOperation->ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT0);
 }
 
-void FOpenLandGridRenderer::SwapEdgeCell(FOpenLandGridChangedCells* ChangedCells, int32 Index)
+void FOpenLandGridRenderer::SwapEdgeCell(int32 Index)
 {
-	const FOpenLandGridCell RemovingCellPos = ChangedCells->EdgeCellsToRemove[Index];
-	const FOpenLandGridCell AddingCellPos = ChangedCells->EdgeCellsToAdd[Index];
+	const FOpenLandGridCell RemovingCellPos = CurrentGridChangedCells->EdgeCellsToRemove[Index];
+	const FOpenLandGridCell AddingCellPos = CurrentGridChangedCells->EdgeCellsToAdd[Index];
 	TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildEdgeCell(AddingCellPos);
 	
 	const FOpenLandGridRendererEdgeCell RenderCell = EdgeCells[GetTypeHash(RemovingCellPos)];
@@ -312,16 +254,16 @@ void FOpenLandGridRenderer::SwapEdgeCell(FOpenLandGridChangedCells* ChangedCells
 		RenderCell.IndexT0,
 		RenderCell.IndexT1,
 		RenderCell.IndexT2
-	});
+	}); 
 	
 	CurrentOperation->ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT2);
 	CurrentOperation->ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT1);
 	CurrentOperation->ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT0);
 }
 
-void FOpenLandGridRenderer::RegenerateEdgeCell(FOpenLandGridChangedCells* ChangedCells, int32 Index)
+void FOpenLandGridRenderer::RegenerateEdgeCell(int32 Index)
 {
-	const FOpenLandGridCell Cell = ChangedCells->ExistingEdgeCells[Index];
+	const FOpenLandGridCell Cell = CurrentGridChangedCells->ExistingEdgeCells[Index];
 	TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildEdgeCell(Cell);
 	
 	const FOpenLandGridRendererEdgeCell RenderCell = EdgeCells[GetTypeHash(Cell)];
@@ -345,7 +287,6 @@ void FOpenLandGridRenderer::RegenerateEdgeCell(FOpenLandGridChangedCells* Change
 	CurrentOperation->ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT1);
 	CurrentOperation->ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT0);
 }
-
 
 FVector FOpenLandGridRenderer::ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source)
 {

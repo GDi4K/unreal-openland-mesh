@@ -11,7 +11,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 {
 	CurrentBuildOptions = BuildOptions;
 
-	for (int32 LODIndex=0; LODIndex<10; LODIndex++)
+	for (int32 LODIndex=0; LODIndex<20; LODIndex++)
 	{
 		FOpenLandMovingGridLOD CurrentLOD = FOpenLandMovingGridLOD::New();
 		CurrentLOD.Index = LODIndex;
@@ -85,9 +85,60 @@ void FOpenLandMovingGrid::UpdatePositionAsync(FVector NewCenter)
         }
 
 		UpdatingLODs = {};
+		times ++;
 		return;
 	}
 
+
+	if (times > 0)
+	{
+		for (int32 LODIndex=LODs.Num() -1; LODIndex >= 0; LODIndex --)
+		{
+			const FOpenLandMovingGridLOD CurrentLOD = LODs[LODIndex];
+			const FOpenLandMovingGridLOD* InnerLOD = LODIndex == 0? nullptr : &(LODs[LODIndex - 1]);
+			const FOpenLandMovingGridLOD* OuterLOD = LODIndex == LODs.Num() -1 ? nullptr : &(LODs[LODIndex + 1]);
+			
+			// Apply Recenter Logic
+			bool bHasChanges = false;
+			if (InnerLOD)
+			{
+				bHasChanges = CurrentLOD.GridRenderer->StartReCenter(NewCenter, InnerLOD->Grid->GetRootCell().ToVector2D()/2);
+			}
+			else
+			{
+				bHasChanges = CurrentLOD.GridRenderer->StartReCenter(NewCenter);
+			}
+			
+			
+			if (!bHasChanges)
+			{
+				continue;
+			}
+			
+			UpdatingLODs.Push({
+				LODIndex,
+				nullptr
+			});
+			
+			// Update Outer Grid Hole
+			if (OuterLOD)
+			{
+				const bool bHasOuterChanges = OuterLOD->GridRenderer->StartChangeHoleRootCell(CurrentLOD.Grid->GetRootCell().ToVector2D()/2);
+				if (bHasOuterChanges)
+				{
+					UpdatingLODs.Push({
+						OuterLOD->Index,
+						nullptr
+					});
+				}
+			}
+			
+			return;
+		}
+
+		return;
+	}
+	
 	for (int32 LODIndex=LODs.Num() -1; LODIndex >= 0; LODIndex --)
 	{
 		const FOpenLandMovingGridLOD CurrentLOD = LODs[LODIndex];
@@ -105,11 +156,12 @@ void FOpenLandMovingGrid::UpdatePositionAsync(FVector NewCenter)
 			bHasChanges = CurrentLOD.GridRenderer->StartReCenter(NewCenter);
 		}
 
+
 		if (!bHasChanges)
 		{
 			continue;
 		}
-
+		
 		UpdatingLODs.Push({
 			LODIndex,
 			nullptr

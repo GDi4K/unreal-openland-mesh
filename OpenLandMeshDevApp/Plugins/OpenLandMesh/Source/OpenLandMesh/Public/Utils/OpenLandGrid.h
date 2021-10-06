@@ -9,6 +9,18 @@ struct FOpenLandGridChangedCells
 	TArray<FOpenLandGridCell> EdgeCellsToAdd;
 	TArray<FOpenLandGridCell> EdgeCellsToRemove;
 	TArray<FOpenLandGridCell> ExistingEdgeCells;
+
+	TSharedPtr<FOpenLandGridChangedCells> Clone() const
+	{
+		TSharedPtr<FOpenLandGridChangedCells> ClonedMe = MakeShared<FOpenLandGridChangedCells>();
+		ClonedMe->CellsToAdd = CellsToAdd;
+		ClonedMe->CellsToRemove = CellsToRemove;
+		ClonedMe->EdgeCellsToAdd = EdgeCellsToAdd;
+		ClonedMe->EdgeCellsToRemove = EdgeCellsToRemove;
+		ClonedMe->ExistingEdgeCells = ExistingEdgeCells;
+
+		return ClonedMe;
+	}
 };
 
 struct FOpenLandGridBuildInfo

@@ -290,6 +290,7 @@ void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex)
 
 void UOpenLandMeshComponent::UpdateMeshSection(int32 SectionIndex, TArray<int32> UpdateTriangles)
 {
+	check(IsInGameThread())
 	check(SectionIndex < MeshSections.Num())
 
 	FOpenLandMeshInfoPtr MeshSection = MeshSections[SectionIndex];
