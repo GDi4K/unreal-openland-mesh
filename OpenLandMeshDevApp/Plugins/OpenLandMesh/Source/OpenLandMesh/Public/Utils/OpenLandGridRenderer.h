@@ -10,7 +10,7 @@ struct FOpenLandGridRendererChangedInfo
 struct FOpenLandGridRendererChangedInfoStatus
 {
 	bool bCompleted = false;
-	FOpenLandGridRendererChangedInfo ChangedInfo;
+	FOpenLandGridRendererChangedInfo ChangedInfo = {};
 };
 
 struct FOpenLandGridRendererCell
@@ -40,7 +40,12 @@ class FOpenLandGridRenderer
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
 	TOpenLandArray<FOpenLandMeshVertex> BuildEdgeCell(FOpenLandGridCell Cell) const;
 	FOpenLandGridRendererChangedInfo ApplyCellChanges(FOpenLandGridChangedCells ChangedCells);
+	void ApplyCellChangesAsync(FOpenLandGridChangedCells ChangedCells);
 	static FVector ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source);
+
+	void SwapCell(FOpenLandGridChangedCells* ChangedCells, int32 Index);
+	void SwapEdgeCell(FOpenLandGridChangedCells* ChangedCells, int32 Index);
+	void RegenerateEdgeCell(FOpenLandGridChangedCells* ChangedCells, int32 Index);
 
 public:
 	FOpenLandGridRenderer();
