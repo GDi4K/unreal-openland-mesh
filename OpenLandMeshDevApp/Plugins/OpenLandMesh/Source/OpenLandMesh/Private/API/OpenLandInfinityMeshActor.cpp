@@ -2,9 +2,9 @@
 
 
 #include "API/OpenLandInfinityMeshActor.h"
-
 #include "API/OpenLandMeshHash.h"
-
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/Pawn.h"
 
 // Sets default values
 AOpenLandInfinityMeshActor::AOpenLandInfinityMeshActor()
@@ -36,13 +36,13 @@ TSharedPtr<FVector> AOpenLandInfinityMeshActor::GetPlayerPosition() const
 		return nullptr;
 	}
 	
-	const auto Player = GetWorld()->GetFirstPlayerController();
+	const APlayerController* Player = GetWorld()->GetFirstPlayerController();
 	if (!Player)
 	{
 		return nullptr;
 	}
 	
-	const auto Pawn = Player->GetPawn();
+	const APawn* Pawn = Player->GetPawn();
 	if (!Pawn)
 	{
 		return nullptr;

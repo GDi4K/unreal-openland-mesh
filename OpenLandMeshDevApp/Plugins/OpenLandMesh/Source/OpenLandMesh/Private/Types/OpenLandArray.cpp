@@ -3,6 +3,8 @@
 #pragma once
 
 #include "Types/OpenLandArray.h"
+
+#include "Types/OpenLandGridRendererCellBuildResult.h"
 #include "Types/OpenLandMeshTriangle.h"
 #include "Types/OpenLandMeshInfo.h"
 
@@ -131,3 +133,4 @@ template class TOpenLandArray<FVector>;
 template class TOpenLandArray<FOpenLandMeshTriangle>;
 template class TOpenLandArray<FOpenLandMeshVertex>;
 template class TOpenLandArray<FOpenLandMeshInfoPtr>;
+template class TOpenLandArray<FOpenLandGridRendererCellBuildResult>;

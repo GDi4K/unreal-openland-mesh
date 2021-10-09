@@ -132,15 +132,22 @@ void FOpenLandGridRenderer::ApplyCellChangesAsync(FOpenLandGridChangedCells Chan
 	// Apply Cell Changes
 	
 	CurrentGridChangedCells = ChangedCells.Clone();
-	CompletedCells.Set(0);
+	CellGenInfo.Reset(
+		ChangedCells.CellsToAdd.Num(),
+		ChangedCells.EdgeCellsToAdd.Num(),
+		ChangedCells.ExistingEdgeCells.Num()
+	);
 
-	// if (ChangedCells.CellsToRemove.Num() > 0)
-	// {
-	// 	StartSwapCell();
-	// }
+	FinishCellGeneration();
 	
+	MeshInfo->BoundingBox = Grid->GetBoundingBox();
+}
+
+void FOpenLandGridRenderer::FinishCellGeneration()
+{
 	FOpenLandThreading::RunOnAnyBackgroundThread([this]()
 	{
+		
 		for (int32 Index = 0; Index < CurrentGridChangedCells->CellsToRemove.Num(); Index++)
 		{
 			SwapCell(Index);
@@ -160,40 +167,6 @@ void FOpenLandGridRenderer::ApplyCellChangesAsync(FOpenLandGridChangedCells Chan
 		
 		CurrentOperation->bCompleted = true;
 	});
-
-	
-
-	MeshInfo->BoundingBox = Grid->GetBoundingBox();
-}
-
-void FOpenLandGridRenderer::StartSwapCell()
-{
-	FOpenLandThreading::RunOnAnyBackgroundThread([this]()
-		{
-			const int32 TotalCells = CurrentGridChangedCells->CellsToRemove.Num();
-			const int32 NewCompletedCount = CompletedCells.Increment();
-			const int32 CurrentIndex = NewCompletedCount - 1;
-
-			if (CurrentIndex >= TotalCells)
-			{
-				return;
-			}
-
-			SwapCell(CurrentIndex);
-
-			const bool bLastIndex = CurrentIndex == TotalCells -1;
-			if (bLastIndex)
-			{
-				FOpenLandThreading::RunOnGameThread([this]()
-				{
-					CurrentOperation->bCompleted = true;
-				});
-			}
-			else
-			{
-				StartSwapCell();
-			}
-		});
 }
 
 void FOpenLandGridRenderer::SwapCell(int32 Index)
