@@ -38,11 +38,12 @@ struct FOpenLandGridRendererGeneratedCells
 	FThreadSafeCounter GeneratedCellCount;
 	FThreadSafeCounter GeneratedEdgeCellCount;
 	FThreadSafeCounter ReGeneratedEdgeCellCount;
+	FThreadSafeCounter CallFinishedCounter;
 
 	int32 GetNextGeneratedCellIndex()
 	{
 		const size_t NewValue = GeneratedCellCount.Increment();
-		if (NewValue >= GeneratedCells.Length())
+		if (NewValue > GeneratedCells.Length())
 		{
 			return -1;
 		}
@@ -53,7 +54,7 @@ struct FOpenLandGridRendererGeneratedCells
 	int32 GetNextGeneratedEdgeCellIndex()
 	{
 		const size_t NewValue = GeneratedEdgeCellCount.Increment();
-		if (NewValue >= GeneratedEdgeCells.Length())
+		if (NewValue > GeneratedEdgeCells.Length())
 		{
 			return -1;
 		}
@@ -64,7 +65,7 @@ struct FOpenLandGridRendererGeneratedCells
 	int32 GetNextReGeneratedEdgeCellIndex()
 	{
 		const size_t NewValue = ReGeneratedEdgeCellCount.Increment();
-		if (NewValue >= ReGeneratedEdgeCells.Length())
+		if (NewValue > ReGeneratedEdgeCells.Length())
 		{
 			return -1;
 		}
@@ -72,18 +73,9 @@ struct FOpenLandGridRendererGeneratedCells
 		return NewValue - 1;
 	}
 
-	static TSharedPtr<FOpenLandGridRendererGeneratedCells> New(
-		int32 NumGeneratedCells,
-		int32 NumEdgeGeneratedCells,
-		int32 NumRegeneratedEdgeGeneratedCells
-	)
+	bool CanFinish()
 	{
-		TSharedPtr<FOpenLandGridRendererGeneratedCells> Ptr = MakeShared<FOpenLandGridRendererGeneratedCells>();
-		Ptr->GeneratedCells.SetLength(NumGeneratedCells);
-		Ptr->GeneratedEdgeCells.SetLength(NumEdgeGeneratedCells);
-		Ptr->ReGeneratedEdgeCells.SetLength(NumRegeneratedEdgeGeneratedCells);
-
-		return Ptr;
+		return CallFinishedCounter.Increment() == 1;
 	}
 
 	void Reset(
@@ -101,6 +93,18 @@ struct FOpenLandGridRendererGeneratedCells
 		GeneratedCellCount.Set(0);
 		GeneratedEdgeCellCount.Set(0);
 		ReGeneratedEdgeCellCount.Set(0);
+		CallFinishedCounter.Set(0);
+	}
+
+	static TSharedPtr<FOpenLandGridRendererGeneratedCells> New(
+		int32 NumGeneratedCells,
+		int32 NumEdgeGeneratedCells,
+		int32 NumRegeneratedEdgeGeneratedCells
+	)
+	{
+		TSharedPtr<FOpenLandGridRendererGeneratedCells> Ptr = MakeShared<FOpenLandGridRendererGeneratedCells>();
+		Ptr->Reset(NumGeneratedCells, NumEdgeGeneratedCells, NumRegeneratedEdgeGeneratedCells);
+		return Ptr;
 	}
 };
 
@@ -114,17 +118,21 @@ class FOpenLandGridRenderer
 	
 	TSharedPtr<FOpenLandGridRendererChangedInfoStatus> CurrentOperation = nullptr;
 	TSharedPtr<FOpenLandGridChangedCells> CurrentGridChangedCells = nullptr;
-	FOpenLandGridRendererGeneratedCells CellGenInfo = {};
+	TSharedPtr<FOpenLandGridRendererGeneratedCells> CellGenInfo = nullptr;
 
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
 	TOpenLandArray<FOpenLandMeshVertex> BuildEdgeCell(FOpenLandGridCell Cell) const;
 	void ApplyCellChangesAsync(FOpenLandGridChangedCells ChangedCells);
-	void FinishCellGeneration();
 	static FVector ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source);
+	
+	int32 TotalRendering = 0;
 
 	void SwapCell(int32 Index);
 	void SwapEdgeCell(int32 Index);
 	void RegenerateEdgeCell(int32 Index);
+
+	void GenerateCellAsync();
+	void FinishCellGeneration();
 
 public:
 	FOpenLandGridRenderer();
