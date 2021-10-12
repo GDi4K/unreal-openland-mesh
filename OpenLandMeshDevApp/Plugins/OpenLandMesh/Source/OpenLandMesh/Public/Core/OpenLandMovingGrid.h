@@ -34,18 +34,19 @@ struct FOpenLandMovingGridLOD
 		return LOD;
 	}
 
-	void InitializeMesh(UOpenLandMeshComponent* MeshComponent)
+	void InitializeMesh(UOpenLandMeshComponent* MeshComponent, int32 InputMeshSectionIndex)
 	{
 		MeshInfo = GridRenderer->Initialize(Grid);
 		MeshInfo->bEnableCollision = Index == 0;
+		MeshSectionIndex = InputMeshSectionIndex;
 
-		if (MeshSectionIndex < 0)
-		{
-			MeshSectionIndex = MeshComponent->NumMeshSections();
-			MeshComponent->CreateMeshSection(MeshSectionIndex, MeshInfo);
-		} else
+		const bool bHasMeshSection = MeshComponent->NumMeshSections() > MeshSectionIndex;
+		if (bHasMeshSection)
 		{
 			MeshComponent->ReplaceMeshSection(MeshSectionIndex, MeshInfo);
+		} else
+		{
+			MeshComponent->CreateMeshSection(MeshSectionIndex, MeshInfo);
 		}
 	}
 };

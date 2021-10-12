@@ -10,7 +10,8 @@ FOpenLandMovingGrid::FOpenLandMovingGrid(UOpenLandMeshComponent* Component)
 void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 {
 	CurrentBuildOptions = BuildOptions;
-
+	TArray<FOpenLandMovingGridLOD> NewLODs = {};
+	
 	for (int32 LODIndex=0; LODIndex<20; LODIndex++)
 	{
 		FOpenLandMovingGridLOD CurrentLOD = FOpenLandMovingGridLOD::New();
@@ -21,7 +22,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 		BuildInfo.CellWidth = CurrentBuildOptions.CellWidth * FMath::Pow(2, LODIndex);
 		BuildInfo.UpperCellWidth = CurrentBuildOptions.CellWidth * FMath::Pow(2, LODIndex + 1);
 
-		FOpenLandMovingGridLOD* InnerLOD = LODIndex == 0? nullptr : &(LODs[LODIndex-1]);
+		FOpenLandMovingGridLOD* InnerLOD = LODIndex == 0? nullptr : &(NewLODs[LODIndex-1]);
 		if (InnerLOD)
 		{
 			BuildInfo.HoleRootCell = InnerLOD->Grid->GetRootCell() / 2;
@@ -29,17 +30,16 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 		}
 
 		CurrentLOD.Grid->Build(BuildInfo);
-		CurrentLOD.InitializeMesh(MeshComponent);
+		CurrentLOD.InitializeMesh(MeshComponent, LODIndex);
 
-		LODs.Push(CurrentLOD);
+		NewLODs.Push(CurrentLOD);
 	}
 
 	// Mesh Updates
 	MeshComponent->SetupCollisions(false);
 	MeshComponent->InvalidateRendering();
 
-	MeshComponent->SetupCollisions(false);
-	MeshComponent->InvalidateRendering();
+	LODs = NewLODs;
 }
 
 void FOpenLandMovingGrid::UpdatePositionAsync(FVector NewCenter)

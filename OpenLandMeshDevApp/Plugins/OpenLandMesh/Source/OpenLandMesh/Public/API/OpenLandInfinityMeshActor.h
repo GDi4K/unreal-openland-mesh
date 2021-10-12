@@ -16,6 +16,7 @@ class OPENLANDMESH_API AOpenLandInfinityMeshActor : public AActor
 
 	FString ObjectId;
 	FOpenLandMovingGridPtr MovingGrid;
+	bool bBuiltWithUserParameters = false;
 	TSharedPtr<FVector> GetPlayerPosition() const;
 	TSharedPtr<FVector> GetCameraPosition() const;
 

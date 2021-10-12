@@ -20,13 +20,7 @@ AOpenLandInfinityMeshActor::AOpenLandInfinityMeshActor()
 	ObjectId = HashGen->Generate();
 
 	MovingGrid = MakeShared<FOpenLandMovingGrid>(MeshComponent);
-	FOpenLandMovingGridBuildOptions BuildOptions = {};
-	BuildOptions.CuspAngle = 0;
-	BuildOptions.CellWidth = CellWidth;
-	BuildOptions.CellCount = CellCount;
-	BuildOptions.UnitUVLenght = UnitUVLenght;
-	BuildOptions.MaxUVs = MaxUVs;
-	MovingGrid->Build(BuildOptions);
+	Rebuild();
 }
 
 TSharedPtr<FVector> AOpenLandInfinityMeshActor::GetPlayerPosition() const
@@ -68,6 +62,7 @@ TSharedPtr<FVector> AOpenLandInfinityMeshActor::GetCameraPosition() const
 void AOpenLandInfinityMeshActor::BeginPlay()
 {
 	Super::BeginPlay();
+	Rebuild();
 }
 
 // Called every frame
@@ -97,6 +92,11 @@ void AOpenLandInfinityMeshActor::Tick(float DeltaTime)
 void AOpenLandInfinityMeshActor::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
+	if (bBuiltWithUserParameters)
+	{
+		Rebuild();
+		bBuiltWithUserParameters = true;
+	}
 }
 
 bool AOpenLandInfinityMeshActor::ShouldTickIfViewportsOnly() const
