@@ -125,13 +125,11 @@ class FOpenLandGridRenderer
 	void ApplyCellChangesAsync(FOpenLandGridChangedCells ChangedCells);
 	static FVector ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source);
 	
-	int32 TotalRendering = 0;
-
 	void SwapCell(int32 Index);
 	void SwapEdgeCell(int32 Index);
 	void RegenerateEdgeCell(int32 Index);
 
-	void GenerateCellAsync();
+	bool GenerateCellAsync() const;
 	void FinishCellGeneration();
 
 public:

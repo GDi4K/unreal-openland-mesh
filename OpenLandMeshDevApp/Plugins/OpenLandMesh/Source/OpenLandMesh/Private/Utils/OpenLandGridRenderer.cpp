@@ -136,20 +136,19 @@ void FOpenLandGridRenderer::ApplyCellChangesAsync(FOpenLandGridChangedCells Chan
 		ChangedCells.ExistingEdgeCells.Num()
 	);
 
-	// We will kickoff multithreading after some time.
-	// Otherwise, we will see some issues at the very beginning
-	TotalRendering++;
-	if (TotalRendering > 50)
+	for (int32 ThreadIndex=0; ThreadIndex < 5; ThreadIndex ++)
 	{
-		GenerateCellAsync();
-		GenerateCellAsync();
-		GenerateCellAsync();
-		GenerateCellAsync();
-		GenerateCellAsync();
-	}
-	else
-	{
-		GenerateCellAsync();
+		FOpenLandThreading::RunOnAnyBackgroundThread([this]()
+		{
+			while (true)
+			{
+				const bool hasMoreWork = GenerateCellAsync();
+				if (!hasMoreWork)
+				{
+					break;
+				}
+			}
+		});
 	}
 	
 	MeshInfo->BoundingBox = Grid->GetBoundingBox();
@@ -157,76 +156,66 @@ void FOpenLandGridRenderer::ApplyCellChangesAsync(FOpenLandGridChangedCells Chan
 
 void FOpenLandGridRenderer::FinishCellGeneration()
 {
-	FOpenLandThreading::RunOnAnyBackgroundThread([this]()
+	for (int32 Index = 0; Index < CurrentGridChangedCells->CellsToRemove.Num(); Index++)
 	{
-		
-		for (int32 Index = 0; Index < CurrentGridChangedCells->CellsToRemove.Num(); Index++)
-		{
-			// UE_LOG(LogTemp, Warning, TEXT("SwapCell: %d"), Index)
-			SwapCell(Index);
-		}
+		SwapCell(Index);
+	}
 
-		// Apply Edge Cell Changes
-		for (int32 Index = 0; Index < CurrentGridChangedCells->EdgeCellsToRemove.Num(); Index++)
-		{
-			// UE_LOG(LogTemp, Warning, TEXT("SwapEdgeCell: %d"), Index)
-			SwapEdgeCell(Index);
-		}
+	// Apply Edge Cell Changes
+	for (int32 Index = 0; Index < CurrentGridChangedCells->EdgeCellsToRemove.Num(); Index++)
+	{
+		SwapEdgeCell(Index);
+	}
 		
-		// Go through existing edge cells & regenerate cells
-		for (int32 Index = 0; Index < CurrentGridChangedCells->ExistingEdgeCells.Num(); Index++)
-		{
-			// UE_LOG(LogTemp, Warning, TEXT("RegenerateEdgeCell: %d"), Index)
-			RegenerateEdgeCell(Index);
-		}
-		
-		CurrentOperation->bCompleted = true;
-	});
+	// Go through existing edge cells & regenerate cells
+	for (int32 Index = 0; Index < CurrentGridChangedCells->ExistingEdgeCells.Num(); Index++)
+	{
+		RegenerateEdgeCell(Index);
+	}
 }
 
-void FOpenLandGridRenderer::GenerateCellAsync()
+bool FOpenLandGridRenderer::GenerateCellAsync() const
 {
-	FOpenLandThreading::RunOnAnyBackgroundThread([this]()
+	const int32 CellIndex = CellGenInfo->GetNextGeneratedCellIndex();
+	if (CellIndex >= 0)
 	{
-		const int32 CellIndex = CellGenInfo->GetNextGeneratedCellIndex();
-		if (CellIndex >= 0)
-		{
-			// UE_LOG(LogTemp, Warning, TEXT("CellIndex: %d"), CellIndex)
-			const FOpenLandGridRendererCellBuildResult Cell = {
-				BuildCell(CurrentGridChangedCells->CellsToAdd[CellIndex])
-			};
-			CellGenInfo->GeneratedCells.Set(CellIndex, Cell);
-			return GenerateCellAsync();
-		}
+		// UE_LOG(LogTemp, Warning, TEXT("CellIndex: %d"), CellIndex)
+		const FOpenLandGridRendererCellBuildResult Cell = {
+			BuildCell(CurrentGridChangedCells->CellsToAdd[CellIndex])
+		};
+		CellGenInfo->GeneratedCells.Set(CellIndex, Cell);
+		return true;
+	}
 
-		const int32 EdgeCellIndex = CellGenInfo->GetNextGeneratedEdgeCellIndex();
-		if (EdgeCellIndex >= 0)
-		{
-			// UE_LOG(LogTemp, Warning, TEXT("EdgeCellIndex: %d"), EdgeCellIndex)
-			const FOpenLandGridRendererCellBuildResult Cell = {
-				BuildEdgeCell(CurrentGridChangedCells->EdgeCellsToAdd[EdgeCellIndex])
-			};
-			CellGenInfo->GeneratedEdgeCells.Set(EdgeCellIndex, Cell);
-			return GenerateCellAsync();
-		}
+	const int32 EdgeCellIndex = CellGenInfo->GetNextGeneratedEdgeCellIndex();
+	if (EdgeCellIndex >= 0)
+	{
+		// UE_LOG(LogTemp, Warning, TEXT("EdgeCellIndex: %d"), EdgeCellIndex)
+		const FOpenLandGridRendererCellBuildResult Cell = {
+			BuildEdgeCell(CurrentGridChangedCells->EdgeCellsToAdd[EdgeCellIndex])
+		};
+		CellGenInfo->GeneratedEdgeCells.Set(EdgeCellIndex, Cell);
+		return true;
+	}
 
-		const int32 RegeneratedEdgeCellIndex = CellGenInfo->GetNextReGeneratedEdgeCellIndex();
-		if (RegeneratedEdgeCellIndex >= 0)
-		{
-			// UE_LOG(LogTemp, Warning, TEXT("RegeneratedEdgeCellIndex: %d"), RegeneratedEdgeCellIndex)
-			const FOpenLandGridRendererCellBuildResult Cell = {
-				BuildEdgeCell(CurrentGridChangedCells->ExistingEdgeCells[RegeneratedEdgeCellIndex])
-			};
-			CellGenInfo->ReGeneratedEdgeCells.Set(RegeneratedEdgeCellIndex, Cell);
-			return GenerateCellAsync();
-		}
+	const int32 RegeneratedEdgeCellIndex = CellGenInfo->GetNextReGeneratedEdgeCellIndex();
+	if (RegeneratedEdgeCellIndex >= 0)
+	{
+		// UE_LOG(LogTemp, Warning, TEXT("RegeneratedEdgeCellIndex: %d"), RegeneratedEdgeCellIndex)
+		const FOpenLandGridRendererCellBuildResult Cell = {
+			BuildEdgeCell(CurrentGridChangedCells->ExistingEdgeCells[RegeneratedEdgeCellIndex])
+		};
+		CellGenInfo->ReGeneratedEdgeCells.Set(RegeneratedEdgeCellIndex, Cell);
+		return true;
+	}
 
-		if (CellGenInfo->CanFinish())
-		{
-			// UE_LOG(LogTemp, Warning, TEXT("FinishCellGeneration"))
-			FinishCellGeneration();
-		}
-	});
+	if (CellGenInfo->CanFinish())
+	{
+		// UE_LOG(LogTemp, Warning, TEXT("FinishCellGeneration"))
+		CurrentOperation->bCompleted = true;
+	}
+
+	return false;
 }
 
 void FOpenLandGridRenderer::SwapCell(int32 Index)
@@ -443,6 +432,7 @@ TSharedPtr<FOpenLandGridRendererChangedInfo> FOpenLandGridRenderer::CheckStatus(
 		return nullptr;
 	}
 
+	FinishCellGeneration();
 	const TSharedPtr<FOpenLandGridRendererChangedInfo> ChangedInfo = MakeShared<FOpenLandGridRendererChangedInfo>();
 	ChangedInfo->ChangedTriangles = CurrentOperation->ChangedInfo.ChangedTriangles;
 	
