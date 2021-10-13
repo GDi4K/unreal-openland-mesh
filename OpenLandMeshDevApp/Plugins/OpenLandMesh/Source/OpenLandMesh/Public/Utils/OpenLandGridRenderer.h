@@ -1,4 +1,7 @@
 ﻿#pragma once
+#include "Compute/GpuComputeVertex.h"
+#include "Compute/Types/ComputeMaterial.h"
+#include "Compute/Types/DataTexture.h"
 #include "Types/OpenLandGridRenderer.h"
 #include "Utils/OpenLandGrid.h"
 #include "Types/OpenLandMeshInfo.h"
@@ -127,8 +130,14 @@ class FOpenLandGridRenderer
 	void ApplyVertexModifiersAsync(FOpenLandGridChangedCells ChangedCells);
 	static FVector ApplyCpuVertexModifier(FVector Source);
 	static void BuildTangents(TOpenLandArray<FOpenLandMeshVertex>& Vertices);
+	
+	TSharedPtr<FDataTexture> DataTextureX = nullptr;
+	TSharedPtr<FDataTexture> DataTextureY = nullptr;
+	TSharedPtr<FDataTexture> DataTextureZ = nullptr;
+	TSharedPtr<FGpuComputeVertex> GpuComputeEngine = nullptr;
 
-	UMaterialInterface* VertexModifier = nullptr;
+	FComputeMaterial GpuVertexModifier = {};
+	UObject* WorldContext = nullptr;
 	
 	void SwapCell(int32 Index);
 	void SwapEdgeCell(int32 Index);
@@ -144,7 +153,7 @@ public:
 	bool StartReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell);
 	bool StartChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell);
 	TSharedPtr<FOpenLandGridRendererChangedInfo> CheckStatus();
-	void SetVertexModifier(UMaterialInterface* Material);
+	void SetGpuVertexModifier(FComputeMaterial ComputeMaterial, UObject* InputWorldContext);
 };
 
 typedef TSharedPtr<FOpenLandGridRenderer> FOpenLandGridRendererPtr;

@@ -19,8 +19,7 @@ AOpenLandInfinityMeshActor::AOpenLandInfinityMeshActor()
 	HashGen->AddFloat(FMath::Rand());
 	ObjectId = HashGen->Generate();
 
-	MovingGrid = MakeShared<FOpenLandMovingGrid>(MeshComponent);
-	Rebuild();
+	MovingGrid = MakeShared<FOpenLandMovingGrid>(MeshComponent, this);
 }
 
 TSharedPtr<FVector> AOpenLandInfinityMeshActor::GetPlayerPosition() const
@@ -92,7 +91,7 @@ void AOpenLandInfinityMeshActor::Tick(float DeltaTime)
 void AOpenLandInfinityMeshActor::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-	if (bBuiltWithUserParameters)
+	if (!bBuiltWithUserParameters)
 	{
 		Rebuild();
 		bBuiltWithUserParameters = true;
@@ -110,14 +109,35 @@ bool AOpenLandInfinityMeshActor::ShouldTickIfViewportsOnly() const
 	return World->WorldType == EWorldType::Editor;
 }
 
-void AOpenLandInfinityMeshActor::Rebuild()
+bool AOpenLandInfinityMeshActor::Rebuild()
 {
+	if (GetWorld() == nullptr)
+	{
+		return false;
+	}
+	
+	// We cannot do instances inside the blueprint editor
+	if (GetWorld()->WorldType == EWorldType::EditorPreview)
+	{
+		return false;
+	}
+	
+	// Here we detect the preview actor created when dragging it from the content browser
+	// Even in that case, we should create any instance
+	if (HasAnyFlags(RF_Transient))
+	{
+		return false;
+	}
+	
 	FOpenLandMovingGridBuildOptions BuildOptions = {};
 	BuildOptions.CuspAngle = 0;
 	BuildOptions.CellWidth = CellWidth;
 	BuildOptions.CellCount = CellCount;
 	BuildOptions.UnitUVLenght = UnitUVLenght;
 	BuildOptions.MaxUVs = MaxUVs;
+	MovingGrid->SetVertexModifier(VertexModifier);
 	MovingGrid->Build(BuildOptions);
+
+	return true;
 }
 

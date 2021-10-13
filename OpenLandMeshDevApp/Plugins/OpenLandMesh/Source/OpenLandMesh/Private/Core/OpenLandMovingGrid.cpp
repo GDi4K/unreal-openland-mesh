@@ -2,12 +2,13 @@
 
 #include "Core/OpenLandPolygonMesh.h"
 
-FOpenLandMovingGrid::FOpenLandMovingGrid(UOpenLandMeshComponent* Component)
+FOpenLandMovingGrid::FOpenLandMovingGrid(UOpenLandMeshComponent* Component, UObject* InputWorldContext)
 {
 	MeshComponent = Component;
+	WorldContext = InputWorldContext;
 }
 
-void FOpenLandMovingGrid::SetVertexModifier(UMaterialInterface* Material)
+void FOpenLandMovingGrid::SetVertexModifier(FComputeMaterial Material)
 {
 	VertexModifier = Material;
 }
@@ -35,7 +36,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 		}
 
 		CurrentLOD.Grid->Build(BuildInfo);
-		CurrentLOD.GridRenderer->SetVertexModifier(VertexModifier);
+		CurrentLOD.GridRenderer->SetGpuVertexModifier(VertexModifier, WorldContext);
 		CurrentLOD.InitializeMesh(MeshComponent, LODIndex);
 
 		NewLODs.Push(CurrentLOD);

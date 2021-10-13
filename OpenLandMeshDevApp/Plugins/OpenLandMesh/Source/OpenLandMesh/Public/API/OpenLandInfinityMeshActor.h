@@ -5,8 +5,8 @@
 #include "CoreMinimal.h"
 #include "Core/OpenLandMeshComponent.h"
 #include "Core/OpenLandMovingGrid.h"
-#include "Materials/MaterialInterface.h"
 #include "GameFramework/Actor.h"
+#include "Compute/Types/ComputeMaterial.h"
 
 #include "OpenLandInfinityMeshActor.generated.h"
 
@@ -50,9 +50,9 @@ public:
 	int32 MaxUVs = 5;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OpenLand Infinity Mesh")
-	UMaterialInterface* VertexModifier = nullptr;
+	FComputeMaterial VertexModifier;
 	
 	UFUNCTION(CallInEditor, BlueprintCallable, Category="OpenLand Infinity Mesh")
-	void Rebuild();
+	bool Rebuild();
 	
 };

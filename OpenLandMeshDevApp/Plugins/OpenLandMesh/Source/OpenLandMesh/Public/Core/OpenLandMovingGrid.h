@@ -59,13 +59,15 @@ class FOpenLandMovingGrid
 	
 	TArray<FOpenLandMovingGridLOD> LODs = {};
 	TArray<FOpenLandMovingGridUpdatingLOD> UpdatingLODs = {};
-	UMaterialInterface* VertexModifier = nullptr;
+	FComputeMaterial VertexModifier = {};
+
+	UObject* WorldContext = nullptr;
 
 	int32 times = 0;
 
 public:
-	FOpenLandMovingGrid(UOpenLandMeshComponent* Component);
-	void SetVertexModifier(UMaterialInterface* Material);
+	FOpenLandMovingGrid(UOpenLandMeshComponent* Component, UObject* InputWorldContext);
+	void SetVertexModifier(FComputeMaterial Material);
 	void Build(FOpenLandMovingGridBuildOptions BuildOptions);
 	void UpdatePositionAsync(FVector NewCenter);
 };

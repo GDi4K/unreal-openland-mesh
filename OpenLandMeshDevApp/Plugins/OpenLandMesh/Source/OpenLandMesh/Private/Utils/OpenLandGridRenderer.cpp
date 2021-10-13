@@ -168,6 +168,80 @@ void FOpenLandGridRenderer::ApplyVertexModifiersAsync(FOpenLandGridChangedCells 
 		};
 		CellGenInfo->ReGeneratedEdgeCells.Set(CellIndex, Cell);
 	}
+
+	// Apply GPU Vertex Modifier if needed
+	if (GpuVertexModifier.Material)
+	{
+		const int32 TotalPoints = CellGenInfo->GeneratedCells.Length() * 6 + CellGenInfo->GeneratedEdgeCells.Length() * 9 + CellGenInfo->ReGeneratedEdgeCells.Length() * 9;
+		const int32 TextureWidth = FMath::CeilToInt(FMath::Sqrt(TotalPoints));
+		const int32 RowsToRead = FMath::CeilToInt(TotalPoints / 300.0);
+		UE_LOG(LogTemp, Warning, TEXT("Using GpuVertexModifier. TextureWidth: %d, RowsToRead: %d"), TextureWidth, RowsToRead)
+
+		// TODO: We need to resize this texture as needed.
+		check(TextureWidth < 300);
+		
+		int32 Index = 0;
+		for (size_t CellIndex=0; CellIndex<CellGenInfo->GeneratedCells.Length(); CellIndex++)
+		{
+			
+			TOpenLandArray<FOpenLandMeshVertex>& Vertices = CellGenInfo->GeneratedCells.GetRef(CellIndex).Vertices;
+			for (size_t VertexIndex=0; VertexIndex < Vertices.Length(); VertexIndex++)
+			{
+				FVector Position = Vertices.Get(VertexIndex).Position;
+				DataTextureX->SetFloatValue(Index, Position.X);
+				DataTextureY->SetFloatValue(Index, Position.Y);
+				DataTextureZ->SetFloatValue(Index, Position.Z);
+		
+				Index += 1;
+			}
+		}
+		
+		for (size_t CellIndex=0; CellIndex<CellGenInfo->GeneratedEdgeCells.Length(); CellIndex++)
+		{
+			
+			TOpenLandArray<FOpenLandMeshVertex>& Vertices = CellGenInfo->GeneratedEdgeCells.GetRef(CellIndex).Vertices;
+			for (size_t VertexIndex=0; VertexIndex < Vertices.Length(); VertexIndex++)
+			{
+				FVector Position = Vertices.Get(VertexIndex).Position;
+				DataTextureX->SetFloatValue(Index, Position.X);
+				DataTextureY->SetFloatValue(Index, Position.Y);
+				DataTextureZ->SetFloatValue(Index, Position.Z);
+		
+				Index += 1;
+			}
+		}
+		
+		for (size_t CellIndex=0; CellIndex<CellGenInfo->ReGeneratedEdgeCells.Length(); CellIndex++)
+		{
+			
+			TOpenLandArray<FOpenLandMeshVertex>& Vertices = CellGenInfo->ReGeneratedEdgeCells.GetRef(CellIndex).Vertices;
+			for (size_t VertexIndex=0; VertexIndex < Vertices.Length(); VertexIndex++)
+			{
+				FVector Position = Vertices.Get(VertexIndex).Position;
+				DataTextureX->SetFloatValue(Index, Position.X);
+				DataTextureY->SetFloatValue(Index, Position.Y);
+				DataTextureZ->SetFloatValue(Index, Position.Z);
+		
+				Index += 1;
+			}
+		}
+		
+		DataTextureX->UpdateTexture();
+		DataTextureY->UpdateTexture();
+		DataTextureZ->UpdateTexture();
+		
+		TArray<FGpuComputeVertexDataTextureItem> DataTextures = {
+			{"Position_X", DataTextureX},
+			{"Position_Y", DataTextureY},
+			{"Position_Z", DataTextureZ},
+		};
+
+		GpuComputeEngine->Compute(WorldContext, DataTextures, GpuVertexModifier);
+
+		TArray<FGpuComputeVertexOutput> ModifiedData;
+		ModifiedData.SetNumUninitialized(RowsToRead * 300);
+		GpuComputeEngine->ReadData(ModifiedData, 0, RowsToRead);
+	}
 	
 	for (int32 ThreadIndex=0; ThreadIndex < 5; ThreadIndex ++)
 	{
@@ -461,9 +535,15 @@ TSharedPtr<FOpenLandGridRendererChangedInfo> FOpenLandGridRenderer::CheckStatus(
 	return ChangedInfo;
 }
 
-void FOpenLandGridRenderer::SetVertexModifier(UMaterialInterface* Material)
+void FOpenLandGridRenderer::SetGpuVertexModifier(FComputeMaterial ComputeMaterial, UObject* InputWorldContext)
 {
-	VertexModifier = Material;
+	GpuVertexModifier = ComputeMaterial;
+	WorldContext = InputWorldContext;
+	DataTextureX= MakeShared<FDataTexture>(300);
+	DataTextureY= MakeShared<FDataTexture>(300);
+	DataTextureZ= MakeShared<FDataTexture>(300);
+	GpuComputeEngine = MakeShared<FGpuComputeVertex>();
+	GpuComputeEngine->Init(InputWorldContext, 300);
 }
 
 void FOpenLandGridRenderer::BuildTangents(TOpenLandArray<FOpenLandMeshVertex>& Vertices)
