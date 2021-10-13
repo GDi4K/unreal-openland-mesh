@@ -1,7 +1,8 @@
 ﻿#pragma once
-#include "Types/OpenLandGridRendererCellBuildResult.h"
+#include "Types/OpenLandGridRenderer.h"
 #include "Utils/OpenLandGrid.h"
 #include "Types/OpenLandMeshInfo.h"
+#include "Materials/MaterialInterface.h"
 
 struct FOpenLandGridRendererChangedInfo
 {
@@ -123,13 +124,17 @@ class FOpenLandGridRenderer
 	TOpenLandArray<FOpenLandMeshVertex> BuildCell(FOpenLandGridCell Cell) const;
 	TOpenLandArray<FOpenLandMeshVertex> BuildEdgeCell(FOpenLandGridCell Cell) const;
 	void ApplyCellChangesAsync(FOpenLandGridChangedCells ChangedCells);
-	static FVector ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source);
+	void ApplyVertexModifiersAsync(FOpenLandGridChangedCells ChangedCells);
+	static FVector ApplyCpuVertexModifier(FVector Source);
+	static void BuildTangents(TOpenLandArray<FOpenLandMeshVertex>& Vertices);
+
+	UMaterialInterface* VertexModifier = nullptr;
 	
 	void SwapCell(int32 Index);
 	void SwapEdgeCell(int32 Index);
 	void RegenerateEdgeCell(int32 Index);
 
-	bool GenerateCellAsync() const;
+	bool GenerateCellTangentsAsync() const;
 	void FinishCellGeneration();
 
 public:
@@ -139,6 +144,7 @@ public:
 	bool StartReCenter(FVector NewCenter, FOpenLandGridCell NewHoleRootCell);
 	bool StartChangeHoleRootCell(FOpenLandGridCell NewHoleRootCell);
 	TSharedPtr<FOpenLandGridRendererChangedInfo> CheckStatus();
+	void SetVertexModifier(UMaterialInterface* Material);
 };
 
 typedef TSharedPtr<FOpenLandGridRenderer> FOpenLandGridRendererPtr;

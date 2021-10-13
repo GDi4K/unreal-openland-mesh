@@ -21,10 +21,10 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildCell(FOpenLandGr
 
 	FVector2D UVRoot = Cell.ToVector2D() * UVCellWidth;
 			
-	FOpenLandMeshVertex MA = {ApplyVertexModifier(Cell, A), UVRoot + FVector2D(0, 0) * UVCellWidth};
-	FOpenLandMeshVertex MB = {ApplyVertexModifier(Cell, B), UVRoot + FVector2D(0, 1) * UVCellWidth};
-	FOpenLandMeshVertex MC = {ApplyVertexModifier(Cell, C), UVRoot + FVector2D(1, 1) * UVCellWidth};
-	FOpenLandMeshVertex MD = {ApplyVertexModifier(Cell, D), UVRoot + FVector2D(1, 0) * UVCellWidth};
+	FOpenLandMeshVertex MA = {ApplyCpuVertexModifier(A), UVRoot + FVector2D(0, 0) * UVCellWidth};
+	FOpenLandMeshVertex MB = {ApplyCpuVertexModifier(B), UVRoot + FVector2D(0, 1) * UVCellWidth};
+	FOpenLandMeshVertex MC = {ApplyCpuVertexModifier(C), UVRoot + FVector2D(1, 1) * UVCellWidth};
+	FOpenLandMeshVertex MD = {ApplyCpuVertexModifier(D), UVRoot + FVector2D(1, 0) * UVCellWidth};
 
 	FOpenLandMeshVertex T0_1 = MA;
 	FOpenLandMeshVertex T0_2 = MB;
@@ -70,10 +70,10 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildEdgeCell(FOpenLa
 
 	FVector2D UVRoot = Cell.ToVector2D() * UVCellWidth;
 			
-	FOpenLandMeshVertex MA = {ApplyVertexModifier(Cell, A), UVRoot + FVector2D(0, 0) * UVCellWidth};
-	FOpenLandMeshVertex MB = {ApplyVertexModifier(Cell, B), UVRoot + FVector2D(0, 1) * UVCellWidth};
-	FOpenLandMeshVertex MC = {ApplyVertexModifier(Cell, C), UVRoot + FVector2D(1, 1) * UVCellWidth};
-	FOpenLandMeshVertex MD = {ApplyVertexModifier(Cell, D), UVRoot + FVector2D(1, 0) * UVCellWidth};
+	FOpenLandMeshVertex MA = {ApplyCpuVertexModifier(A), UVRoot + FVector2D(0, 0) * UVCellWidth};
+	FOpenLandMeshVertex MB = {ApplyCpuVertexModifier(B), UVRoot + FVector2D(0, 1) * UVCellWidth};
+	FOpenLandMeshVertex MC = {ApplyCpuVertexModifier(C), UVRoot + FVector2D(1, 1) * UVCellWidth};
+	FOpenLandMeshVertex MD = {ApplyCpuVertexModifier(D), UVRoot + FVector2D(1, 0) * UVCellWidth};
 
 	const FOpenLandGridCell EdgeRoot = Grid->GetHoleRootCell() - FOpenLandGridCell(1, 1);
 	const FOpenLandGridCell EdgeRoot2 = EdgeRoot + FOpenLandGridCell(0, Grid->GetHoleSize().Y + 1);
@@ -92,7 +92,7 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildEdgeCell(FOpenLa
 	if (Angle > PI + PI/4 && Angle <= 2*PI - PI/4)
 	{
 		FVector E = CellPos + FVector(0.5, 0, 0) * Grid->GetCellWidth();
-		FOpenLandMeshVertex ME = {ApplyVertexModifier(Cell, E), UVRoot + FVector2D(0.5, 0) * UVCellWidth};
+		FOpenLandMeshVertex ME = {ApplyCpuVertexModifier(E), UVRoot + FVector2D(0.5, 0) * UVCellWidth};
 
 		AddTri(MA, MB, ME);
 		AddTri(ME, MB, MC);
@@ -101,7 +101,7 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildEdgeCell(FOpenLa
 	else if(Angle > 2*PI - PI/4 || Angle <= + PI/4)
 	{
 		FVector E = CellPos + FVector(1, 0.5, 0) * Grid->GetCellWidth();
-		FOpenLandMeshVertex ME = {ApplyVertexModifier(Cell, E), UVRoot + FVector2D(1, 0.5) * UVCellWidth};
+		FOpenLandMeshVertex ME = {ApplyCpuVertexModifier(E), UVRoot + FVector2D(1, 0.5) * UVCellWidth};
 
 		AddTri(MA, MB, ME);
 		AddTri(ME, MB, MC);
@@ -109,7 +109,7 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildEdgeCell(FOpenLa
 	} else if (Angle > PI/4 && Angle < PI - PI/4)
 	{
 		FVector E = CellPos + FVector(0.5, 1, 0) * Grid->GetCellWidth();
-		FOpenLandMeshVertex ME = {ApplyVertexModifier(Cell, E), UVRoot + FVector2D(0.5, 1) * UVCellWidth};
+		FOpenLandMeshVertex ME = {ApplyCpuVertexModifier(E), UVRoot + FVector2D(0.5, 1) * UVCellWidth};
 
 		AddTri(MA, MB, ME);
 		AddTri(ME, MD, MA);
@@ -117,7 +117,7 @@ TOpenLandArray<FOpenLandMeshVertex> FOpenLandGridRenderer::BuildEdgeCell(FOpenLa
 	} else
 	{
 		FVector E = CellPos + FVector(0, 0.5, 0) * Grid->GetCellWidth();
-		FOpenLandMeshVertex ME = {ApplyVertexModifier(Cell, E), UVRoot + FVector2D(0, 0.5) * UVCellWidth};
+		FOpenLandMeshVertex ME = {ApplyCpuVertexModifier(E), UVRoot + FVector2D(0, 0.5) * UVCellWidth};
 
 		AddTri(MA, ME, MD);
 		AddTri(ME, MB, MC);
@@ -133,16 +133,49 @@ void FOpenLandGridRenderer::ApplyCellChangesAsync(FOpenLandGridChangedCells Chan
 	CellGenInfo = FOpenLandGridRendererGeneratedCells::New(
 		ChangedCells.CellsToAdd.Num(),
 		ChangedCells.EdgeCellsToAdd.Num(),
-		ChangedCells.ExistingEdgeCells.Num()
+		ChangedCells.ModifiedEdgeCells.Num()
 	);
 
+	ApplyVertexModifiersAsync(ChangedCells);
+	
+	MeshInfo->BoundingBox = Grid->GetBoundingBox();
+}
+
+void FOpenLandGridRenderer::ApplyVertexModifiersAsync(FOpenLandGridChangedCells ChangedCells)
+{
+	// Build Cells
+	//	CPU Vertex Modifiers will run in this stage
+	for (int32 CellIndex=0; CellIndex<ChangedCells.CellsToAdd.Num(); CellIndex++)
+	{
+		const FOpenLandGridRendererCellBuildResult Cell = {
+			BuildCell(CurrentGridChangedCells->CellsToAdd[CellIndex])
+		};
+		CellGenInfo->GeneratedCells.Set(CellIndex, Cell);
+	}
+
+	for (int32 CellIndex=0; CellIndex<ChangedCells.EdgeCellsToAdd.Num(); CellIndex++)
+	{
+		const FOpenLandGridRendererCellBuildResult Cell = {
+			BuildEdgeCell(CurrentGridChangedCells->EdgeCellsToAdd[CellIndex])
+		};
+		CellGenInfo->GeneratedEdgeCells.Set(CellIndex, Cell);
+	}
+
+	for (int32 CellIndex=0; CellIndex<ChangedCells.ModifiedEdgeCells.Num(); CellIndex++)
+	{
+		const FOpenLandGridRendererCellBuildResult Cell = {
+			BuildEdgeCell(CurrentGridChangedCells->ModifiedEdgeCells[CellIndex])
+		};
+		CellGenInfo->ReGeneratedEdgeCells.Set(CellIndex, Cell);
+	}
+	
 	for (int32 ThreadIndex=0; ThreadIndex < 5; ThreadIndex ++)
 	{
 		FOpenLandThreading::RunOnAnyBackgroundThread([this]()
 		{
 			while (true)
 			{
-				const bool hasMoreWork = GenerateCellAsync();
+				const bool hasMoreWork = GenerateCellTangentsAsync();
 				if (!hasMoreWork)
 				{
 					break;
@@ -150,8 +183,6 @@ void FOpenLandGridRenderer::ApplyCellChangesAsync(FOpenLandGridChangedCells Chan
 			}
 		});
 	}
-	
-	MeshInfo->BoundingBox = Grid->GetBoundingBox();
 }
 
 void FOpenLandGridRenderer::FinishCellGeneration()
@@ -168,50 +199,37 @@ void FOpenLandGridRenderer::FinishCellGeneration()
 	}
 		
 	// Go through existing edge cells & regenerate cells
-	for (int32 Index = 0; Index < CurrentGridChangedCells->ExistingEdgeCells.Num(); Index++)
+	for (int32 Index = 0; Index < CurrentGridChangedCells->ModifiedEdgeCells.Num(); Index++)
 	{
 		RegenerateEdgeCell(Index);
 	}
 }
 
-bool FOpenLandGridRenderer::GenerateCellAsync() const
+bool FOpenLandGridRenderer::GenerateCellTangentsAsync() const
 {
 	const int32 CellIndex = CellGenInfo->GetNextGeneratedCellIndex();
 	if (CellIndex >= 0)
 	{
-		// UE_LOG(LogTemp, Warning, TEXT("CellIndex: %d"), CellIndex)
-		const FOpenLandGridRendererCellBuildResult Cell = {
-			BuildCell(CurrentGridChangedCells->CellsToAdd[CellIndex])
-		};
-		CellGenInfo->GeneratedCells.Set(CellIndex, Cell);
+		BuildTangents(CellGenInfo->GeneratedCells.GetRef(CellIndex).Vertices);
 		return true;
 	}
 
 	const int32 EdgeCellIndex = CellGenInfo->GetNextGeneratedEdgeCellIndex();
 	if (EdgeCellIndex >= 0)
 	{
-		// UE_LOG(LogTemp, Warning, TEXT("EdgeCellIndex: %d"), EdgeCellIndex)
-		const FOpenLandGridRendererCellBuildResult Cell = {
-			BuildEdgeCell(CurrentGridChangedCells->EdgeCellsToAdd[EdgeCellIndex])
-		};
-		CellGenInfo->GeneratedEdgeCells.Set(EdgeCellIndex, Cell);
+		BuildTangents(CellGenInfo->GeneratedEdgeCells.GetRef(EdgeCellIndex).Vertices);
 		return true;
 	}
 
 	const int32 RegeneratedEdgeCellIndex = CellGenInfo->GetNextReGeneratedEdgeCellIndex();
 	if (RegeneratedEdgeCellIndex >= 0)
 	{
-		// UE_LOG(LogTemp, Warning, TEXT("RegeneratedEdgeCellIndex: %d"), RegeneratedEdgeCellIndex)
-		const FOpenLandGridRendererCellBuildResult Cell = {
-			BuildEdgeCell(CurrentGridChangedCells->ExistingEdgeCells[RegeneratedEdgeCellIndex])
-		};
-		CellGenInfo->ReGeneratedEdgeCells.Set(RegeneratedEdgeCellIndex, Cell);
+		BuildTangents(CellGenInfo->ReGeneratedEdgeCells.GetRef(RegeneratedEdgeCellIndex).Vertices);
 		return true;
 	}
 
 	if (CellGenInfo->CanFinish())
 	{
-		// UE_LOG(LogTemp, Warning, TEXT("FinishCellGeneration"))
 		CurrentOperation->bCompleted = true;
 	}
 
@@ -286,7 +304,7 @@ void FOpenLandGridRenderer::SwapEdgeCell(int32 Index)
 
 void FOpenLandGridRenderer::RegenerateEdgeCell(int32 Index)
 {
-	const FOpenLandGridCell Cell = CurrentGridChangedCells->ExistingEdgeCells[Index];
+	const FOpenLandGridCell Cell = CurrentGridChangedCells->ModifiedEdgeCells[Index];
 	TOpenLandArray<FOpenLandMeshVertex> CellVertices = CellGenInfo->ReGeneratedEdgeCells.Get(Index).Vertices;
 	
 	const FOpenLandGridRendererEdgeCell RenderCell = EdgeCells[GetTypeHash(Cell)];
@@ -311,7 +329,7 @@ void FOpenLandGridRenderer::RegenerateEdgeCell(int32 Index)
 	CurrentOperation->ChangedInfo.ChangedTriangles.Push(RenderCell.IndexT0);
 }
 
-FVector FOpenLandGridRenderer::ApplyVertexModifier(FOpenLandGridCell Cell, FVector Source)
+FVector FOpenLandGridRenderer::ApplyCpuVertexModifier(FVector Source)
 {
 	const float Distance = FVector::Distance(Source, FVector(0, 0, 0));
 	constexpr float Divider = 2000.0f;
@@ -333,7 +351,8 @@ FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGr
 	
 	for(const FOpenLandGridCell Cell: InitialCells.CellsToAdd)
 	{
-		const TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(Cell);
+		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildCell(Cell);
+		BuildTangents(CellVertices);
 		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), CellVertices);
 		
 		const int32 TotalTriangles = MeshInfo->Triangles.Length();
@@ -346,7 +365,8 @@ FOpenLandMeshInfoPtr FOpenLandGridRenderer::Initialize(FOpenLandGridPtr SourceGr
 
 	for(const FOpenLandGridCell Cell: InitialCells.EdgeCellsToAdd)
 	{
-		const TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildEdgeCell(Cell);
+		TOpenLandArray<FOpenLandMeshVertex> CellVertices = BuildEdgeCell(Cell);
+		BuildTangents(CellVertices);
 		FOpenLandPolygonMesh::AddFace(MeshInfo.Get(), CellVertices);
 		
 		const int32 TotalTriangles = MeshInfo->Triangles.Length();
@@ -439,4 +459,21 @@ TSharedPtr<FOpenLandGridRendererChangedInfo> FOpenLandGridRenderer::CheckStatus(
 	CurrentOperation = nullptr;
 
 	return ChangedInfo;
+}
+
+void FOpenLandGridRenderer::SetVertexModifier(UMaterialInterface* Material)
+{
+	VertexModifier = Material;
+}
+
+void FOpenLandGridRenderer::BuildTangents(TOpenLandArray<FOpenLandMeshVertex>& Vertices)
+{
+	for(int32 TriIndex=0; TriIndex < Vertices.Length() / 3; TriIndex ++)
+	{
+		FOpenLandMeshVertex& T0 = Vertices.GetRef(TriIndex + 0);
+		FOpenLandMeshVertex& T1 = Vertices.GetRef(TriIndex + 1);
+		FOpenLandMeshVertex& T2 = Vertices.GetRef(TriIndex + 2);
+
+		FOpenLandPolygonMesh::BuildFaceTangents(T0, T1, T2);
+	}
 }

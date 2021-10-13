@@ -8,7 +8,7 @@ struct FOpenLandGridChangedCells
 	TArray<FOpenLandGridCell> CellsToRemove;
 	TArray<FOpenLandGridCell> EdgeCellsToAdd;
 	TArray<FOpenLandGridCell> EdgeCellsToRemove;
-	TArray<FOpenLandGridCell> ExistingEdgeCells;
+	TArray<FOpenLandGridCell> ModifiedEdgeCells;
 
 	TSharedPtr<FOpenLandGridChangedCells> Clone() const
 	{
@@ -17,7 +17,7 @@ struct FOpenLandGridChangedCells
 		ClonedMe->CellsToRemove = CellsToRemove;
 		ClonedMe->EdgeCellsToAdd = EdgeCellsToAdd;
 		ClonedMe->EdgeCellsToRemove = EdgeCellsToRemove;
-		ClonedMe->ExistingEdgeCells = ExistingEdgeCells;
+		ClonedMe->ModifiedEdgeCells = ModifiedEdgeCells;
 
 		return ClonedMe;
 	}

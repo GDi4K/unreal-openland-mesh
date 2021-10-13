@@ -4,7 +4,7 @@
 
 #include "Types/OpenLandArray.h"
 
-#include "Types/OpenLandGridRendererCellBuildResult.h"
+#include "Types/OpenLandGridRenderer.h"
 #include "Types/OpenLandMeshTriangle.h"
 #include "Types/OpenLandMeshInfo.h"
 

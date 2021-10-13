@@ -7,6 +7,11 @@ FOpenLandMovingGrid::FOpenLandMovingGrid(UOpenLandMeshComponent* Component)
 	MeshComponent = Component;
 }
 
+void FOpenLandMovingGrid::SetVertexModifier(UMaterialInterface* Material)
+{
+	VertexModifier = Material;
+}
+
 void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 {
 	CurrentBuildOptions = BuildOptions;
@@ -30,6 +35,7 @@ void FOpenLandMovingGrid::Build(FOpenLandMovingGridBuildOptions BuildOptions)
 		}
 
 		CurrentLOD.Grid->Build(BuildInfo);
+		CurrentLOD.GridRenderer->SetVertexModifier(VertexModifier);
 		CurrentLOD.InitializeMesh(MeshComponent, LODIndex);
 
 		NewLODs.Push(CurrentLOD);

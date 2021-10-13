@@ -2,6 +2,7 @@
 #include "OpenLandMeshComponent.h"
 #include "Utils/OpenLandGrid.h"
 #include "Utils/OpenLandGridRenderer.h"
+#include "Materials/MaterialInterface.h"
 
 struct FOpenLandMovingGridUpdatingLOD
 {
@@ -58,11 +59,13 @@ class FOpenLandMovingGrid
 	
 	TArray<FOpenLandMovingGridLOD> LODs = {};
 	TArray<FOpenLandMovingGridUpdatingLOD> UpdatingLODs = {};
+	UMaterialInterface* VertexModifier = nullptr;
 
 	int32 times = 0;
 
 public:
 	FOpenLandMovingGrid(UOpenLandMeshComponent* Component);
+	void SetVertexModifier(UMaterialInterface* Material);
 	void Build(FOpenLandMovingGridBuildOptions BuildOptions);
 	void UpdatePositionAsync(FVector NewCenter);
 };
